@@ -129,6 +129,14 @@ Se houver mais de uma área envolvida, escolher a principal e citar as secundár
 - Não quebrar isolamento entre empresas.
 - Não criar código hardcoded quando a configuração puder ser persistida.
 
+## Padrão Git e nomenclatura
+
+- Usar mensagens de commit em português.
+- Usar títulos descritivos em português para documentos, releases e notas humanas.
+- Manter tags semânticas técnicas quando necessário, por exemplo `v0.1.0`, sem tradução.
+- Evitar misturar inglês e português no mesmo texto de documentação operacional.
+- Preservar o histórico publicado; não reescrever commits antigos sem solicitação explícita.
+
 ## Uso recomendado
 
 Este documento deve ser usado como referência base para qualquer IA ou agente que continue o projeto, especialmente quando o objetivo for manter consistência técnica entre sessões diferentes.
