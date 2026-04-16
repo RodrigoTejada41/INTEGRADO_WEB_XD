@@ -36,8 +36,10 @@ def test_tenant_scheduler_creates_jobs_and_updates_heartbeat() -> None:
     from backend.models import Base
     from backend.models.tenant_source_config import TenantSourceConfig
     from backend.repositories.tenant_config_repository import TenantConfigRepository
+    from backend.repositories.tenant_sync_job_repository import TenantSyncJobRepository
     from backend.repositories.tenant_repository import TenantRepository
     from backend.services.tenant_sync_scheduler import TenantSyncScheduler
+    from backend.services.tenant_sync_worker import TenantSyncWorker
 
     Base.metadata.create_all(bind=engine)
 
@@ -71,7 +73,18 @@ def test_tenant_scheduler_creates_jobs_and_updates_heartbeat() -> None:
     tenant_scheduler.run_source_sync(config.id)
 
     with SessionLocal() as session:
+        job_repository = TenantSyncJobRepository(session)
+        pending_jobs = job_repository.list_pending()
+        assert len(pending_jobs) == 1
+        assert pending_jobs[0].source_config_id == config.id
+
+    worker = TenantSyncWorker(session_factory=SessionLocal)
+    processed = worker.drain_pending_jobs()
+    assert processed == 1
+
+    with SessionLocal() as session:
         config = session.get(TenantSourceConfig, config.id)
         assert config is not None
         assert config.last_status == "ok"
         assert config.last_run_at is not None
+        assert len(TenantSyncJobRepository(session).list_pending()) == 0

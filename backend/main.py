@@ -10,6 +10,7 @@ from backend.config.logging import configure_logging
 from backend.config.settings import get_settings
 from backend.models import Base
 from backend.services.retention_service import RetentionService
+from backend.services.tenant_sync_worker import TenantSyncWorker
 from backend.services.tenant_sync_scheduler import TenantSyncScheduler
 
 settings = get_settings()
@@ -49,6 +50,14 @@ async def lifespan(app: FastAPI):
         trigger="interval",
         minutes=5,
         id="tenant-sync-reconciler",
+        replace_existing=True,
+    )
+    tenant_worker = TenantSyncWorker(session_factory=SessionLocal)
+    scheduler.add_job(
+        tenant_worker.drain_pending_jobs,
+        trigger="interval",
+        minutes=1,
+        id="tenant-sync-worker",
         replace_existing=True,
     )
     scheduler.start()

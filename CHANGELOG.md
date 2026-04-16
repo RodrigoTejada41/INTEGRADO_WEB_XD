@@ -10,6 +10,8 @@
 - Cadastro de `source_configs` e `destination_configs` por tenant no backend.
 - Registry inicial de conectores para validar tipos suportados antes de persistir.
 - Scheduler por tenant com intervalo persistido em `source_configs` e heartbeat de execução.
+- Fila persistida de jobs de sync e worker dedicado para processar a execução.
+- Criptografia em repouso das credenciais/configurações dos conectores.
 
 ### Planejado
 - Multiempresa completa com isolamento por empresa, filial e terminal.

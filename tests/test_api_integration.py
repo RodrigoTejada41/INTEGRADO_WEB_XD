@@ -18,6 +18,7 @@ def test_full_flow_sync_and_tenant_isolation() -> None:
     from backend.main import app
     from backend.config.database import SessionLocal
     from backend.models.venda import Venda
+    from backend.models.tenant_source_config import TenantSourceConfig
 
     with TestClient(app) as client:
         create_resp_a = client.post(
@@ -53,6 +54,11 @@ def test_full_flow_sync_and_tenant_isolation() -> None:
         assert source_create.status_code == 200, source_create.text
         assert source_create.json()["sync_interval_minutes"] == 20
         source_config_id = source_create.json()["id"]
+
+        with SessionLocal() as session:
+            source_config = session.get(TenantSourceConfig, source_config_id)
+            assert source_config is not None
+            assert source_config.settings_json != '{"database": "xd", "host": "127.0.0.1", "port": "3308"}'
 
         destination_create = client.post(
             "/admin/tenants/12345678000199/destination-configs",

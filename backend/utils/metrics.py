@@ -12,8 +12,12 @@ class MetricsRegistry:
         self.retention_processed_total = 0
         self.tenant_scheduler_runs_total = 0
         self.tenant_scheduler_failures_total = 0
+        self.tenant_queue_enqueued_total = 0
+        self.tenant_queue_processed_total = 0
+        self.tenant_queue_failed_total = 0
         self.last_sync_epoch_by_empresa: dict[str, int] = {}
         self.last_tenant_scheduler_epoch_by_empresa: dict[str, int] = {}
+        self.last_tenant_queue_epoch_by_empresa: dict[str, int] = {}
 
     def record_sync_success(
         self,
@@ -46,6 +50,20 @@ class MetricsRegistry:
         with self._lock:
             self.tenant_scheduler_failures_total += 1
 
+    def record_tenant_queue_enqueue(self, count: int) -> None:
+        with self._lock:
+            self.tenant_queue_enqueued_total += count
+
+    def record_tenant_queue_processed(self, empresa_id: str) -> None:
+        with self._lock:
+            self.tenant_queue_processed_total += 1
+            self.last_tenant_queue_epoch_by_empresa[empresa_id] = int(datetime.now(UTC).timestamp())
+
+    def record_tenant_queue_failed(self, empresa_id: str) -> None:
+        with self._lock:
+            self.tenant_queue_failed_total += 1
+            self.last_tenant_queue_epoch_by_empresa[empresa_id] = int(datetime.now(UTC).timestamp())
+
     def render_prometheus(self) -> str:
         lines = [
             "# HELP sync_batches_total Total de lotes de sincronizacao processados com sucesso.",
@@ -69,6 +87,15 @@ class MetricsRegistry:
             "# HELP tenant_scheduler_failures_total Total de falhas do scheduler por tenant.",
             "# TYPE tenant_scheduler_failures_total counter",
             f"tenant_scheduler_failures_total {self.tenant_scheduler_failures_total}",
+            "# HELP tenant_queue_enqueued_total Total de jobs enfileirados por tenant.",
+            "# TYPE tenant_queue_enqueued_total counter",
+            f"tenant_queue_enqueued_total {self.tenant_queue_enqueued_total}",
+            "# HELP tenant_queue_processed_total Total de jobs processados por tenant.",
+            "# TYPE tenant_queue_processed_total counter",
+            f"tenant_queue_processed_total {self.tenant_queue_processed_total}",
+            "# HELP tenant_queue_failed_total Total de jobs falhos por tenant.",
+            "# TYPE tenant_queue_failed_total counter",
+            f"tenant_queue_failed_total {self.tenant_queue_failed_total}",
             "# HELP sync_last_success_epoch Timestamp epoch do ultimo sync por empresa.",
             "# TYPE sync_last_success_epoch gauge",
         ]
@@ -78,6 +105,10 @@ class MetricsRegistry:
         lines.append("# TYPE tenant_scheduler_last_success_epoch gauge")
         for empresa_id, epoch in sorted(self.last_tenant_scheduler_epoch_by_empresa.items()):
             lines.append(f'tenant_scheduler_last_success_epoch{{empresa_id="{empresa_id}"}} {epoch}')
+        lines.append("# HELP tenant_queue_last_event_epoch Timestamp epoch do ultimo evento da fila por empresa.")
+        lines.append("# TYPE tenant_queue_last_event_epoch gauge")
+        for empresa_id, epoch in sorted(self.last_tenant_queue_epoch_by_empresa.items()):
+            lines.append(f'tenant_queue_last_event_epoch{{empresa_id="{empresa_id}"}} {epoch}')
         return "\n".join(lines) + "\n"
 
 

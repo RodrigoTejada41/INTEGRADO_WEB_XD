@@ -9,6 +9,8 @@
 - Full test suite stabilized at `9 passed`.
 - Backend base for tenant-scoped source and destination configuration management.
 - Tenant-scoped scheduler support prepared on the backend with persisted source intervals.
+- Persistent sync queue and worker flow added on the backend.
+- Connector settings encrypted at rest before storage.
 
 ### Planned
 - Multi-company isolation across company, branch, and terminal scopes.

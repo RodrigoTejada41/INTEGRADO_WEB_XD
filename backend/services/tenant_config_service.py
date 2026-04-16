@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-import json
-from datetime import UTC, datetime
 from uuid import uuid4
 
 from fastapi import HTTPException, status
@@ -15,6 +13,7 @@ from backend.schemas.tenant_configs import (
     TenantConfigResponse,
     TenantConfigUpdateRequest,
 )
+from backend.utils.crypto import decrypt_json, encrypt_json
 from backend.utils.security import validate_empresa_id
 
 
@@ -45,13 +44,11 @@ class TenantConfigService:
 
     @staticmethod
     def _to_json(settings: dict[str, str]) -> str:
-        return json.dumps(settings, ensure_ascii=False, sort_keys=True)
+        return encrypt_json(settings)
 
     @staticmethod
     def _from_json(settings_json: str) -> dict[str, str]:
-        if not settings_json:
-            return {}
-        return json.loads(settings_json)
+        return decrypt_json(settings_json)
 
     @staticmethod
     def _to_response(item: object, empresa_id: str) -> TenantConfigResponse:

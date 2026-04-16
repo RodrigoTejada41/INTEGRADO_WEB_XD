@@ -1,13 +1,16 @@
 from __future__ import annotations
 
 import logging
+import json
 from datetime import UTC, datetime
+from uuid import uuid4
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from sqlalchemy import select
 from sqlalchemy.orm import sessionmaker
 
 from backend.models.tenant_source_config import TenantSourceConfig
+from backend.repositories.tenant_sync_job_repository import TenantSyncJobRepository
 from backend.utils.metrics import metrics_registry
 
 logger = logging.getLogger(__name__)
@@ -66,14 +69,25 @@ class TenantSyncScheduler:
                 logger.warning("tenant_sync_config_not_found", extra={"config_id": config_id})
                 return
 
-            config.last_run_at = datetime.now(UTC)
-            config.last_status = "ok"
-            config.last_error = None
+            job_repository = TenantSyncJobRepository(session)
+            payload = {
+                "empresa_id": config.empresa_id,
+                "source_config_id": config.id,
+                "connector_type": config.connector_type,
+            }
+            job_repository.create(
+                job_id=str(uuid4()),
+                empresa_id=config.empresa_id,
+                source_config_id=config.id,
+                payload_json=json.dumps(payload, ensure_ascii=False, sort_keys=True),
+                scheduled_at=datetime.now(UTC),
+            )
             session.commit()
 
         metrics_registry.record_tenant_scheduler_success(empresa_id=config.empresa_id)
+        metrics_registry.record_tenant_queue_enqueue(1)
         logger.info(
-            "tenant_sync_tick",
+            "tenant_sync_job_enqueued",
             extra={
                 "empresa_id": config.empresa_id,
                 "config_id": config_id,
