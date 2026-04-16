@@ -36,6 +36,77 @@ def test_full_flow_sync_and_tenant_isolation() -> None:
         assert create_resp_b.status_code == 200
         api_key_b = create_resp_b.json()["api_key"]
 
+        source_create = client.post(
+            "/admin/tenants/12345678000199/source-configs",
+            headers={"X-Admin-Token": "admin-token-test"},
+            json={
+                "nome": "MariaDB origem",
+                "connector_type": "mariadb",
+                "settings": {
+                    "host": "127.0.0.1",
+                    "port": "3308",
+                    "database": "xd",
+                },
+            },
+        )
+        assert source_create.status_code == 200, source_create.text
+        source_config_id = source_create.json()["id"]
+
+        destination_create = client.post(
+            "/admin/tenants/12345678000199/destination-configs",
+            headers={"X-Admin-Token": "admin-token-test"},
+            json={
+                "nome": "PostgreSQL central",
+                "connector_type": "postgresql",
+                "settings": {
+                    "host": "postgres-central",
+                    "port": "5432",
+                    "database": "sync",
+                },
+            },
+        )
+        assert destination_create.status_code == 200, destination_create.text
+        destination_config_id = destination_create.json()["id"]
+
+        source_list = client.get(
+            "/admin/tenants/12345678000199/source-configs",
+            headers={"X-Admin-Token": "admin-token-test"},
+        )
+        assert source_list.status_code == 200
+        assert len(source_list.json()) == 1
+        assert source_list.json()[0]["settings"]["database"] == "xd"
+
+        source_update = client.put(
+            f"/admin/tenants/12345678000199/source-configs/{source_config_id}",
+            headers={"X-Admin-Token": "admin-token-test"},
+            json={
+                "nome": "MariaDB origem principal",
+                "settings": {
+                    "host": "127.0.0.1",
+                    "port": "3308",
+                    "database": "xd",
+                    "schema": "public",
+                },
+            },
+        )
+        assert source_update.status_code == 200, source_update.text
+        assert source_update.json()["nome"] == "MariaDB origem principal"
+        assert source_update.json()["settings"]["schema"] == "public"
+
+        destination_delete = client.delete(
+            f"/admin/tenants/12345678000199/destination-configs/{destination_config_id}",
+            headers={"X-Admin-Token": "admin-token-test"},
+        )
+        assert destination_delete.status_code == 200, destination_delete.text
+        assert destination_delete.json()["status"] == "deleted"
+
+        empty_destination_list = client.get(
+            "/admin/tenants/12345678000199/destination-configs",
+            headers={"X-Admin-Token": "admin-token-test"},
+        )
+        assert empty_destination_list.status_code == 200
+        assert empty_destination_list.json() == []
+
         payload_a = {
             "empresa_id": "12345678000199",
             "records": [

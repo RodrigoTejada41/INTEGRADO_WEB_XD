@@ -1,5 +1,11 @@
 from backend.schemas.server_settings import ServerSettingsResponse, ServerSettingsUpdateRequest
 from backend.schemas.sync import SyncRequest, SyncResponse, VendaPayload
+from backend.schemas.tenant_configs import (
+    TenantConfigCreateRequest,
+    TenantConfigDeleteResponse,
+    TenantConfigResponse,
+    TenantConfigUpdateRequest,
+)
 from backend.schemas.tenant import (
     TenantProvisionRequest,
     TenantProvisionResponse,
@@ -12,6 +18,10 @@ __all__ = [
     "VendaPayload",
     "ServerSettingsResponse",
     "ServerSettingsUpdateRequest",
+    "TenantConfigCreateRequest",
+    "TenantConfigDeleteResponse",
+    "TenantConfigResponse",
+    "TenantConfigUpdateRequest",
     "TenantProvisionRequest",
     "TenantProvisionResponse",
     "TenantRotateKeyResponse",

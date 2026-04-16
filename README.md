@@ -2,6 +2,15 @@
 
 This project is a modular, non-monolithic pipeline that consumes reverse engineering knowledge files and turns them into structured, versioned data exposed by API.
 
+## Registro de continuidade
+O ponto de retomada do projeto está em:
+- [`CONTINUIDADE_PROJETO_SYNC.md`](CONTINUIDADE_PROJETO_SYNC.md)
+
+## Releases e changelog
+- [`CHANGELOG.md`](CHANGELOG.md)
+- [`RELEASE_NOTES_v0.1.0.md`](RELEASE_NOTES_v0.1.0.md)
+- Tag publicada: `v0.1.0`
+
 ## Main source path (processed by pipeline)
 The ingestion source is configured in `.env`:
 - `E:\Projetos\ENGENHARIA_REVERSA\XDSoftware-Reverse-Engineering`
