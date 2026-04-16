@@ -1,22 +1,22 @@
-# Architecture
+﻿# Arquitetura
 
-> This specification must be interpreted through [`PROTOCOLO_ESPECIALISTAS.md`](../PROTOCOLO_ESPECIALISTAS.md) when used by an agent in this repository.
+> Esta especificação deve ser interpretada junto com [`PROTOCOLO_ESPECIALISTAS.md`](../PROTOCOLO_ESPECIALISTAS.md) quando usada por um agente neste repositório.
 
-## Overview
+## Visão geral
 
-System composed of:
+Sistema composto por:
 
-1. Local Agent
-2. Central API
-3. Central Database
+1. Agente local
+2. API central
+3. Banco central
 
-## Flow
+## Fluxo
 
-Local DB -> Agent -> API -> PostgreSQL -> Web Panel
+Banco local -> Agente -> API -> PostgreSQL -> Painel web
 
-## Principles
+## Princípios
 
-- Modular architecture
-- Scalable
-- Stateless API
-- Multi-tenant isolation
+- Arquitetura modular
+- Escalável
+- API sem estado
+- Isolamento multi-tenant

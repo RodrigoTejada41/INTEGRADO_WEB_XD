@@ -1,8 +1,8 @@
-# API Specification
+﻿# Especificação da API
 
-> This specification must be interpreted through [`PROTOCOLO_ESPECIALISTAS.md`](../PROTOCOLO_ESPECIALISTAS.md) when used by an agent in this repository.
+> Esta especificação deve ser interpretada junto com [`PROTOCOLO_ESPECIALISTAS.md`](../PROTOCOLO_ESPECIALISTAS.md) quando usada por um agente neste repositório.
 
-## Authentication
+## Autenticação
 
 - API KEY required
 
@@ -10,7 +10,7 @@
 
 POST /sync
 
-## Request
+## Requisição
 
 ```json
 {
@@ -19,13 +19,13 @@ POST /sync
 }
 ```
 
-## Rules
+## Regras
 
 - Validate API KEY
 - Validate empresa_id
 - Reject invalid data
 - Process batch only
 
-## Response
+## Resposta
 
 - Success or error details

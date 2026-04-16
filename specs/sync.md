@@ -1,22 +1,22 @@
-# Sync Specification
+﻿# Especificação de Sincronização
 
-> This specification must be interpreted through [`PROTOCOLO_ESPECIALISTAS.md`](../PROTOCOLO_ESPECIALISTAS.md) when used by an agent in this repository.
+> Esta especificação deve ser interpretada junto com [`PROTOCOLO_ESPECIALISTAS.md`](../PROTOCOLO_ESPECIALISTAS.md) quando usada por um agente neste repositório.
 
-## Strategy
+## Estratégia
 
 - Incremental sync
 - Based on data_atualizacao
 
-## Frequency
+## Frequência
 
 - Every 15 minutes
 
-## Rules
+## Regras
 
 - No duplicate data
 - Use UUID
 - Use UPSERT
 
-## Conflict Resolution
+## Resolução de conflitos
 
 - Latest data wins

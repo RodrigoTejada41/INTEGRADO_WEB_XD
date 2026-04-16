@@ -1,17 +1,17 @@
-# Security Specification
+﻿# Especificação de Segurança
 
-> This specification must be interpreted through [`PROTOCOLO_ESPECIALISTAS.md`](../PROTOCOLO_ESPECIALISTAS.md) when used by an agent in this repository.
+> Esta especificação deve ser interpretada junto com [`PROTOCOLO_ESPECIALISTAS.md`](../PROTOCOLO_ESPECIALISTAS.md) quando usada por um agente neste repositório.
 
-## Authentication
+## Autenticação
 
 - API KEY per company
 
-## Validation
+## Validação
 
 - Input validation required
 - Reject malformed data
 
-## Isolation
+## Isolamento
 
 - empresa_id must be enforced in all queries
 

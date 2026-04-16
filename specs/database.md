@@ -1,35 +1,35 @@
-# Database Specification
+﻿# Especificação de Banco de Dados
 
-> This specification must be interpreted through [`PROTOCOLO_ESPECIALISTAS.md`](../PROTOCOLO_ESPECIALISTAS.md) when used by an agent in this repository.
+> Esta especificação deve ser interpretada junto com [`PROTOCOLO_ESPECIALISTAS.md`](../PROTOCOLO_ESPECIALISTAS.md) quando usada por um agente neste repositório.
 
-## Engine
+## Motor
 
 - PostgreSQL (central)
 - MariaDB (local)
 
 ## Multi-tenant
 
-All tables must include:
+Todas as tabelas devem incluir:
 
 - empresa_id (indexed)
 
-## Required Fields
+## Campos obrigatórios
 
 - uuid (unique)
 - data_atualizacao
 
-## Indexes
+## Índices
 
 - empresa_id
 - uuid
 - data
 
-## Partitioning
+## Particionamento
 
 - Partition by month
 - Based on date field
 
-## Example Table
+## Exemplo de tabela
 
 vendas:
 - id

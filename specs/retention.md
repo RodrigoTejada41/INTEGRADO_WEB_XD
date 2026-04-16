@@ -1,24 +1,24 @@
-# Data Retention Policy
+﻿# Política de Retenção de Dados
 
-> This specification must be interpreted through [`PROTOCOLO_ESPECIALISTAS.md`](../PROTOCOLO_ESPECIALISTAS.md) when used by an agent in this repository.
+> Esta especificação deve ser interpretada junto com [`PROTOCOLO_ESPECIALISTAS.md`](../PROTOCOLO_ESPECIALISTAS.md) quando usada por um agente neste repositório.
 
-## Rule
+## Regra
 
 - Keep only 14 months of data
 
-## Strategy
+## Estratégia
 
 - Partition by date
 - Drop old partitions
 
-## Alternative
+## Alternativa
 
 - Move to archive tables
 
-## Execution
+## Execução
 
 - Daily scheduled job
 
-## Constraints
+## Restrições
 
 - Never query data older than 14 months

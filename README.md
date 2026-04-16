@@ -1,6 +1,6 @@
-﻿# INTEGRADO WEB XD - Reverse Engineering Knowledge Pipeline
+﻿# INTEGRADO WEB XD - Pipeline de Conhecimento de Engenharia Reversa
 
-This project is a modular, non-monolithic pipeline that consumes reverse engineering knowledge files and turns them into structured, versioned data exposed by API.
+Este projeto é um pipeline modular e não monolítico que consome arquivos de conhecimento de engenharia reversa e os transforma em dados estruturados, versionados e expostos por API.
 
 ## Registro de continuidade
 O ponto de retomada do projeto está em:
@@ -15,50 +15,50 @@ Base de resposta para outra IA ou agente:
 - [`RELEASE_NOTES_v0.1.0.md`](RELEASE_NOTES_v0.1.0.md)
 - Tag publicada: `v0.1.0`
 
-## Main source path (processed by pipeline)
-The ingestion source is configured in `.env`:
+## Caminho principal da origem (processado pelo pipeline)
+A origem de ingestão é configurada em `.env`:
 - `E:\Projetos\ENGENHARIA_REVERSA\XDSoftware-Reverse-Engineering`
 
-Use `KNOWLEDGE_SOURCE_PATHS` to change the processing source folder.
+Use `KNOWLEDGE_SOURCE_PATHS` para alterar a pasta de origem processada.
 
-## External knowledge reference (not processed)
-`CEREBRO_VIVO` must be used only for consultation, not ingestion.
-Use `KNOWLEDGE_REFERENCE_PATHS` only as reference metadata.
+## Referência externa de conhecimento (não processada)
+`CEREBRO_VIVO` deve ser usado apenas para consulta, não para ingestão.
+Use `KNOWLEDGE_REFERENCE_PATHS` somente como metadados de referência.
 
-## Modules
-- `apps/ingestion-service`: monitors source folders, indexes files, creates ingestion events
-- `apps/reverse-engineering-service`: interprets files and infers structure
-- `apps/transformation-service`: normalizes interpreted data and creates dataset versions
-- `apps/persistence-service`: writes evidence to Obsidian vault and Nexus manifest folders
-- `apps/api-service`: JWT-secured RBAC API for files, jobs, datasets and reports
-- `packages/shared`: shared config, sqlite persistence, event queue, and adapters
+## Módulos
+- `apps/ingestion-service`: monitora pastas de origem, indexa arquivos e cria eventos de ingestão
+- `apps/reverse-engineering-service`: interpreta arquivos e infere estrutura
+- `apps/transformation-service`: normaliza os dados interpretados e cria versões de dataset
+- `apps/persistence-service`: grava evidências no cofre do Obsidian e nas pastas de manifestos Nexus
+- `apps/api-service`: API RBAC protegida por JWT para arquivos, jobs, datasets e relatórios
+- `packages/shared`: configuração compartilhada, persistência SQLite, fila de eventos e adaptadores
 
-## Run locally
-1. Create virtualenv and install dependencies:
+## Execução local
+1. Crie o virtualenv e instale as dependências:
 ```powershell
 py -3 -m venv .venv
 .\.venv\Scripts\Activate.ps1
 pip install -r requirements.txt
 ```
-2. Copy env file:
+2. Copie o arquivo de ambiente:
 ```powershell
 Copy-Item .env.example .env
 ```
 
-## Quick execution (single batch)
+## Execução rápida (lote único)
 ```powershell
 .\scripts\run-pipeline-once.ps1
 ```
-This executes ingestion and drains all pending events through reverse engineering, transformation and persistence.
+Isso executa a ingestão e processa todos os eventos pendentes por engenharia reversa, transformação e persistência.
 
-## Continuous execution
+## Execução contínua
 ```powershell
 .\scripts\start-services.ps1
 ```
-This opens 5 terminals and starts all services including API.
+Isso abre 5 terminais e inicia todos os serviços, incluindo a API.
 
-## JWT auth, refresh and RBAC
-1. Login and receive `access_token` + `refresh_token`:
+## Autenticação JWT, renovação e RBAC
+1. Faça login e receba `access_token` + `refresh_token`:
 ```http
 POST /auth/token
 {
@@ -66,14 +66,14 @@ POST /auth/token
   "password": "admin123"
 }
 ```
-2. Refresh (rotates refresh token and invalidates old one):
+2. Renovar sessão (rotaciona o refresh token e invalida o antigo):
 ```http
 POST /auth/refresh
 {
   "refresh_token": "<refresh_token>"
 }
 ```
-3. Logout (revokes current access token and optional refresh token):
+3. Encerrar sessão (revoga o access token atual e o refresh token opcional):
 ```http
 POST /auth/logout
 Authorization: Bearer <access_token>
@@ -81,16 +81,16 @@ Authorization: Bearer <access_token>
   "refresh_token": "<refresh_token_optional>"
 }
 ```
-4. Use access token on protected endpoints:
+4. Use o access token nos endpoints protegidos:
 ```http
 Authorization: Bearer <access_token>
 ```
-5. Roles:
+5. Perfis:
 - `admin`: files/jobs/datasets/reports/audit
 - `analyst`: files/jobs/datasets/reports
 - `viewer`: datasets/reports
 
-## API checks
+## Verificações da API
 - `GET /health`
 - `POST /auth/token`
 - `POST /auth/refresh`
@@ -102,41 +102,41 @@ Authorization: Bearer <access_token>
 - `GET /api/v1/reports/summary`
 - `GET /api/v1/audit-events` (admin only)
 
-## Data flow
+## Fluxo de dados
 `source files -> ingestion -> reverse engineering -> transformation -> DB -> Nexus manifests + Obsidian notes -> API reports`
 
-## Notes
-- Storage is SQLite for local development speed (`output/system.db`).
-- The architecture is modular and can be migrated to PostgreSQL + message broker without changing service boundaries.
-- Obsidian data is generated as Markdown in `obsidian-vault`.
-- Nexus integration is represented by versioned manifest artifacts in `nexus-manifests`.
+## Observações
+- O armazenamento local usa SQLite para velocidade de desenvolvimento (`output/system.db`).
+- A arquitetura é modular e pode ser migrada para PostgreSQL + broker de mensagens sem alterar as fronteiras dos serviços.
+- Os dados do Obsidian são gerados como Markdown em `obsidian-vault`.
+- A integração Nexus é representada por artefatos de manifesto versionados em `nexus-manifests`.
 
-## Automated tests
-Run the test suite in Docker:
+## Testes automatizados
+Execute a suíte de testes em Docker:
 ```powershell
 .\scripts\run-tests.ps1
 ```
 
-Current automated coverage:
-- health endpoint
+Cobertura automatizada atual:
+- endpoint de saúde
 - login + `/api/v1/auth/me`
-- RBAC enforcement (viewer denied on `/api/v1/files`)
-- refresh token rotation (old refresh rejected)
-- logout revocation (access token invalid after logout)
+- enforcement de RBAC (viewer negado em `/api/v1/files`)
+- rotação de refresh token (refresh antigo rejeitado)
+- revogação no logout (access token inválido após logout)
 
-## End-to-end smoke check
-Run fast smoke (capped ingestion):
+## Verificação end-to-end
+Execute o smoke rápido (ingestão limitada):
 ```powershell
 .\scripts\run-smoke-check.ps1
 ```
 
-Run full smoke (no ingestion cap):
+Execute o smoke completo (sem limite de ingestão):
 ```powershell
 .\scripts\run-smoke-check-full.ps1
 ```
 
-This validates:
-- ingestion from `ENGENHARIA_REVERSA`
-- reverse engineering + transformation + persistence
-- generated artifacts in Obsidian and Nexus manifest folders
-- JWT login and protected API endpoints
+Isso valida:
+- ingestão a partir de `ENGENHARIA_REVERSA`
+- engenharia reversa + transformação + persistência
+- artefatos gerados em Obsidian e nas pastas de manifestos Nexus
+- login JWT e endpoints protegidos da API
