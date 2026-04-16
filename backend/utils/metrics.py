@@ -17,9 +17,12 @@ class MetricsRegistry:
         self.tenant_queue_failed_total = 0
         self.tenant_queue_retried_total = 0
         self.tenant_queue_dead_letter_total = 0
+        self.tenant_destination_delivery_total = 0
+        self.tenant_destination_delivery_failed_total = 0
         self.last_sync_epoch_by_empresa: dict[str, int] = {}
         self.last_tenant_scheduler_epoch_by_empresa: dict[str, int] = {}
         self.last_tenant_queue_epoch_by_empresa: dict[str, int] = {}
+        self.last_tenant_destination_epoch_by_empresa: dict[str, int] = {}
 
     def record_sync_success(
         self,
@@ -76,6 +79,20 @@ class MetricsRegistry:
             self.tenant_queue_dead_letter_total += 1
             self.last_tenant_queue_epoch_by_empresa[empresa_id] = int(datetime.now(UTC).timestamp())
 
+    def record_tenant_destination_delivery(self, empresa_id: str, delivered_count: int) -> None:
+        with self._lock:
+            self.tenant_destination_delivery_total += delivered_count
+            self.last_tenant_destination_epoch_by_empresa[empresa_id] = int(
+                datetime.now(UTC).timestamp()
+            )
+
+    def record_tenant_destination_failure(self, empresa_id: str) -> None:
+        with self._lock:
+            self.tenant_destination_delivery_failed_total += 1
+            self.last_tenant_destination_epoch_by_empresa[empresa_id] = int(
+                datetime.now(UTC).timestamp()
+            )
+
     def render_prometheus(self) -> str:
         lines = [
             "# HELP sync_batches_total Total de lotes de sincronizacao processados com sucesso.",
@@ -114,6 +131,12 @@ class MetricsRegistry:
             "# HELP tenant_queue_dead_letter_total Total de jobs enviados para DLQ por tenant.",
             "# TYPE tenant_queue_dead_letter_total counter",
             f"tenant_queue_dead_letter_total {self.tenant_queue_dead_letter_total}",
+            "# HELP tenant_destination_delivery_total Total de registros entregues em destinos por tenant.",
+            "# TYPE tenant_destination_delivery_total counter",
+            f"tenant_destination_delivery_total {self.tenant_destination_delivery_total}",
+            "# HELP tenant_destination_delivery_failed_total Total de falhas de entrega em destinos por tenant.",
+            "# TYPE tenant_destination_delivery_failed_total counter",
+            f"tenant_destination_delivery_failed_total {self.tenant_destination_delivery_failed_total}",
             "# HELP sync_last_success_epoch Timestamp epoch do ultimo sync por empresa.",
             "# TYPE sync_last_success_epoch gauge",
         ]
@@ -127,6 +150,10 @@ class MetricsRegistry:
         lines.append("# TYPE tenant_queue_last_event_epoch gauge")
         for empresa_id, epoch in sorted(self.last_tenant_queue_epoch_by_empresa.items()):
             lines.append(f'tenant_queue_last_event_epoch{{empresa_id="{empresa_id}"}} {epoch}')
+        lines.append("# HELP tenant_destination_last_event_epoch Timestamp epoch do ultimo evento de destino por empresa.")
+        lines.append("# TYPE tenant_destination_last_event_epoch gauge")
+        for empresa_id, epoch in sorted(self.last_tenant_destination_epoch_by_empresa.items()):
+            lines.append(f'tenant_destination_last_event_epoch{{empresa_id="{empresa_id}"}} {epoch}')
         return "\n".join(lines) + "\n"
 
 

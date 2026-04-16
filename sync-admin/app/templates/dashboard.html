@@ -48,6 +48,21 @@
   </div>
 </div>
 
+<div class="row g-3 mb-4">
+  <div class="col-md-6">
+    <div class="card p-3">
+      <small>Registros enviados para destinos</small>
+      <h6 id="kpi-destination-delivery">{{ control_summary.tenant_destination_delivery_total }}</h6>
+    </div>
+  </div>
+  <div class="col-md-6">
+    <div class="card p-3">
+      <small>Falhas em destinos</small>
+      <h6 id="kpi-destination-failures">{{ control_summary.tenant_destination_delivery_failed_total }}</h6>
+    </div>
+  </div>
+</div>
+
 <div class="card mb-4 p-3">
   <h6>Movimentacao de registros</h6>
   <div class="chart-sm">
@@ -104,6 +119,41 @@
         {% endfor %}
         {% if dead_letter_jobs|length == 0 %}
         <tr><td colspan="7" class="text-muted">Sem jobs em DLQ.</td></tr>
+        {% endif %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="card mb-4 p-3">
+  <div class="d-flex justify-content-between align-items-center mb-2">
+    <h6 class="mb-0">Destinations ativas</h6>
+    <small class="text-muted">Empresa {{ job_summary.empresa_id }}</small>
+  </div>
+  <div class="table-responsive">
+    <table class="table table-sm table-striped align-middle">
+      <thead><tr><th>Destino</th><th>Tipo</th><th>Intervalo</th><th>Status</th><th>Ultima execucao</th><th>Erro</th></tr></thead>
+      <tbody>
+        {% for destination in destination_configs %}
+        <tr>
+          <td>{{ destination.nome }}</td>
+          <td><code>{{ destination.connector_type }}</code></td>
+          <td>{{ destination.sync_interval_minutes }} min</td>
+          <td>
+            {% if destination.last_status == 'ok' %}
+            <span class="badge text-bg-success">{{ destination.last_status }}</span>
+            {% elif destination.last_status == 'failed' %}
+            <span class="badge text-bg-danger">{{ destination.last_status }}</span>
+            {% else %}
+            <span class="badge text-bg-secondary">{{ destination.last_status }}</span>
+            {% endif %}
+          </td>
+          <td>{{ destination.last_run_at or '-' }}</td>
+          <td><code>{{ destination.last_error or '-' }}</code></td>
+        </tr>
+        {% endfor %}
+        {% if destination_configs|length == 0 %}
+        <tr><td colspan="6" class="text-muted">Sem destinations configuradas.</td></tr>
         {% endif %}
       </tbody>
     </table>

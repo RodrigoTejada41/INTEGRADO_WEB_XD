@@ -49,6 +49,8 @@
       setText('kpi-queue-pending', data.control.queue_pending_total);
       setText('kpi-queue-processing', data.control.queue_processing_total);
       setText('kpi-queue-dlq', data.control.queue_dead_letter_total);
+      setText('kpi-destination-delivery', data.control.destination_delivery_total);
+      setText('kpi-destination-failures', data.control.destination_delivery_failed_total);
     } catch (_err) {
     }
   }

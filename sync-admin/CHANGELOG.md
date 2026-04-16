@@ -14,7 +14,8 @@
 - Test coverage expanded for connector registry and real source execution.
 - Retry/backoff and dead-letter handling added for sync jobs.
 - Dashboard now exposes queue counters, dead-letter jobs, and manual retry action for admin users.
-- Full test suite stabilized at `11 passed`.
+- Dashboard and settings now expose destination delivery metrics and destination status.
+- Full test suite stabilized at `12 passed`.
 
 ### Planned
 - Multi-company isolation across company, branch, and terminal scopes.

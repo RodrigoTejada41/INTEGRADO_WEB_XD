@@ -81,6 +81,7 @@ def dashboard(
     control = ControlService()
     control_summary = control.fetch_summary()
     job_summary = control.fetch_sync_jobs_summary()
+    destination_configs = control.fetch_destination_configs()
     failed_batches, _ = SyncRepository(db).list_batches(page=1, page_size=10, status='failed')
     recent_errors = control.recent_agent_errors(limit=10)
     dead_letter_jobs = control.fetch_dead_letter_jobs(limit=10)
@@ -106,6 +107,7 @@ def dashboard(
             'summary': data,
             'control_summary': control_summary,
             'job_summary': job_summary,
+            'destination_configs': destination_configs,
             'recent_errors': recent_errors,
             'dead_letter_jobs': dead_letter_jobs,
             'chart_labels': json.dumps(chart_labels),
@@ -121,6 +123,7 @@ def dashboard_data(_: object = Depends(require_web_user), db: Session = Depends(
     control_service = ControlService()
     control_summary = control_service.fetch_summary()
     job_summary = control_service.fetch_sync_jobs_summary()
+    destination_configs = control_service.fetch_destination_configs()
     return JSONResponse(
         {
             'summary': {
@@ -141,7 +144,10 @@ def dashboard_data(_: object = Depends(require_web_user), db: Session = Depends(
                 'queue_processing_total': job_summary.processing_count,
                 'queue_dead_letter_total': job_summary.dead_letter_count,
                 'queue_failed_total': job_summary.failed_count,
+                'destination_delivery_total': control_summary.tenant_destination_delivery_total,
+                'destination_delivery_failed_total': control_summary.tenant_destination_delivery_failed_total,
             },
+            'destinations': destination_configs,
         }
     )
 
@@ -242,6 +248,7 @@ def settings_page(
     summary = repo.dashboard_counts()
     control = ControlService()
     control_summary = control.fetch_summary()
+    destination_configs = control.fetch_destination_configs()
     server_settings = None
     try:
         server_settings = control.get_server_settings()
@@ -270,6 +277,7 @@ def settings_page(
             'default_empresa_nome': settings.control_empresa_nome,
             'server_settings': server_settings,
             'users': user_service.list_users(),
+            'destination_configs': destination_configs,
         },
     )
 

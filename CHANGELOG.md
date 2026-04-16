@@ -16,6 +16,7 @@
 - Retry com backoff e DLQ para jobs falhos da fila de sync.
 - Painel administrativo passou a exibir o estado da fila, a DLQ e o reenfileiramento manual de jobs.
 - Replicação para destinos configurados adicionada ao worker, com entrega por tenant.
+- Métricas de entrega em destinos e painel de destinations configuradas adicionados.
 - Suíte automatizada estabilizada com `12 passed`.
 
 ### Planejado

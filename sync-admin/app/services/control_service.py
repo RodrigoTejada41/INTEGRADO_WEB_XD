@@ -18,6 +18,8 @@ class ControlSummary:
     sync_application_failures_total: float
     preflight_connection_errors_total: float
     retention_processed_total: float
+    tenant_destination_delivery_total: float
+    tenant_destination_delivery_failed_total: float
 
 
 @dataclass
@@ -63,6 +65,10 @@ class ControlService:
             sync_application_failures_total=metrics.get('sync_failures_total', 0.0),
             preflight_connection_errors_total=preflight_connection_errors_total,
             retention_processed_total=metrics.get('retention_processed_total', 0.0),
+            tenant_destination_delivery_total=metrics.get('tenant_destination_delivery_total', 0.0),
+            tenant_destination_delivery_failed_total=metrics.get(
+                'tenant_destination_delivery_failed_total', 0.0
+            ),
         )
 
     def provision_tenant(self, empresa_id: str, nome: str) -> str:
@@ -193,6 +199,34 @@ class ControlService:
             )
             response.raise_for_status()
             return response.json()
+
+    def fetch_destination_configs(self) -> list[dict]:
+        try:
+            with httpx.Client(timeout=10.0) as client:
+                response = client.get(
+                    f'{self.base_url}/admin/tenants/{settings.control_empresa_id}/destination-configs',
+                    headers=self.admin_headers,
+                )
+                response.raise_for_status()
+                data = response.json()
+        except Exception:
+            return []
+        rows: list[dict] = []
+        for item in data:
+            rows.append(
+                {
+                    'id': item.get('id', '-'),
+                    'empresa_id': item.get('empresa_id', '-'),
+                    'nome': item.get('nome', '-'),
+                    'connector_type': item.get('connector_type', '-'),
+                    'sync_interval_minutes': item.get('sync_interval_minutes', 0),
+                    'ativo': item.get('ativo', False),
+                    'last_run_at': item.get('last_run_at', '-'),
+                    'last_status': item.get('last_status', '-'),
+                    'last_error': item.get('last_error', '-'),
+                }
+            )
+        return rows
 
     def get_server_settings(self) -> dict:
         with httpx.Client(timeout=10.0) as client:

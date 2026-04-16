@@ -98,6 +98,53 @@
 <div class="row g-3 mt-1">
   <div class="col-12">
     <div class="card p-3">
+      <h5 class="mb-3">Destinations configuradas</h5>
+      <div class="table-responsive">
+        <table class="table table-sm align-middle">
+          <thead>
+            <tr>
+              <th>Nome</th>
+              <th>Tipo</th>
+              <th>Intervalo</th>
+              <th>Ativo</th>
+              <th>Status</th>
+              <th>Ultima execucao</th>
+              <th>Erro</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for destination in destination_configs %}
+            <tr>
+              <td>{{ destination.nome }}</td>
+              <td><code>{{ destination.connector_type }}</code></td>
+              <td>{{ destination.sync_interval_minutes }} min</td>
+              <td>{{ 'sim' if destination.ativo else 'nao' }}</td>
+              <td>
+                {% if destination.last_status == 'ok' %}
+                <span class="badge text-bg-success">{{ destination.last_status }}</span>
+                {% elif destination.last_status == 'failed' %}
+                <span class="badge text-bg-danger">{{ destination.last_status }}</span>
+                {% else %}
+                <span class="badge text-bg-secondary">{{ destination.last_status }}</span>
+                {% endif %}
+              </td>
+              <td>{{ destination.last_run_at or '-' }}</td>
+              <td><code>{{ destination.last_error or '-' }}</code></td>
+            </tr>
+            {% endfor %}
+            {% if destination_configs|length == 0 %}
+            <tr><td colspan="7" class="text-muted">Sem destinations configuradas.</td></tr>
+            {% endif %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="row g-3 mt-1">
+  <div class="col-12">
+    <div class="card p-3">
       <h5 class="mb-3">Usuarios do painel</h5>
       <div class="table-responsive mb-3">
         <table class="table table-sm align-middle">

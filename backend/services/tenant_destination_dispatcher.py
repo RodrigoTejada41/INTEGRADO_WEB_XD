@@ -8,6 +8,7 @@ from backend.connectors.destination_connectors import get_default_destination_co
 from backend.models.tenant_destination_config import TenantDestinationConfig
 from backend.repositories.tenant_config_repository import TenantConfigRepository
 from backend.utils.crypto import decrypt_json
+from backend.utils.metrics import metrics_registry
 
 logger = logging.getLogger(__name__)
 
@@ -41,10 +42,15 @@ class TenantDestinationDispatcher:
                     config.last_status = "ok"
                     config.last_error = None
                     delivered_total += result.delivered_count
+                    metrics_registry.record_tenant_destination_delivery(
+                        empresa_id=empresa_id,
+                        delivered_count=result.delivered_count,
+                    )
                 except Exception as exc:
                     config.last_run_at = datetime.now(UTC)
                     config.last_status = "failed"
                     config.last_error = str(exc)
+                    metrics_registry.record_tenant_destination_failure(empresa_id)
                     session.commit()
                     logger.exception(
                         "tenant_destination_delivery_failed",

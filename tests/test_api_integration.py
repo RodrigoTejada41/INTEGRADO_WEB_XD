@@ -217,6 +217,8 @@ def test_full_flow_sync_and_tenant_isolation() -> None:
         assert metrics_resp.status_code == 200
         assert "sync_batches_total" in metrics_resp.text
         assert 'sync_last_success_epoch{empresa_id="12345678000199"}' in metrics_resp.text
+        assert "tenant_destination_delivery_total" in metrics_resp.text
+        assert "tenant_destination_last_event_epoch" in metrics_resp.text
 
     with SessionLocal() as session:
         count_a = session.scalar(
