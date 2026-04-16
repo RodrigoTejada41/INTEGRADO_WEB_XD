@@ -15,6 +15,8 @@ class MetricsRegistry:
         self.tenant_queue_enqueued_total = 0
         self.tenant_queue_processed_total = 0
         self.tenant_queue_failed_total = 0
+        self.tenant_queue_retried_total = 0
+        self.tenant_queue_dead_letter_total = 0
         self.last_sync_epoch_by_empresa: dict[str, int] = {}
         self.last_tenant_scheduler_epoch_by_empresa: dict[str, int] = {}
         self.last_tenant_queue_epoch_by_empresa: dict[str, int] = {}
@@ -64,6 +66,16 @@ class MetricsRegistry:
             self.tenant_queue_failed_total += 1
             self.last_tenant_queue_epoch_by_empresa[empresa_id] = int(datetime.now(UTC).timestamp())
 
+    def record_tenant_queue_retried(self, empresa_id: str) -> None:
+        with self._lock:
+            self.tenant_queue_retried_total += 1
+            self.last_tenant_queue_epoch_by_empresa[empresa_id] = int(datetime.now(UTC).timestamp())
+
+    def record_tenant_queue_dead_letter(self, empresa_id: str) -> None:
+        with self._lock:
+            self.tenant_queue_dead_letter_total += 1
+            self.last_tenant_queue_epoch_by_empresa[empresa_id] = int(datetime.now(UTC).timestamp())
+
     def render_prometheus(self) -> str:
         lines = [
             "# HELP sync_batches_total Total de lotes de sincronizacao processados com sucesso.",
@@ -96,6 +108,12 @@ class MetricsRegistry:
             "# HELP tenant_queue_failed_total Total de jobs falhos por tenant.",
             "# TYPE tenant_queue_failed_total counter",
             f"tenant_queue_failed_total {self.tenant_queue_failed_total}",
+            "# HELP tenant_queue_retried_total Total de jobs reenfileirados por tenant.",
+            "# TYPE tenant_queue_retried_total counter",
+            f"tenant_queue_retried_total {self.tenant_queue_retried_total}",
+            "# HELP tenant_queue_dead_letter_total Total de jobs enviados para DLQ por tenant.",
+            "# TYPE tenant_queue_dead_letter_total counter",
+            f"tenant_queue_dead_letter_total {self.tenant_queue_dead_letter_total}",
             "# HELP sync_last_success_epoch Timestamp epoch do ultimo sync por empresa.",
             "# TYPE sync_last_success_epoch gauge",
         ]

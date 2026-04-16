@@ -11,6 +11,7 @@ class TenantSyncJob(Base):
     __table_args__ = (
         Index("ix_tenant_sync_jobs_empresa_id", "empresa_id"),
         Index("ix_tenant_sync_jobs_status", "status"),
+        Index("ix_tenant_sync_jobs_next_run_at", "next_run_at"),
     )
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True)
@@ -21,8 +22,11 @@ class TenantSyncJob(Base):
     attempts: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     last_error: Mapped[str | None] = mapped_column(Text, nullable=True)
     scheduled_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=utc_now)
+    next_run_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=utc_now)
     started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     finished_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    dead_letter_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    dead_letter_reason: Mapped[str | None] = mapped_column(Text, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=utc_now)
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, default=utc_now, onupdate=utc_now

@@ -6,7 +6,6 @@
 - RBAC real no painel administrativo, com perfis `admin`, `analyst` e `viewer`.
 - Cadastro de usuários no painel com validação de perfil.
 - Ajustes de infraestrutura para execução confiável em teste e desenvolvimento.
-- Suíte automatizada estabilizada com `9 passed`.
 - Cadastro de `source_configs` e `destination_configs` por tenant no backend.
 - Registry inicial de conectores para validar tipos suportados antes de persistir.
 - Scheduler por tenant com intervalo persistido em `source_configs` e heartbeat de execução.
@@ -14,7 +13,8 @@
 - Criptografia em repouso das credenciais/configurações dos conectores.
 - Execução real de conectores de origem no worker, com suporte inicial a MariaDB, API e arquivo.
 - Cobertura de testes para registry de conectores, conector de arquivo e fluxo MariaDB real.
-- Suíte automatizada estabilizada com `10 passed`.
+- Retry com backoff e DLQ para jobs falhos da fila de sync.
+- Suíte automatizada estabilizada com `11 passed`.
 
 ### Planejado
 - Multiempresa completa com isolamento por empresa, filial e terminal.

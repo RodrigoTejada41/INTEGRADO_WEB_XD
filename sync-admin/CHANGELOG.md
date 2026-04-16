@@ -6,14 +6,14 @@
 - Role-based access control for the admin panel with `admin`, `analyst`, and `viewer` profiles.
 - User creation and listing inside the panel.
 - Path handling fixes for test and import stability on Windows.
-- Full test suite stabilized at `9 passed`.
 - Backend base for tenant-scoped source and destination configuration management.
 - Tenant-scoped scheduler support prepared on the backend with persisted source intervals.
 - Persistent sync queue and worker flow added on the backend.
 - Connector settings encrypted at rest before storage.
 - Real source connector execution added in the backend worker.
 - Test coverage expanded for connector registry and real source execution.
-- Full test suite stabilized at `10 passed`.
+- Retry/backoff and dead-letter handling added for sync jobs.
+- Full test suite stabilized at `11 passed`.
 
 ### Planned
 - Multi-company isolation across company, branch, and terminal scopes.

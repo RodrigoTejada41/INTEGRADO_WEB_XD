@@ -17,6 +17,9 @@ logger = logging.getLogger(__name__)
 
 
 class TenantSyncWorker:
+    MAX_ATTEMPTS = 3
+    BASE_BACKOFF_MINUTES = 5
+
     def __init__(self, session_factory: sessionmaker):
         self.session_factory = session_factory
         self.connector_registry = get_default_source_connector_registry()
@@ -75,14 +78,28 @@ class TenantSyncWorker:
                         select(TenantSourceConfig).where(TenantSourceConfig.id == job.source_config_id)
                     )
                     if source_config is not None:
-                        source_config.last_status = "failed"
+                        source_config.last_status = "retrying" if job.attempts < self.MAX_ATTEMPTS else "dead_letter"
                         source_config.last_error = str(exc)
-                    job_repository.mark_failed(job, str(exc))
                     metrics_registry.record_tenant_queue_failed(job.empresa_id)
-                    logger.exception(
-                        "tenant_sync_job_failed",
-                        extra={"empresa_id": job.empresa_id, "job_id": job.id},
-                    )
+                    if job.attempts < self.MAX_ATTEMPTS:
+                        backoff_minutes = self.BASE_BACKOFF_MINUTES * (2 ** (job.attempts - 1))
+                        job_repository.mark_retry(job, str(exc), backoff_minutes=backoff_minutes)
+                        metrics_registry.record_tenant_queue_retried(job.empresa_id)
+                        logger.exception(
+                            "tenant_sync_job_retry_scheduled",
+                            extra={
+                                "empresa_id": job.empresa_id,
+                                "job_id": job.id,
+                                "backoff_minutes": backoff_minutes,
+                            },
+                        )
+                    else:
+                        job_repository.mark_dead_letter(job, str(exc))
+                        metrics_registry.record_tenant_queue_dead_letter(job.empresa_id)
+                        logger.exception(
+                            "tenant_sync_job_dead_letter",
+                            extra={"empresa_id": job.empresa_id, "job_id": job.id},
+                        )
             session.commit()
         return processed
 

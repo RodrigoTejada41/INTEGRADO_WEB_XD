@@ -3,10 +3,11 @@ from __future__ import annotations
 import importlib
 import os
 import sys
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
-from sqlalchemy import create_engine, text
+from sqlalchemy import create_engine, select, text
 
 
 def test_tenant_scheduler_creates_jobs_and_updates_heartbeat() -> None:
@@ -141,3 +142,104 @@ def test_tenant_scheduler_creates_jobs_and_updates_heartbeat() -> None:
         assert venda is not None
         assert venda.empresa_id == "12345678000199"
         assert venda.produto == "Produto origem"
+
+
+def test_tenant_sync_job_retries_and_moves_to_dead_letter() -> None:
+    db_path = Path("output/test_tenant_dead_letter.db")
+    if db_path.exists():
+        db_path.unlink()
+
+    os.environ["DATABASE_URL"] = f"sqlite+pysqlite:///{db_path.as_posix()}"
+    os.environ["ADMIN_TOKEN"] = "admin-token-test"
+    os.environ["AUTO_CREATE_TABLES"] = "true"
+    os.environ["RETENTION_JOB_ENABLED"] = "false"
+
+    for module_name in [
+        "backend.main",
+        "backend.config.database",
+        "backend.config.settings",
+        "backend.services.tenant_sync_scheduler",
+    ]:
+        sys.modules.pop(module_name, None)
+
+    import backend.config.settings as settings_module
+
+    settings_module.get_settings.cache_clear()
+    importlib.invalidate_caches()
+
+    from backend.config.database import SessionLocal
+    from backend.config.database import engine
+    from backend.models import Base
+    from backend.models.tenant_sync_job import TenantSyncJob
+    from backend.models.tenant_source_config import TenantSourceConfig
+    from backend.repositories.tenant_config_repository import TenantConfigRepository
+    from backend.repositories.tenant_sync_job_repository import TenantSyncJobRepository
+    from backend.repositories.tenant_repository import TenantRepository
+    from backend.services.tenant_sync_scheduler import TenantSyncScheduler
+    from backend.services.tenant_sync_worker import TenantSyncWorker
+    from backend.utils.crypto import encrypt_json
+
+    Base.metadata.create_all(bind=engine)
+
+    with SessionLocal() as session:
+        tenant_repository = TenantRepository(session)
+        tenant_repository.upsert_tenant(
+            empresa_id="12345678000199",
+            nome="Empresa DLQ",
+            api_key_hash="hash",
+        )
+        source_repository = TenantConfigRepository(session, TenantSourceConfig)
+        config = source_repository.create(
+            config_id="22222222-2222-2222-2222-222222222222",
+            empresa_id="12345678000199",
+            nome="Fonte invalida",
+            connector_type="file",
+            sync_interval_minutes=15,
+            settings_json=encrypt_json(
+                {
+                    "path": "output/arquivo_inexistente.json",
+                    "batch_size": "10",
+                }
+            ),
+        )
+        session.commit()
+
+    tenant_scheduler = TenantSyncScheduler(session_factory=SessionLocal, scheduler=AsyncIOScheduler(timezone="UTC"))
+    tenant_scheduler.run_source_sync(config.id)
+
+    worker = TenantSyncWorker(session_factory=SessionLocal)
+
+    processed = worker.drain_pending_jobs()
+    assert processed == 0
+
+    with SessionLocal() as session:
+        job_repository = TenantSyncJobRepository(session)
+        job = session.execute(select(TenantSyncJob)).scalar_one()
+        assert job.status == "pending"
+        assert job.attempts == 1
+        job.next_run_at = datetime.now(UTC) - timedelta(seconds=1)
+        session.commit()
+
+    processed = worker.drain_pending_jobs()
+    assert processed == 0
+
+    with SessionLocal() as session:
+        job = session.execute(select(TenantSyncJob)).scalar_one()
+        assert job.status == "pending"
+        assert job.attempts == 2
+        job.next_run_at = datetime.now(UTC) - timedelta(seconds=1)
+        session.commit()
+
+    processed = worker.drain_pending_jobs()
+    assert processed == 0
+
+    with SessionLocal() as session:
+        job = session.execute(select(TenantSyncJob)).scalar_one()
+        config = session.get(TenantSourceConfig, config.id)
+        assert config is not None
+        assert config.last_status == "dead_letter"
+        assert config.last_error is not None
+        assert job.status == "dead_letter"
+        assert job.attempts == 3
+        assert job.dead_letter_reason is not None
+        assert len(TenantSyncJobRepository(session).list_pending()) == 0
