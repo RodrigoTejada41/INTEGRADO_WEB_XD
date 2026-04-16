@@ -1,0 +1,86 @@
+version: "3.9"
+
+services:
+  postgres-central:
+    image: postgres:16
+    container_name: postgres-central
+    environment:
+      POSTGRES_DB: sync_central
+      POSTGRES_USER: sync_user
+      POSTGRES_PASSWORD: sync_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - pg-sync-data:/var/lib/postgresql/data
+      - ../../backend/sql/postgresql_schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U sync_user -d sync_central"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  sync-api:
+    build:
+      context: ../..
+      dockerfile: backend/Dockerfile
+    container_name: sync-api
+    depends_on:
+      postgres-central:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql+psycopg2://sync_user:sync_password@postgres-central:5432/sync_central
+      ADMIN_TOKEN: change-this-admin-token
+      LOG_LEVEL: INFO
+      RETENTION_MONTHS: 14
+      RETENTION_MODE: archive
+      RETENTION_JOB_ENABLED: "true"
+      RETENTION_JOB_INTERVAL_MINUTES: 60
+      AUTO_CREATE_TABLES: "false"
+    ports:
+      - "8000:8000"
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://localhost:8000/health', timeout=3)\""]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
+  local-agent:
+    build:
+      context: ../..
+      dockerfile: agent_local/Dockerfile
+    container_name: local-agent
+    depends_on:
+      sync-api:
+        condition: service_healthy
+    environment:
+      AGENT_EMPRESA_ID: 12345678000199
+      AGENT_API_BASE_URL: http://sync-api:8000
+      AGENT_API_KEY: ${AGENT_API_KEY}
+      AGENT_API_KEY_FILE: /shared/agent_api_key.txt
+      AGENT_AUDIT_FILE: /shared/agent_audit.log
+      AGENT_MARIADB_URL: mysql+pymysql://root:root@host.docker.internal:3308/xd
+      AGENT_SOURCE_QUERY: >-
+        SELECT
+          SHA2(CONCAT(IFNULL(DocumentKeyId,''),'|',IFNULL(ItemKeyId,''),'|',DATE_FORMAT(COALESCE(CloseDate,CreationDate),'%Y-%m-%d %H:%i:%s')),256) AS uuid,
+          :empresa_id AS empresa_id,
+          COALESCE(ItemDescription,'SEM_DESCRICAO') AS produto,
+          COALESCE(TotalAmount,0) AS valor,
+          DATE(COALESCE(CloseDate,CreationDate)) AS data,
+          COALESCE(CloseDate,CreationDate) AS data_atualizacao
+        FROM salesdocumentsreportview
+        WHERE COALESCE(CloseDate,CreationDate) > :since
+        ORDER BY COALESCE(CloseDate,CreationDate) ASC
+        LIMIT :limit
+      SYNC_INTERVAL_MINUTES: 15
+      BATCH_SIZE: 500
+      LOG_LEVEL: INFO
+      CHECKPOINT_FILE: /app/agent_local/data/checkpoints.json
+    volumes:
+      - ../../runtime:/shared
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    restart: unless-stopped
+
+volumes:
+  pg-sync-data:

@@ -1,0 +1,20 @@
+{
+  "empresa_id": "12345678000199",
+  "records": [
+    {
+      "uuid": "d9f0f194-f3f4-4b6f-a8b4-76e63e8f1a89",
+      "produto": "Produto A",
+      "valor": "149.90",
+      "data": "2026-04-16",
+      "data_atualizacao": "2026-04-16T15:30:00Z"
+    },
+    {
+      "uuid": "83bf2f98-cf2e-4a24-a0d3-03a2e92c0a5f",
+      "produto": "Produto B",
+      "valor": "89.00",
+      "data": "2026-04-16",
+      "data_atualizacao": "2026-04-16T15:31:00Z"
+    }
+  ]
+}
+

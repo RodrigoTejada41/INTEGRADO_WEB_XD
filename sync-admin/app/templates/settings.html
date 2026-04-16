@@ -1,0 +1,153 @@
+{% extends "base.html" %}
+{% block content %}
+<h3 class="mb-3">Configuracoes</h3>
+{% if flash %}
+<div class="alert alert-success">{{ flash }}</div>
+{% endif %}
+{% if error %}
+<div class="alert alert-danger">{{ error }}</div>
+{% endif %}
+{% if generated_key %}
+<div class="alert alert-warning">
+  <strong>Nova API KEY gerada:</strong>
+  <code>{{ generated_key }}</code>
+</div>
+{% endif %}
+
+<div class="row g-3">
+  <div class="col-md-6">
+    <div class="card p-3 h-100">
+      <h5 class="mb-3">Painel Local</h5>
+      <p><strong>Ultimo recebimento:</strong> {{ summary.last_received or '-' }}</p>
+      <p><strong>Total de lotes:</strong> {{ summary.total_batches }}</p>
+      <p><strong>Falhas:</strong> {{ summary.failed_batches }}</p>
+    </div>
+  </div>
+  <div class="col-md-6">
+    <div class="card p-3 h-100">
+      <h5 class="mb-3">API de Sync (Controle)</h5>
+      <p><strong>Status API:</strong> {{ control_summary.api_health }}</p>
+      <p><strong>Lotes sincronizados:</strong> {{ control_summary.sync_batches_total }}</p>
+      <p><strong>Inseridos:</strong> {{ control_summary.sync_records_inserted_total }}</p>
+      <p><strong>Atualizados:</strong> {{ control_summary.sync_records_updated_total }}</p>
+      <p><strong>Falhas app /sync:</strong> {{ control_summary.sync_application_failures_total }}</p>
+      <p><strong>Erros conexao/preflight:</strong> {{ control_summary.preflight_connection_errors_total }}</p>
+      <p><strong>Retencao processada:</strong> {{ control_summary.retention_processed_total }}</p>
+    </div>
+  </div>
+</div>
+
+<div class="row g-3 mt-1">
+  <div class="col-md-6">
+    <div class="card p-3">
+      <h5 class="mb-3">Provisionar Tenant</h5>
+      <form method="post" action="/settings/provision-tenant" class="d-flex flex-column gap-2">
+        <input class="form-control" type="text" name="empresa_id" placeholder="empresa_id (CNPJ/ID)" value="{{ default_empresa_id }}" required />
+        <input class="form-control" type="text" name="nome" placeholder="Nome da empresa" value="{{ default_empresa_nome }}" required />
+        <button class="btn btn-primary" type="submit">Provisionar / Atualizar</button>
+      </form>
+    </div>
+  </div>
+  <div class="col-md-6">
+    <div class="card p-3">
+      <h5 class="mb-3">Rotacionar API Key</h5>
+      <form method="post" action="/settings/rotate-tenant-key" class="d-flex flex-column gap-2">
+        <input class="form-control" type="text" name="empresa_id" placeholder="empresa_id" value="{{ default_empresa_id }}" required />
+        <button class="btn btn-warning" type="submit">Rotacionar Chave</button>
+      </form>
+      <p class="text-muted mt-2 mb-0">A nova chave aparece uma unica vez apos a rotacao.</p>
+    </div>
+  </div>
+</div>
+
+<div class="row g-3 mt-1">
+  <div class="col-12">
+    <div class="card p-3">
+      <h5 class="mb-3">Configuracoes de Servidor (API)</h5>
+      <form method="post" action="/settings/server-settings" class="row g-2">
+        <div class="col-md-3">
+          <label class="form-label">Ingestion habilitada</label>
+          <select class="form-select" name="ingestion_enabled">
+            <option value="true" {% if server_settings.ingestion_enabled %}selected{% endif %}>true</option>
+            <option value="false" {% if not server_settings.ingestion_enabled %}selected{% endif %}>false</option>
+          </select>
+        </div>
+        <div class="col-md-3">
+          <label class="form-label">Max batch size</label>
+          <input class="form-control" type="number" min="1" max="10000" name="max_batch_size" value="{{ server_settings.max_batch_size }}" required />
+        </div>
+        <div class="col-md-3">
+          <label class="form-label">Modo retencao</label>
+          <select class="form-select" name="retention_mode">
+            <option value="archive" {% if server_settings.retention_mode == 'archive' %}selected{% endif %}>archive</option>
+            <option value="delete" {% if server_settings.retention_mode == 'delete' %}selected{% endif %}>delete</option>
+          </select>
+        </div>
+        <div class="col-md-3">
+          <label class="form-label">Retencao (meses)</label>
+          <input class="form-control" type="number" min="1" max="120" name="retention_months" value="{{ server_settings.retention_months }}" required />
+        </div>
+        <div class="col-12">
+          <button class="btn btn-success" type="submit">Salvar configuracoes de servidor</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<div class="row g-3 mt-1">
+  <div class="col-12">
+    <div class="card p-3">
+      <h5 class="mb-3">Usuarios do painel</h5>
+      <div class="table-responsive mb-3">
+        <table class="table table-sm align-middle">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Usuario</th>
+              <th>Nome</th>
+              <th>Perfil</th>
+              <th>Ativo</th>
+              <th>Ultimo login</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for user in users %}
+            <tr>
+              <td>{{ user.id }}</td>
+              <td>{{ user.username }}</td>
+              <td>{{ user.full_name }}</td>
+              <td><span class="badge text-bg-secondary">{{ user.role }}</span></td>
+              <td>{{ 'sim' if user.is_active else 'nao' }}</td>
+              <td>{{ user.last_login_at or '-' }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      <h6 class="mb-3">Criar usuario</h6>
+      <form method="post" action="/settings/users" class="row g-2">
+        <div class="col-md-3">
+          <input class="form-control" type="text" name="username" placeholder="Usuario" required />
+        </div>
+        <div class="col-md-3">
+          <input class="form-control" type="text" name="full_name" placeholder="Nome completo" required />
+        </div>
+        <div class="col-md-3">
+          <input class="form-control" type="password" name="password" placeholder="Senha inicial" required />
+        </div>
+        <div class="col-md-2">
+          <select class="form-select" name="role">
+            <option value="viewer">viewer</option>
+            <option value="analyst">analyst</option>
+            <option value="admin">admin</option>
+          </select>
+        </div>
+        <div class="col-md-1">
+          <button class="btn btn-primary w-100" type="submit">Salvar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

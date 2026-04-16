@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h3 class="mb-0">Dashboard</h3>
+  <a class="btn btn-outline-secondary btn-sm" href="/dashboard/audit.csv">Exportar auditoria CSV</a>
+</div>
+
+<div class="row g-3 mb-4">
+  <div class="col-md-3"><div class="card p-3"><small>Total de registros</small><h4 id="kpi-total-records">{{ summary.total_records }}</h4></div></div>
+  <div class="col-md-3"><div class="card p-3"><small>Ultimo recebimento</small><h6 id="kpi-last-received">{{ summary.last_received or "-" }}</h6></div></div>
+  <div class="col-md-3"><div class="card p-3"><small>Status API local</small><h5 id="kpi-api-status" class="text-success">{{ summary.api_status }}</h5></div></div>
+  <div class="col-md-3"><div class="card p-3"><small>Falhas locais</small><h4 id="kpi-failed-batches" class="text-danger">{{ summary.failed_batches }}</h4></div></div>
+</div>
+
+<div class="row g-3 mb-4">
+  <div class="col-md-2"><div class="card p-3"><small>Sync API health</small><h6 id="kpi-control-health">{{ control_summary.api_health }}</h6></div></div>
+  <div class="col-md-2"><div class="card p-3"><small>Lotes sync</small><h6 id="kpi-control-batches">{{ control_summary.sync_batches_total }}</h6></div></div>
+  <div class="col-md-2"><div class="card p-3"><small>Inseridos</small><h6 id="kpi-control-inserted">{{ control_summary.sync_records_inserted_total }}</h6></div></div>
+  <div class="col-md-2"><div class="card p-3"><small>Atualizados</small><h6 id="kpi-control-updated">{{ control_summary.sync_records_updated_total }}</h6></div></div>
+  <div class="col-md-2"><div class="card p-3"><small>Falhas app /sync</small><h6 id="kpi-control-app-failures">{{ control_summary.sync_application_failures_total }}</h6></div></div>
+  <div class="col-md-2"><div class="card p-3"><small>Retencao</small><h6 id="kpi-control-retention">{{ control_summary.retention_processed_total }}</h6></div></div>
+</div>
+
+<div class="row g-3 mb-4">
+  <div class="col-md-3">
+    <div class="card p-3">
+      <small>Erros conexao/preflight</small>
+      <h6 id="kpi-control-preflight-errors">{{ control_summary.preflight_connection_errors_total }}</h6>
+    </div>
+  </div>
+</div>
+
+<div class="card mb-4 p-3">
+  <h6>Movimentacao de registros</h6>
+  <div class="chart-sm">
+    <canvas id="dailyChart" data-labels='{{ chart_labels|safe }}' data-values='{{ chart_values|safe }}'></canvas>
+  </div>
+</div>
+
+<div class="card mb-4 p-3">
+  <h6>Ultimos erros Agent/API</h6>
+  <div class="table-responsive">
+    <table class="table table-sm table-striped align-middle">
+      <thead><tr><th>Quando</th><th>Fonte</th><th>Evento</th><th>Detalhe</th></tr></thead>
+      <tbody>
+        {% for row in recent_errors %}
+        <tr>
+          <td>{{ row.timestamp }}</td>
+          <td>{{ row.source }}</td>
+          <td>{{ row.event }}</td>
+          <td><code>{{ row.detail }}</code></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="card p-3">
+  <h6>Ultimas sincronizacoes</h6>
+  <div class="table-responsive">
+    <table class="table table-sm table-striped align-middle">
+      <thead><tr><th>ID</th><th>Empresa</th><th>Filial</th><th>Terminal</th><th>Registros</th><th>Status</th><th>Recebido em</th></tr></thead>
+      <tbody>
+        {% for b in summary.latest_batches %}
+        <tr>
+          <td>{{ b.id }}</td>
+          <td>{{ b.company_code }}</td>
+          <td>{{ b.branch_code }}</td>
+          <td>{{ b.terminal_code }}</td>
+          <td>{{ b.records_received }}</td>
+          <td>{{ b.status }}</td>
+          <td>{{ b.received_at }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}
