@@ -120,6 +120,30 @@ def test_full_flow_sync_and_tenant_isolation() -> None:
         assert unsupported_connector.status_code == 400
         assert unsupported_connector.json()["detail"] == "connector_type nao suportado."
 
+        destination_as_source = client.post(
+            "/admin/tenants/12345678000199/source-configs",
+            headers={"X-Admin-Token": "admin-token-test"},
+            json={
+                "nome": "Destino na origem",
+                "connector_type": "postgresql",
+                "settings": {},
+            },
+        )
+        assert destination_as_source.status_code == 400
+        assert destination_as_source.json()["detail"] == "connector_type nao suportado."
+
+        source_as_destination = client.post(
+            "/admin/tenants/12345678000199/destination-configs",
+            headers={"X-Admin-Token": "admin-token-test"},
+            json={
+                "nome": "Origem no destino",
+                "connector_type": "mariadb",
+                "settings": {},
+            },
+        )
+        assert source_as_destination.status_code == 400
+        assert source_as_destination.json()["detail"] == "connector_type nao suportado."
+
         empty_destination_list = client.get(
             "/admin/tenants/12345678000199/destination-configs",
             headers={"X-Admin-Token": "admin-token-test"},

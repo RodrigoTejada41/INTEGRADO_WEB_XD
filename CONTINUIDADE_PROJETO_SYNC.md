@@ -209,3 +209,116 @@ Esse desenho arquitetural já foi detalhado na conversa e deve ser a base da pr�
 - [ ] Hardening de segurança (rate-limit, rotação de chaves administráveis, políticas)
 - [ ] Testes de carga e plano de capacidade
 - [ ] Pipeline CI/CD de produção com migrações e rollback
+
+## 10) Nova solicitacao registrada para continuidade
+
+Voce pediu uma nova fase de produto para uma API comercial multi-tenant com configuracao dinamica de origem e destino de dados. Este e o requisito que deve orientar a proxima execucao.
+
+### 10.1 Objetivo da nova fase
+
+- Criar uma API modular, pronta para producao, com configuracao de:
+  - origem de dados
+  - destino de dados
+- Tornar essa configuracao dinamica, sem alteracao de codigo para novos cenarios suportados
+- Preparar a solucao para uso comercial e deploy futuro em cloud
+
+### 10.2 Requisitos centrais
+
+- Multi-tenant com identificacao por CNPJ
+- Isolamento estrito entre tenants
+- Cada registro precisa carregar `tenant_id` ou `cnpj`
+- Retencao de apenas 14 meses no banco central
+- Extracao, transformacao e entrega de dados em fluxo automatico
+- Execucao a cada 15 minutos, com intervalo configuravel
+
+### 10.3 Configuracao de origem
+
+- Tipos de origem previstos:
+  - `mysql`
+  - `mariadb`
+  - `postgres`
+- Campos principais:
+  - host
+  - port
+  - database_name
+  - username
+  - password
+  - extraction_interval
+
+### 10.4 Configuracao de destino
+
+- Tipos de destino previstos:
+  - banco de dados
+  - API externa
+- Campos principais:
+  - api_url ou conexao de banco
+  - host
+  - port
+  - database_name
+  - username
+  - password
+
+### 10.5 Regras de arquitetura
+
+- Seguir clean architecture
+- Separar:
+  - config
+  - database
+  - services
+  - api/controllers
+  - jobs/workers
+- Usar variaveis de ambiente e configuracao persistida em banco
+- Manter estrutura modular e extensivel
+- Evitar codigo monolitico
+
+### 10.6 Regras de seguranca
+
+- Criptografar dados sensiveis de configuracao
+- Proteger endpoints com autenticacao por API Key ou JWT
+- Impedir conflito entre tenants
+- Evitar SQL injection e validacoes fracas
+
+### 10.7 Observabilidade e operacao
+
+- Registrar:
+  - extracao
+  - sync
+  - erro
+  - retry
+- Incluir mecanismo de retry
+- Incluir job de limpeza automatica para 14 meses
+
+### 10.8 Testes obrigatorios
+
+- Testes unitarios
+- Testes de integracao
+- Mock de conexoes de banco
+- Validacao de isolamento multi-tenant
+- Validacao de retention
+- Validacao de upsert
+
+### 10.9 Entregaveis esperados
+
+- Codigo completo da API
+- Modulo de configuracao
+- Exemplo de arquivo de configuracao
+- Schema de banco
+- Worker/scheduler
+- Documentacao de setup
+
+### 10.10 Ordem sugerida de implementacao
+
+1. Formalizar o modelo de configuracao de source e destination por tenant
+2. Criar schemas, repositories e services para persistencia e validacao
+3. Implementar registry de conectores
+4. Amarrar scheduler por tenant
+5. Fechar criptografia de credenciais
+6. Consolidar retries, DLQ e retencao
+7. Cobrir com testes unitarios e de integracao
+8. Documentar setup e operacao
+
+### 10.11 Status atual da nova fase
+
+- [x] Item 1: modelo de configuracao de source e destination por tenant formalizado
+- [x] Item 2: schemas, repositories e services ajustados para persistencia e validacao
+- [x] Item 3: registry de conectores com validacao por direcao implementado

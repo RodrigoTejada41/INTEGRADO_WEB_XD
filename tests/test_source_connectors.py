@@ -4,6 +4,7 @@ import json
 from datetime import UTC, datetime
 from pathlib import Path
 
+from backend.connectors.registry import get_default_connector_registry
 from backend.connectors.source_connectors import FileSourceConnector, get_default_source_connector_registry
 
 
@@ -12,6 +13,14 @@ def test_source_connector_registry_and_file_connector() -> None:
     assert registry.get("mariadb").connector_type == "mariadb"
     assert registry.get("api").connector_type == "api"
     assert registry.get("file").connector_type == "file"
+
+    connector_registry = get_default_connector_registry()
+    assert connector_registry.is_supported_for("source", "mariadb")
+    assert connector_registry.is_supported_for("destination", "postgresql")
+    assert not connector_registry.is_supported_for("source", "postgresql")
+    assert not connector_registry.is_supported_for("destination", "mariadb")
+    assert connector_registry.source_types() == ["api", "file", "mariadb"]
+    assert connector_registry.destination_types() == ["postgresql"]
 
     file_path = Path("output/test_source_records.json")
     file_path.parent.mkdir(parents=True, exist_ok=True)

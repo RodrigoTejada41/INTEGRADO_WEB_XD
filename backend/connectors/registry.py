@@ -20,6 +20,22 @@ class ConnectorRegistry:
     def is_supported(self, connector_type: str) -> bool:
         return connector_type in self._definitions
 
+    def is_supported_for(self, direction: str, connector_type: str) -> bool:
+        definition = self._definitions.get(connector_type)
+        return definition is not None and definition.direction == direction
+
+    def list_by_direction(self, direction: str) -> list[ConnectorDefinition]:
+        return sorted(
+            (definition for definition in self._definitions.values() if definition.direction == direction),
+            key=lambda item: item.name,
+        )
+
+    def source_types(self) -> list[str]:
+        return [definition.name for definition in self.list_by_direction("source")]
+
+    def destination_types(self) -> list[str]:
+        return [definition.name for definition in self.list_by_direction("destination")]
+
     def get(self, connector_type: str) -> ConnectorDefinition | None:
         return self._definitions.get(connector_type)
 

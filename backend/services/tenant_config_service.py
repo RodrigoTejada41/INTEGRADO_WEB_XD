@@ -29,6 +29,13 @@ class TenantConfigService:
         self.destination_repository = destination_repository
         self.connector_registry = get_default_connector_registry()
 
+    def _ensure_connector_supported(self, connector_type: str, direction: str) -> None:
+        if not self.connector_registry.is_supported_for(direction, connector_type):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="connector_type nao suportado.",
+            )
+
     def _ensure_tenant_exists(self, empresa_id: str) -> None:
         if not validate_empresa_id(empresa_id):
             raise HTTPException(
@@ -81,11 +88,7 @@ class TenantConfigService:
         self, empresa_id: str, payload: TenantConfigCreateRequest
     ) -> TenantConfigResponse:
         self._ensure_tenant_exists(empresa_id)
-        if not self.connector_registry.is_supported(payload.connector_type):
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="connector_type nao suportado.",
-            )
+        self._ensure_connector_supported(payload.connector_type, "source")
         config = self.source_repository.create(
             config_id=str(uuid4()),
             empresa_id=empresa_id,
@@ -100,11 +103,7 @@ class TenantConfigService:
         self, empresa_id: str, payload: TenantConfigCreateRequest
     ) -> TenantConfigResponse:
         self._ensure_tenant_exists(empresa_id)
-        if not self.connector_registry.is_supported(payload.connector_type):
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="connector_type nao suportado.",
-            )
+        self._ensure_connector_supported(payload.connector_type, "destination")
         config = self.destination_repository.create(
             config_id=str(uuid4()),
             empresa_id=empresa_id,
@@ -119,11 +118,8 @@ class TenantConfigService:
         self, empresa_id: str, config_id: str, payload: TenantConfigUpdateRequest
     ) -> TenantConfigResponse:
         self._ensure_tenant_exists(empresa_id)
-        if payload.connector_type and not self.connector_registry.is_supported(payload.connector_type):
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="connector_type nao suportado.",
-            )
+        if payload.connector_type:
+            self._ensure_connector_supported(payload.connector_type, "source")
         config = self.source_repository.get_by_id(empresa_id, config_id)
         if config is None:
             raise HTTPException(
@@ -144,11 +140,8 @@ class TenantConfigService:
         self, empresa_id: str, config_id: str, payload: TenantConfigUpdateRequest
     ) -> TenantConfigResponse:
         self._ensure_tenant_exists(empresa_id)
-        if payload.connector_type and not self.connector_registry.is_supported(payload.connector_type):
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="connector_type nao suportado.",
-            )
+        if payload.connector_type:
+            self._ensure_connector_supported(payload.connector_type, "destination")
         config = self.destination_repository.get_by_id(empresa_id, config_id)
         if config is None:
             raise HTTPException(
