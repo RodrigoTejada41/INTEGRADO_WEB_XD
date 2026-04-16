@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+from datetime import UTC, datetime
 from uuid import uuid4
 
 from fastapi import HTTPException, status
@@ -59,8 +60,12 @@ class TenantConfigService:
             empresa_id=empresa_id,
             nome=getattr(item, "nome"),
             connector_type=getattr(item, "connector_type"),
+            sync_interval_minutes=getattr(item, "sync_interval_minutes"),
             settings=TenantConfigService._from_json(getattr(item, "settings_json")),
             ativo=getattr(item, "ativo"),
+            last_run_at=getattr(item, "last_run_at"),
+            last_status=getattr(item, "last_status"),
+            last_error=getattr(item, "last_error"),
             created_at=getattr(item, "created_at"),
             updated_at=getattr(item, "updated_at"),
         )
@@ -89,6 +94,7 @@ class TenantConfigService:
             empresa_id=empresa_id,
             nome=payload.nome,
             connector_type=payload.connector_type,
+            sync_interval_minutes=payload.sync_interval_minutes,
             settings_json=self._to_json(payload.settings),
         )
         return self._to_response(config, empresa_id)
@@ -107,6 +113,7 @@ class TenantConfigService:
             empresa_id=empresa_id,
             nome=payload.nome,
             connector_type=payload.connector_type,
+            sync_interval_minutes=payload.sync_interval_minutes,
             settings_json=self._to_json(payload.settings),
         )
         return self._to_response(config, empresa_id)
@@ -130,6 +137,7 @@ class TenantConfigService:
             config,
             nome=payload.nome,
             connector_type=payload.connector_type,
+            sync_interval_minutes=payload.sync_interval_minutes,
             settings_json=self._to_json(payload.settings) if payload.settings is not None else None,
             ativo=payload.ativo,
         )
@@ -154,6 +162,7 @@ class TenantConfigService:
             config,
             nome=payload.nome,
             connector_type=payload.connector_type,
+            sync_interval_minutes=payload.sync_interval_minutes,
             settings_json=self._to_json(payload.settings) if payload.settings is not None else None,
             ativo=payload.ativo,
         )

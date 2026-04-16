@@ -6,9 +6,10 @@
 - RBAC real no painel administrativo, com perfis `admin`, `analyst` e `viewer`.
 - Cadastro de usuários no painel com validação de perfil.
 - Ajustes de infraestrutura para execução confiável em teste e desenvolvimento.
-- Suíte automatizada estabilizada com `8 passed`.
+- Suíte automatizada estabilizada com `9 passed`.
 - Cadastro de `source_configs` e `destination_configs` por tenant no backend.
 - Registry inicial de conectores para validar tipos suportados antes de persistir.
+- Scheduler por tenant com intervalo persistido em `source_configs` e heartbeat de execução.
 
 ### Planejado
 - Multiempresa completa com isolamento por empresa, filial e terminal.

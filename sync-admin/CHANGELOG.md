@@ -6,8 +6,9 @@
 - Role-based access control for the admin panel with `admin`, `analyst`, and `viewer` profiles.
 - User creation and listing inside the panel.
 - Path handling fixes for test and import stability on Windows.
-- Full test suite stabilized at `8 passed`.
+- Full test suite stabilized at `9 passed`.
 - Backend base for tenant-scoped source and destination configuration management.
+- Tenant-scoped scheduler support prepared on the backend with persisted source intervals.
 
 ### Planned
 - Multi-company isolation across company, branch, and terminal scopes.

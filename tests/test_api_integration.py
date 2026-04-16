@@ -42,6 +42,7 @@ def test_full_flow_sync_and_tenant_isolation() -> None:
             json={
                 "nome": "MariaDB origem",
                 "connector_type": "mariadb",
+                "sync_interval_minutes": 20,
                 "settings": {
                     "host": "127.0.0.1",
                     "port": "3308",
@@ -50,6 +51,7 @@ def test_full_flow_sync_and_tenant_isolation() -> None:
             },
         )
         assert source_create.status_code == 200, source_create.text
+        assert source_create.json()["sync_interval_minutes"] == 20
         source_config_id = source_create.json()["id"]
 
         destination_create = client.post(

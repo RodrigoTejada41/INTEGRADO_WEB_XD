@@ -10,7 +10,10 @@ class MetricsRegistry:
         self.sync_records_updated_total = 0
         self.sync_failures_total = 0
         self.retention_processed_total = 0
+        self.tenant_scheduler_runs_total = 0
+        self.tenant_scheduler_failures_total = 0
         self.last_sync_epoch_by_empresa: dict[str, int] = {}
+        self.last_tenant_scheduler_epoch_by_empresa: dict[str, int] = {}
 
     def record_sync_success(
         self,
@@ -32,6 +35,17 @@ class MetricsRegistry:
         with self._lock:
             self.retention_processed_total += processed
 
+    def record_tenant_scheduler_success(self, empresa_id: str) -> None:
+        with self._lock:
+            self.tenant_scheduler_runs_total += 1
+            self.last_tenant_scheduler_epoch_by_empresa[empresa_id] = int(
+                datetime.now(UTC).timestamp()
+            )
+
+    def record_tenant_scheduler_failure(self) -> None:
+        with self._lock:
+            self.tenant_scheduler_failures_total += 1
+
     def render_prometheus(self) -> str:
         lines = [
             "# HELP sync_batches_total Total de lotes de sincronizacao processados com sucesso.",
@@ -49,13 +63,22 @@ class MetricsRegistry:
             "# HELP retention_processed_total Total de registros processados na retencao.",
             "# TYPE retention_processed_total counter",
             f"retention_processed_total {self.retention_processed_total}",
+            "# HELP tenant_scheduler_runs_total Total de execucoes do scheduler por tenant.",
+            "# TYPE tenant_scheduler_runs_total counter",
+            f"tenant_scheduler_runs_total {self.tenant_scheduler_runs_total}",
+            "# HELP tenant_scheduler_failures_total Total de falhas do scheduler por tenant.",
+            "# TYPE tenant_scheduler_failures_total counter",
+            f"tenant_scheduler_failures_total {self.tenant_scheduler_failures_total}",
             "# HELP sync_last_success_epoch Timestamp epoch do ultimo sync por empresa.",
             "# TYPE sync_last_success_epoch gauge",
         ]
         for empresa_id, epoch in sorted(self.last_sync_epoch_by_empresa.items()):
             lines.append(f'sync_last_success_epoch{{empresa_id="{empresa_id}"}} {epoch}')
+        lines.append("# HELP tenant_scheduler_last_success_epoch Timestamp epoch da ultima execucao do scheduler por empresa.")
+        lines.append("# TYPE tenant_scheduler_last_success_epoch gauge")
+        for empresa_id, epoch in sorted(self.last_tenant_scheduler_epoch_by_empresa.items()):
+            lines.append(f'tenant_scheduler_last_success_epoch{{empresa_id="{empresa_id}"}} {epoch}')
         return "\n".join(lines) + "\n"
 
 
 metrics_registry = MetricsRegistry()
-

@@ -18,6 +18,7 @@ class TenantConfigRepository:
         empresa_id: str,
         nome: str,
         connector_type: str,
+        sync_interval_minutes: int,
         settings_json: str,
         ativo: bool = True,
     ) -> Any:
@@ -26,6 +27,7 @@ class TenantConfigRepository:
             empresa_id=empresa_id,
             nome=nome,
             connector_type=connector_type,
+            sync_interval_minutes=sync_interval_minutes,
             settings_json=settings_json,
             ativo=ativo,
         )

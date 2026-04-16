@@ -10,6 +10,7 @@ from backend.config.logging import configure_logging
 from backend.config.settings import get_settings
 from backend.models import Base
 from backend.services.retention_service import RetentionService
+from backend.services.tenant_sync_scheduler import TenantSyncScheduler
 
 settings = get_settings()
 configure_logging(settings.log_level)
@@ -24,13 +25,14 @@ async def lifespan(app: FastAPI):
     if settings.auto_create_tables:
         Base.metadata.create_all(bind=engine)
 
+    scheduler = AsyncIOScheduler(timezone="UTC")
+
     if settings.retention_job_enabled:
         retention_service = RetentionService(
             session_factory=SessionLocal,
             retention_months=settings.retention_months,
             retention_mode=settings.retention_mode,
         )
-        scheduler = AsyncIOScheduler(timezone="UTC")
         scheduler.add_job(
             retention_service.run,
             trigger="interval",
@@ -38,14 +40,25 @@ async def lifespan(app: FastAPI):
             id="retention-job",
             replace_existing=True,
         )
-        scheduler.start()
         logger.info("retention_scheduler_started")
+
+    tenant_scheduler = TenantSyncScheduler(session_factory=SessionLocal, scheduler=scheduler)
+    tenant_scheduler.sync_all_jobs()
+    scheduler.add_job(
+        tenant_scheduler.sync_all_jobs,
+        trigger="interval",
+        minutes=5,
+        id="tenant-sync-reconciler",
+        replace_existing=True,
+    )
+    scheduler.start()
+    logger.info("tenant_sync_scheduler_started")
 
     yield
 
     if scheduler:
         scheduler.shutdown(wait=False)
-        logger.info("retention_scheduler_stopped")
+        logger.info("tenant_sync_scheduler_stopped")
 
 
 app = FastAPI(title=settings.app_name, lifespan=lifespan)
