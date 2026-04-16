@@ -3,6 +3,16 @@
 Data do registro: 2026-04-16  
 Projeto: `INTEGRADO_WEB_XD`
 
+## Protocolo de atuação
+
+Toda execução futura deve seguir o documento base:
+- [`PROTOCOLO_ESPECIALISTAS.md`](PROTOCOLO_ESPECIALISTAS.md)
+
+Esse protocolo define:
+- seleção do especialista correto
+- formato obrigatório de resposta
+- foco em segurança, escalabilidade e manutenção
+
 ## 1) Objetivo geral solicitado
 
 Construir uma plataforma comercial de sincronização de dados multi-tenant com:
