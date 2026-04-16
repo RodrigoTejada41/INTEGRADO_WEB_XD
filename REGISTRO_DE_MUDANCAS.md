@@ -1,6 +1,6 @@
-﻿# Changelog
+﻿# Registro de Mudanças
 
-> Este changelog deve ser lido em conjunto com [`PROTOCOLO_ESPECIALISTAS.md`](PROTOCOLO_ESPECIALISTAS.md) para manter o mesmo padrão de atuação e documentação.
+> Este registro deve ser lido em conjunto com [`PROTOCOLO_ESPECIALISTAS.md`](PROTOCOLO_ESPECIALISTAS.md) para manter o mesmo padrão de atuação e documentação.
 
 ## v0.2.0 - Em andamento
 
@@ -54,3 +54,4 @@
 ### Observações
 - O repositório foi versionado com a tag `v0.1.0`.
 - O foco desta base é a evolução incremental para a fase comercial multi-tenant completa.
+

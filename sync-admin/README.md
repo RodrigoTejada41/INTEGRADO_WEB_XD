@@ -20,7 +20,7 @@ Sistema web profissional, modular e escalável para recebimento de dados de sinc
 - Fluxograma atual: [`docs/13-FLUXOGRAMA-ATUAL.md`](./docs/13-FLUXOGRAMA-ATUAL.md)
 - Release checkpoint v0.1.0: [`docs/14-RELEASE-CHECKPOINT-v0.1.0.md`](./docs/14-RELEASE-CHECKPOINT-v0.1.0.md)
 - Release registry: [`docs/15-RELEASE-REGISTRY.md`](./docs/15-RELEASE-REGISTRY.md)
-- Changelog: [`CHANGELOG.md`](./CHANGELOG.md)
+- Changelog: [`REGISTRO_DE_MUDANCAS.md`](./REGISTRO_DE_MUDANCAS.md)
 - Versao atual: [`VERSION`](./VERSION)
 
 ## Arquitetura modular
@@ -103,3 +103,4 @@ docker compose up -d --build
 - Exportação CSV implementada (`/records/export.csv`)
 - Camadas desacopladas para troca de banco e expansão futura
 - Base pronta para integração futura com Obsidian/Nexus para trilhas de auditoria
+

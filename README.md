@@ -10,9 +10,9 @@ O ponto de retomada do projeto está em:
 Base de resposta para outra IA ou agente:
 - [`PROTOCOLO_ESPECIALISTAS.md`](PROTOCOLO_ESPECIALISTAS.md)
 
-## Releases e changelog
-- [`CHANGELOG.md`](CHANGELOG.md)
-- [`RELEASE_NOTES_v0.1.0.md`](RELEASE_NOTES_v0.1.0.md)
+## Lançamentos e registro de mudanças
+- [`REGISTRO_DE_MUDANCAS.md`](REGISTRO_DE_MUDANCAS.md)
+- [`NOTAS_DE_RELEASE_v0.1.0.md`](NOTAS_DE_RELEASE_v0.1.0.md)
 - Tag publicada: `v0.1.0`
 
 ## Caminho principal da origem (processado pelo pipeline)
@@ -140,3 +140,4 @@ Isso valida:
 - engenharia reversa + transformação + persistência
 - artefatos gerados em Obsidian e nas pastas de manifestos Nexus
 - login JWT e endpoints protegidos da API
+
