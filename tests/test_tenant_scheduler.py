@@ -9,6 +9,7 @@ from pathlib import Path
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine, select, text
+from sqlalchemy.orm import sessionmaker
 
 
 def test_tenant_scheduler_creates_jobs_and_updates_heartbeat() -> None:
@@ -174,6 +175,7 @@ def test_tenant_sync_job_retries_and_moves_to_dead_letter() -> None:
     from backend.config.database import engine
     from backend.models import Base
     from backend.models.tenant_sync_job import TenantSyncJob
+    from backend.models.tenant_destination_config import TenantDestinationConfig
     from backend.models.tenant_source_config import TenantSourceConfig
     from backend.repositories.tenant_config_repository import TenantConfigRepository
     from backend.repositories.tenant_sync_job_repository import TenantSyncJobRepository
@@ -277,6 +279,151 @@ def test_tenant_sync_job_retries_and_moves_to_dead_letter() -> None:
             f"/admin/tenants/{config.empresa_id}/sync-jobs/summary",
             headers={"X-Admin-Token": "admin-token-test"},
         )
-        assert summary_after_retry.status_code == 200, summary_after_retry.text
-        assert summary_after_retry.json()["pending_count"] == 1
-        assert summary_after_retry.json()["dead_letter_count"] == 0
+    assert summary_after_retry.status_code == 200, summary_after_retry.text
+    assert summary_after_retry.json()["pending_count"] == 1
+    assert summary_after_retry.json()["dead_letter_count"] == 0
+
+
+def test_tenant_sync_worker_delivers_to_destination_database() -> None:
+    db_path = Path("output/test_tenant_destination_delivery.db")
+    if db_path.exists():
+        db_path.unlink()
+
+    os.environ["DATABASE_URL"] = f"sqlite+pysqlite:///{db_path.as_posix()}"
+    os.environ["ADMIN_TOKEN"] = "admin-token-test"
+    os.environ["AUTO_CREATE_TABLES"] = "true"
+    os.environ["RETENTION_JOB_ENABLED"] = "false"
+
+    for module_name in [
+        "backend.main",
+        "backend.api.routes",
+        "backend.api.routes.tenant_admin",
+        "backend.config.database",
+        "backend.config.settings",
+        "backend.services.tenant_sync_scheduler",
+    ]:
+        sys.modules.pop(module_name, None)
+
+    import backend.config.settings as settings_module
+
+    settings_module.get_settings.cache_clear()
+    importlib.invalidate_caches()
+
+    from backend.config.database import SessionLocal
+    from backend.config.database import engine
+    from backend.models import Base
+    from backend.models.venda import Venda
+    from backend.models.tenant_destination_config import TenantDestinationConfig
+    from backend.models.tenant_source_config import TenantSourceConfig
+    from backend.repositories.tenant_config_repository import TenantConfigRepository
+    from backend.repositories.tenant_repository import TenantRepository
+    from backend.services.tenant_sync_scheduler import TenantSyncScheduler
+    from backend.services.tenant_sync_worker import TenantSyncWorker
+    from backend.utils.crypto import encrypt_json
+
+    Base.metadata.create_all(bind=engine)
+
+    source_db_path = Path("output/test_tenant_destination_source.db")
+    if source_db_path.exists():
+        source_db_path.unlink()
+    source_engine = create_engine(f"sqlite+pysqlite:///{source_db_path.as_posix()}", future=True)
+    with source_engine.begin() as connection:
+        connection.execute(
+            text(
+                """
+                CREATE TABLE vendas (
+                    uuid TEXT PRIMARY KEY,
+                    empresa_id TEXT NOT NULL,
+                    produto TEXT NOT NULL,
+                    valor NUMERIC NOT NULL,
+                    data DATE NOT NULL,
+                    data_atualizacao TEXT NOT NULL
+                )
+                """
+            )
+        )
+        connection.execute(
+            text(
+                """
+                INSERT INTO vendas (uuid, empresa_id, produto, valor, data, data_atualizacao)
+                VALUES (:uuid, :empresa_id, :produto, :valor, :data, :data_atualizacao)
+                """
+            ),
+            [
+                {
+                    "uuid": "33333333-3333-3333-3333-333333333333",
+                    "empresa_id": "12345678000199",
+                    "produto": "Produto destino",
+                    "valor": "150.00",
+                    "data": "2026-04-16",
+                    "data_atualizacao": "2026-04-16T14:00:00+00:00",
+                }
+            ],
+        )
+
+    destination_db_path = Path("output/test_tenant_destination_target.db")
+    if destination_db_path.exists():
+        destination_db_path.unlink()
+    destination_engine = create_engine(f"sqlite+pysqlite:///{destination_db_path.as_posix()}", future=True)
+    Base.metadata.create_all(bind=destination_engine)
+
+    with SessionLocal() as session:
+        tenant_repository = TenantRepository(session)
+        tenant_repository.upsert_tenant(
+            empresa_id="12345678000199",
+            nome="Empresa Destino",
+            api_key_hash="hash",
+        )
+        source_repository = TenantConfigRepository(session, TenantSourceConfig)
+        source_config = source_repository.create(
+            config_id="33333333-3333-3333-3333-333333333333",
+            empresa_id="12345678000199",
+            nome="Fonte destino",
+            connector_type="mariadb",
+            sync_interval_minutes=15,
+            settings_json=encrypt_json(
+                {
+                    "mariadb_url": f"sqlite+pysqlite:///{source_db_path.as_posix()}",
+                    "batch_size": "50",
+                }
+            ),
+        )
+        destination_repository = TenantConfigRepository(session, TenantDestinationConfig)
+        destination_repository.create(
+            config_id="44444444-4444-4444-4444-444444444444",
+            empresa_id="12345678000199",
+            nome="Destino central",
+            connector_type="postgresql",
+            sync_interval_minutes=15,
+            settings_json=encrypt_json(
+                {
+                    "database_url": f"sqlite+pysqlite:///{destination_db_path.as_posix()}",
+                }
+            ),
+        )
+        session.commit()
+
+    tenant_scheduler = TenantSyncScheduler(session_factory=SessionLocal, scheduler=AsyncIOScheduler(timezone="UTC"))
+    tenant_scheduler.run_source_sync(source_config.id)
+
+    worker = TenantSyncWorker(session_factory=SessionLocal)
+    processed = worker.drain_pending_jobs()
+    assert processed == 1
+
+    with SessionLocal() as session:
+        source_config = session.get(TenantSourceConfig, source_config.id)
+        destination_config = session.get(TenantDestinationConfig, "44444444-4444-4444-4444-444444444444")
+        venda_central = session.get(Venda, 1)
+        assert source_config is not None
+        assert destination_config is not None
+        assert source_config.last_status == "ok"
+        assert destination_config.last_status == "ok"
+        assert venda_central is not None
+        assert venda_central.produto == "Produto destino"
+
+    destination_session_factory = sessionmaker(bind=destination_engine, autoflush=False, autocommit=False, future=True)
+    with destination_session_factory() as destination_session:
+        venda_destino = destination_session.get(Venda, 1)
+        assert venda_destino is not None
+        assert venda_destino.empresa_id == "12345678000199"
+        assert venda_destino.produto == "Produto destino"

@@ -15,7 +15,8 @@
 - Cobertura de testes para registry de conectores, conector de arquivo e fluxo MariaDB real.
 - Retry com backoff e DLQ para jobs falhos da fila de sync.
 - Painel administrativo passou a exibir o estado da fila, a DLQ e o reenfileiramento manual de jobs.
-- Suíte automatizada estabilizada com `11 passed`.
+- Replicação para destinos configurados adicionada ao worker, com entrega por tenant.
+- Suíte automatizada estabilizada com `12 passed`.
 
 ### Planejado
 - Multiempresa completa com isolamento por empresa, filial e terminal.

@@ -322,3 +322,4 @@ Voce pediu uma nova fase de produto para uma API comercial multi-tenant com conf
 - [x] Item 1: modelo de configuracao de source e destination por tenant formalizado
 - [x] Item 2: schemas, repositories e services ajustados para persistencia e validacao
 - [x] Item 3: registry de conectores com validacao por direcao implementado
+- [x] Item 4: worker com entrega para destinos configurados por tenant

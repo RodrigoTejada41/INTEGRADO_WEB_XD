@@ -39,6 +39,14 @@ class TenantConfigRepository:
         stmt = select(self.model).where(self.model.empresa_id == empresa_id).order_by(self.model.created_at)
         return list(self.session.scalars(stmt).all())
 
+    def list_active_by_empresa_id(self, empresa_id: str) -> list[Any]:
+        stmt = (
+            select(self.model)
+            .where(self.model.empresa_id == empresa_id, self.model.ativo.is_(True))
+            .order_by(self.model.created_at)
+        )
+        return list(self.session.scalars(stmt).all())
+
     def get_by_id(self, empresa_id: str, config_id: str) -> Any | None:
         stmt = select(self.model).where(
             self.model.empresa_id == empresa_id,
