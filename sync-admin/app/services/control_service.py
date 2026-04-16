@@ -20,6 +20,16 @@ class ControlSummary:
     retention_processed_total: float
 
 
+@dataclass
+class SyncJobsSummary:
+    empresa_id: str
+    pending_count: float
+    processing_count: float
+    done_count: float
+    dead_letter_count: float
+    failed_count: float
+
+
 class ControlService:
     def __init__(self) -> None:
         self.base_url = settings.control_api_base_url.rstrip('/')
@@ -119,6 +129,70 @@ class ControlService:
             'event': 'sync_application_failures_total',
             'detail': f"current_value={summary.sync_application_failures_total}",
         }
+
+    def fetch_sync_jobs_summary(self) -> SyncJobsSummary:
+        try:
+            with httpx.Client(timeout=10.0) as client:
+                response = client.get(
+                    f'{self.base_url}/admin/tenants/{settings.control_empresa_id}/sync-jobs/summary',
+                    headers=self.admin_headers,
+                )
+                response.raise_for_status()
+                data = response.json()
+        except Exception:
+            return SyncJobsSummary(
+                empresa_id=settings.control_empresa_id,
+                pending_count=0.0,
+                processing_count=0.0,
+                done_count=0.0,
+                dead_letter_count=0.0,
+                failed_count=0.0,
+            )
+        return SyncJobsSummary(
+            empresa_id=data['empresa_id'],
+            pending_count=float(data['pending_count']),
+            processing_count=float(data['processing_count']),
+            done_count=float(data['done_count']),
+            dead_letter_count=float(data['dead_letter_count']),
+            failed_count=float(data['failed_count']),
+        )
+
+    def fetch_dead_letter_jobs(self, limit: int = 10) -> list[dict]:
+        try:
+            with httpx.Client(timeout=10.0) as client:
+                response = client.get(
+                    f'{self.base_url}/admin/tenants/{settings.control_empresa_id}/sync-jobs/dead-letter',
+                    headers=self.admin_headers,
+                    params={'limit': limit},
+                )
+                response.raise_for_status()
+                data = response.json()
+        except Exception:
+            return []
+        rows: list[dict] = []
+        for item in data:
+            rows.append(
+                {
+                    'id': item.get('id', '-'),
+                    'empresa_id': item.get('empresa_id', '-'),
+                    'source_config_id': item.get('source_config_id', '-'),
+                    'status': item.get('status', '-'),
+                    'attempts': item.get('attempts', 0),
+                    'next_run_at': item.get('next_run_at', '-'),
+                    'last_error': item.get('last_error', '-'),
+                    'dead_letter_reason': item.get('dead_letter_reason', '-'),
+                }
+            )
+        return rows
+
+    def retry_sync_job(self, job_id: str) -> dict:
+        with httpx.Client(timeout=10.0) as client:
+            response = client.post(
+                f'{self.base_url}/admin/tenants/{settings.control_empresa_id}/sync-jobs/{job_id}/retry',
+                headers=self.admin_headers,
+            )
+            response.raise_for_status()
+            return response.json()
 
     def get_server_settings(self) -> dict:
         with httpx.Client(timeout=10.0) as client:

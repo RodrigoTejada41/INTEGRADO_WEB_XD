@@ -46,6 +46,9 @@
       setText('kpi-control-app-failures', data.control.sync_application_failures_total);
       setText('kpi-control-preflight-errors', data.control.preflight_connection_errors_total);
       setText('kpi-control-retention', data.control.retention_processed_total);
+      setText('kpi-queue-pending', data.control.queue_pending_total);
+      setText('kpi-queue-processing', data.control.queue_processing_total);
+      setText('kpi-queue-dlq', data.control.queue_dead_letter_total);
     } catch (_err) {
     }
   }

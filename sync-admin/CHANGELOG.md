@@ -13,6 +13,7 @@
 - Real source connector execution added in the backend worker.
 - Test coverage expanded for connector registry and real source execution.
 - Retry/backoff and dead-letter handling added for sync jobs.
+- Dashboard now exposes queue counters, dead-letter jobs, and manual retry action for admin users.
 - Full test suite stabilized at `11 passed`.
 
 ### Planned

@@ -7,6 +7,7 @@ from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
+from fastapi.testclient import TestClient
 from sqlalchemy import create_engine, select, text
 
 
@@ -22,6 +23,8 @@ def test_tenant_scheduler_creates_jobs_and_updates_heartbeat() -> None:
 
     for module_name in [
         "backend.main",
+        "backend.api.routes",
+        "backend.api.routes.tenant_admin",
         "backend.config.database",
         "backend.config.settings",
         "backend.services.tenant_sync_scheduler",
@@ -243,3 +246,37 @@ def test_tenant_sync_job_retries_and_moves_to_dead_letter() -> None:
         assert job.attempts == 3
         assert job.dead_letter_reason is not None
         assert len(TenantSyncJobRepository(session).list_pending()) == 0
+
+    from backend.main import app
+
+    with TestClient(app) as client:
+        summary_resp = client.get(
+            f"/admin/tenants/{config.empresa_id}/sync-jobs/summary",
+            headers={"X-Admin-Token": "admin-token-test"},
+        )
+        assert summary_resp.status_code == 200, summary_resp.text
+        assert summary_resp.json()["dead_letter_count"] == 1
+        assert summary_resp.json()["pending_count"] == 0
+
+        dlq_resp = client.get(
+            f"/admin/tenants/{config.empresa_id}/sync-jobs/dead-letter",
+            headers={"X-Admin-Token": "admin-token-test"},
+        )
+        assert dlq_resp.status_code == 200, dlq_resp.text
+        assert len(dlq_resp.json()) == 1
+        job_id = dlq_resp.json()[0]["id"]
+
+        retry_resp = client.post(
+            f"/admin/tenants/{config.empresa_id}/sync-jobs/{job_id}/retry",
+            headers={"X-Admin-Token": "admin-token-test"},
+        )
+        assert retry_resp.status_code == 200, retry_resp.text
+        assert retry_resp.json()["status"] == "pending"
+
+        summary_after_retry = client.get(
+            f"/admin/tenants/{config.empresa_id}/sync-jobs/summary",
+            headers={"X-Admin-Token": "admin-token-test"},
+        )
+        assert summary_after_retry.status_code == 200, summary_after_retry.text
+        assert summary_after_retry.json()["pending_count"] == 1
+        assert summary_after_retry.json()["dead_letter_count"] == 0

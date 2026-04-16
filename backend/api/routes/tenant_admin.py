@@ -7,6 +7,7 @@ from backend.models.tenant_destination_config import TenantDestinationConfig
 from backend.models.tenant_source_config import TenantSourceConfig
 from backend.repositories.server_setting_repository import ServerSettingRepository
 from backend.repositories.tenant_config_repository import TenantConfigRepository
+from backend.repositories.tenant_sync_job_repository import TenantSyncJobRepository
 from backend.repositories.tenant_repository import TenantRepository
 from backend.schemas.server_settings import ServerSettingsResponse, ServerSettingsUpdateRequest
 from backend.schemas.tenant_configs import (
@@ -15,12 +16,14 @@ from backend.schemas.tenant_configs import (
     TenantConfigResponse,
     TenantConfigUpdateRequest,
 )
+from backend.schemas.tenant_jobs import TenantJobResponse, TenantJobRetryResponse, TenantJobSummaryResponse
 from backend.schemas.tenant import (
     TenantProvisionRequest,
     TenantProvisionResponse,
     TenantRotateKeyResponse,
 )
 from backend.services.admin_service import AdminService
+from backend.services.tenant_job_service import TenantJobService
 from backend.services.server_settings_service import ServerSettingsService
 from backend.services.tenant_config_service import TenantConfigService
 
@@ -209,5 +212,49 @@ def delete_destination_config(
 ) -> TenantConfigDeleteResponse:
     service = _tenant_config_service(session)
     result = service.delete_destination_config(empresa_id, config_id)
+    session.commit()
+    return result
+
+
+@router.get(
+    "/tenants/{empresa_id}/sync-jobs/summary",
+    response_model=TenantJobSummaryResponse,
+    dependencies=[Depends(require_admin_token)],
+)
+def get_sync_jobs_summary(
+    empresa_id: str,
+    session: Session = Depends(get_session),
+) -> TenantJobSummaryResponse:
+    service = TenantJobService(TenantSyncJobRepository(session))
+    return service.get_summary(empresa_id)
+
+
+@router.get(
+    "/tenants/{empresa_id}/sync-jobs/dead-letter",
+    response_model=list[TenantJobResponse],
+    dependencies=[Depends(require_admin_token)],
+)
+def list_dead_letter_jobs(
+    empresa_id: str,
+    limit: int = 10,
+    session: Session = Depends(get_session),
+) -> list[TenantJobResponse]:
+    service = TenantJobService(TenantSyncJobRepository(session))
+    return service.list_dead_letters(empresa_id, limit=limit)
+
+
+@router.post(
+    "/tenants/{empresa_id}/sync-jobs/{job_id}/retry",
+    response_model=TenantJobRetryResponse,
+    dependencies=[Depends(require_admin_token)],
+)
+def retry_sync_job(
+    empresa_id: str,
+    job_id: str,
+    session: Session = Depends(get_session),
+) -> TenantJobRetryResponse:
+    repository = TenantSyncJobRepository(session)
+    service = TenantJobService(repository)
+    result = service.retry_job(empresa_id, job_id)
     session.commit()
     return result

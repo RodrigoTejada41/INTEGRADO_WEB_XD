@@ -80,8 +80,10 @@ def dashboard(
     data = svc.summary()
     control = ControlService()
     control_summary = control.fetch_summary()
+    job_summary = control.fetch_sync_jobs_summary()
     failed_batches, _ = SyncRepository(db).list_batches(page=1, page_size=10, status='failed')
     recent_errors = control.recent_agent_errors(limit=10)
+    dead_letter_jobs = control.fetch_dead_letter_jobs(limit=10)
     for batch in failed_batches:
         recent_errors.append(
             {
@@ -103,7 +105,9 @@ def dashboard(
             'current_user': current_user,
             'summary': data,
             'control_summary': control_summary,
+            'job_summary': job_summary,
             'recent_errors': recent_errors,
+            'dead_letter_jobs': dead_letter_jobs,
             'chart_labels': json.dumps(chart_labels),
             'chart_values': json.dumps(chart_values),
         },
@@ -114,7 +118,9 @@ def dashboard(
 def dashboard_data(_: object = Depends(require_web_user), db: Session = Depends(get_db)):
     svc = DashboardService(db)
     data = svc.summary()
-    control_summary = ControlService().fetch_summary()
+    control_service = ControlService()
+    control_summary = control_service.fetch_summary()
+    job_summary = control_service.fetch_sync_jobs_summary()
     return JSONResponse(
         {
             'summary': {
@@ -131,6 +137,10 @@ def dashboard_data(_: object = Depends(require_web_user), db: Session = Depends(
                 'sync_application_failures_total': control_summary.sync_application_failures_total,
                 'preflight_connection_errors_total': control_summary.preflight_connection_errors_total,
                 'retention_processed_total': control_summary.retention_processed_total,
+                'queue_pending_total': job_summary.pending_count,
+                'queue_processing_total': job_summary.processing_count,
+                'queue_dead_letter_total': job_summary.dead_letter_count,
+                'queue_failed_total': job_summary.failed_count,
             },
         }
     )
@@ -331,6 +341,26 @@ def settings_server_settings(
     except Exception as exc:
         return RedirectResponse(
             f'/settings?error=Falha+ao+atualizar+configuracoes+de+servidor:+{str(exc)}',
+            status_code=status.HTTP_302_FOUND,
+        )
+
+
+@router.post('/dashboard/jobs/{job_id}/retry')
+def dashboard_retry_job(
+    request: Request,
+    job_id: str,
+    _: object = Depends(require_web_role('admin')),
+):
+    control = ControlService()
+    try:
+        control.retry_sync_job(job_id)
+        return RedirectResponse(
+            '/dashboard?flash=Job+reenfileirado+com+sucesso',
+            status_code=status.HTTP_302_FOUND,
+        )
+    except Exception as exc:
+        return RedirectResponse(
+            f'/dashboard?error=Falha+ao+reenfileirar+job:+{str(exc)}',
             status_code=status.HTTP_302_FOUND,
         )
 

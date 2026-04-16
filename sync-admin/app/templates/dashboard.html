@@ -28,6 +28,24 @@
       <h6 id="kpi-control-preflight-errors">{{ control_summary.preflight_connection_errors_total }}</h6>
     </div>
   </div>
+  <div class="col-md-3">
+    <div class="card p-3">
+      <small>Fila pendente</small>
+      <h6 id="kpi-queue-pending">{{ job_summary.pending_count }}</h6>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="card p-3">
+      <small>Fila processando</small>
+      <h6 id="kpi-queue-processing">{{ job_summary.processing_count }}</h6>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="card p-3">
+      <small>DLQ</small>
+      <h6 id="kpi-queue-dlq">{{ job_summary.dead_letter_count }}</h6>
+    </div>
+  </div>
 </div>
 
 <div class="card mb-4 p-3">
@@ -51,6 +69,42 @@
           <td><code>{{ row.detail }}</code></td>
         </tr>
         {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="card mb-4 p-3">
+  <div class="d-flex justify-content-between align-items-center mb-2">
+    <h6 class="mb-0">Dead Letter Queue</h6>
+    <small class="text-muted">Empresa {{ job_summary.empresa_id }}</small>
+  </div>
+  <div class="table-responsive">
+    <table class="table table-sm table-striped align-middle">
+      <thead><tr><th>Job</th><th>Fonte</th><th>Status</th><th>Tentativas</th><th>Próxima execução</th><th>Erro</th><th>Ação</th></tr></thead>
+      <tbody>
+        {% for job in dead_letter_jobs %}
+        <tr>
+          <td><code>{{ job.id }}</code></td>
+          <td>{{ job.source_config_id }}</td>
+          <td><span class="badge text-bg-danger">{{ job.status }}</span></td>
+          <td>{{ job.attempts }}</td>
+          <td>{{ job.next_run_at }}</td>
+          <td><code>{{ job.last_error or job.dead_letter_reason }}</code></td>
+          <td>
+            {% if current_user.role == 'admin' %}
+            <form method="post" action="/dashboard/jobs/{{ job.id }}/retry">
+              <button class="btn btn-sm btn-outline-primary">Reenfileirar</button>
+            </form>
+            {% else %}
+            <span class="text-muted">Somente admin</span>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+        {% if dead_letter_jobs|length == 0 %}
+        <tr><td colspan="7" class="text-muted">Sem jobs em DLQ.</td></tr>
+        {% endif %}
       </tbody>
     </table>
   </div>

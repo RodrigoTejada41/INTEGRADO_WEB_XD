@@ -1,9 +1,8 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime, timedelta
-from typing import Any
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from backend.models.tenant_sync_job import TenantSyncJob
@@ -56,6 +55,31 @@ class TenantSyncJobRepository:
     def get_by_id(self, job_id: str) -> TenantSyncJob | None:
         return self.session.get(TenantSyncJob, job_id)
 
+    def get_summary_by_empresa_id(self, empresa_id: str) -> dict[str, int]:
+        stmt = (
+            select(TenantSyncJob.status, func.count(TenantSyncJob.id))
+            .where(TenantSyncJob.empresa_id == empresa_id)
+            .group_by(TenantSyncJob.status)
+        )
+        rows = self.session.execute(stmt).all()
+        summary = {
+            "pending": 0,
+            "processing": 0,
+            "done": 0,
+            "dead_letter": 0,
+            "failed": 0,
+        }
+        for status, count in rows:
+            summary[str(status)] = int(count or 0)
+        return summary
+
+    def list_by_empresa_id(self, empresa_id: str, *, statuses: list[str] | None = None, limit: int = 20) -> list[TenantSyncJob]:
+        stmt = select(TenantSyncJob).where(TenantSyncJob.empresa_id == empresa_id)
+        if statuses:
+            stmt = stmt.where(TenantSyncJob.status.in_(statuses))
+        stmt = stmt.order_by(TenantSyncJob.updated_at.desc()).limit(limit)
+        return list(self.session.scalars(stmt).all())
+
     def mark_processing(self, job: TenantSyncJob) -> None:
         job.status = "processing"
         job.started_at = datetime.now(UTC)
@@ -82,3 +106,15 @@ class TenantSyncJobRepository:
         job.dead_letter_reason = error_message
         job.last_error = error_message
         self.session.flush()
+
+    def requeue_job(self, job: TenantSyncJob) -> TenantSyncJob:
+        job.status = "pending"
+        job.attempts = 0
+        job.last_error = None
+        job.dead_letter_at = None
+        job.dead_letter_reason = None
+        job.started_at = None
+        job.finished_at = None
+        job.next_run_at = datetime.now(UTC)
+        self.session.flush()
+        return job
