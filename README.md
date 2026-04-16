@@ -6,6 +6,10 @@ This project is a modular, non-monolithic pipeline that consumes reverse enginee
 O ponto de retomada do projeto está em:
 - [`CONTINUIDADE_PROJETO_SYNC.md`](CONTINUIDADE_PROJETO_SYNC.md)
 
+## Protocolo de atuação
+Base de resposta para outra IA ou agente:
+- [`PROTOCOLO_ESPECIALISTAS.md`](PROTOCOLO_ESPECIALISTAS.md)
+
 ## Releases e changelog
 - [`CHANGELOG.md`](CHANGELOG.md)
 - [`RELEASE_NOTES_v0.1.0.md`](RELEASE_NOTES_v0.1.0.md)

@@ -116,3 +116,7 @@ The agent must:
 3. Ensure no hardcoded values
 4. Ensure retention rule is respected
 5. Ensure code is modular
+
+## RESPONSE PROTOCOL
+
+Follow [`PROTOCOLO_ESPECIALISTAS.md`](PROTOCOLO_ESPECIALISTAS.md) as the operational model for role selection, response format, and senior-level execution.
