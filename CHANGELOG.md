@@ -1,5 +1,7 @@
 # Changelog
 
+> Este changelog deve ser lido em conjunto com [`PROTOCOLO_ESPECIALISTAS.md`](PROTOCOLO_ESPECIALISTAS.md) para manter o mesmo padrão de atuação e documentação.
+
 ## v0.2.0 - Em andamento
 
 ### Entregue

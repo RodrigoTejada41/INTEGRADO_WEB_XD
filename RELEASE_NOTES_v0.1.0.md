@@ -1,5 +1,7 @@
 # Release Notes - v0.1.0
 
+> Estas release notes seguem o protocolo operacional definido em [`PROTOCOLO_ESPECIALISTAS.md`](PROTOCOLO_ESPECIALISTAS.md).
+
 ## Summary
 Initial production-ready foundation for the synchronized data platform.
 
