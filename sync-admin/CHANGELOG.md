@@ -11,6 +11,9 @@
 - Tenant-scoped scheduler support prepared on the backend with persisted source intervals.
 - Persistent sync queue and worker flow added on the backend.
 - Connector settings encrypted at rest before storage.
+- Real source connector execution added in the backend worker.
+- Test coverage expanded for connector registry and real source execution.
+- Full test suite stabilized at `10 passed`.
 
 ### Planned
 - Multi-company isolation across company, branch, and terminal scopes.

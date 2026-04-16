@@ -12,6 +12,9 @@
 - Scheduler por tenant com intervalo persistido em `source_configs` e heartbeat de execução.
 - Fila persistida de jobs de sync e worker dedicado para processar a execução.
 - Criptografia em repouso das credenciais/configurações dos conectores.
+- Execução real de conectores de origem no worker, com suporte inicial a MariaDB, API e arquivo.
+- Cobertura de testes para registry de conectores, conector de arquivo e fluxo MariaDB real.
+- Suíte automatizada estabilizada com `10 passed`.
 
 ### Planejado
 - Multiempresa completa com isolamento por empresa, filial e terminal.
