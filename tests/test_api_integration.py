@@ -14,6 +14,7 @@ def test_full_flow_sync_and_tenant_isolation() -> None:
     os.environ["ADMIN_TOKEN"] = "admin-token-test"
     os.environ["AUTO_CREATE_TABLES"] = "true"
     os.environ["RETENTION_JOB_ENABLED"] = "false"
+    audit_headers = {"X-Admin-Token": "admin-token-test", "X-Audit-Actor": "panel.admin"}
 
     from backend.main import app
     from backend.config.database import SessionLocal
@@ -23,7 +24,7 @@ def test_full_flow_sync_and_tenant_isolation() -> None:
     with TestClient(app) as client:
         create_resp_a = client.post(
             "/admin/tenants",
-            headers={"X-Admin-Token": "admin-token-test"},
+            headers=audit_headers,
             json={"empresa_id": "12345678000199", "nome": "Empresa A"},
         )
         assert create_resp_a.status_code == 200
@@ -31,7 +32,7 @@ def test_full_flow_sync_and_tenant_isolation() -> None:
 
         create_resp_b = client.post(
             "/admin/tenants",
-            headers={"X-Admin-Token": "admin-token-test"},
+            headers=audit_headers,
             json={"empresa_id": "98765432000155", "nome": "Empresa B"},
         )
         assert create_resp_b.status_code == 200
@@ -39,7 +40,7 @@ def test_full_flow_sync_and_tenant_isolation() -> None:
 
         source_create = client.post(
             "/admin/tenants/12345678000199/source-configs",
-            headers={"X-Admin-Token": "admin-token-test"},
+            headers=audit_headers,
             json={
                 "nome": "MariaDB origem",
                 "connector_type": "mariadb",
@@ -62,7 +63,7 @@ def test_full_flow_sync_and_tenant_isolation() -> None:
 
         destination_create = client.post(
             "/admin/tenants/12345678000199/destination-configs",
-            headers={"X-Admin-Token": "admin-token-test"},
+            headers=audit_headers,
             json={
                 "nome": "PostgreSQL central",
                 "connector_type": "postgresql",
@@ -106,7 +107,7 @@ def test_full_flow_sync_and_tenant_isolation() -> None:
 
         source_update = client.put(
             f"/admin/tenants/12345678000199/source-configs/{source_config_id}",
-            headers={"X-Admin-Token": "admin-token-test"},
+            headers=audit_headers,
             json={
                 "nome": "MariaDB origem principal",
                 "settings": {
@@ -123,14 +124,14 @@ def test_full_flow_sync_and_tenant_isolation() -> None:
 
         destination_delete = client.delete(
             f"/admin/tenants/12345678000199/destination-configs/{destination_config_id}",
-            headers={"X-Admin-Token": "admin-token-test"},
+            headers=audit_headers,
         )
         assert destination_delete.status_code == 200, destination_delete.text
         assert destination_delete.json()["status"] == "deleted"
 
         unsupported_connector = client.post(
             "/admin/tenants/12345678000199/source-configs",
-            headers={"X-Admin-Token": "admin-token-test"},
+            headers=audit_headers,
             json={
                 "nome": "Conector invalido",
                 "connector_type": "oracle",
@@ -142,7 +143,7 @@ def test_full_flow_sync_and_tenant_isolation() -> None:
 
         destination_as_source = client.post(
             "/admin/tenants/12345678000199/source-configs",
-            headers={"X-Admin-Token": "admin-token-test"},
+            headers=audit_headers,
             json={
                 "nome": "Destino na origem",
                 "connector_type": "postgresql",
@@ -154,7 +155,7 @@ def test_full_flow_sync_and_tenant_isolation() -> None:
 
         source_as_destination = client.post(
             "/admin/tenants/12345678000199/destination-configs",
-            headers={"X-Admin-Token": "admin-token-test"},
+            headers=audit_headers,
             json={
                 "nome": "Origem no destino",
                 "connector_type": "mariadb",
@@ -239,6 +240,25 @@ def test_full_flow_sync_and_tenant_isolation() -> None:
         assert 'sync_last_success_epoch{empresa_id="12345678000199"}' in metrics_resp.text
         assert "tenant_destination_delivery_total" in metrics_resp.text
         assert "tenant_destination_last_event_epoch" in metrics_resp.text
+
+        audit_summary = client.get(
+            "/admin/tenants/12345678000199/audit/summary",
+            headers={"X-Admin-Token": "admin-token-test"},
+        )
+        assert audit_summary.status_code == 200, audit_summary.text
+        assert audit_summary.json()["empresa_id"] == "12345678000199"
+        assert audit_summary.json()["total_count"] >= 4
+        assert "panel.admin" in audit_summary.json()["actors"]
+
+        audit_events = client.get(
+            "/admin/tenants/12345678000199/audit/events",
+            headers={"X-Admin-Token": "admin-token-test"},
+            params={"limit": 10},
+        )
+        assert audit_events.status_code == 200, audit_events.text
+        actions = {event["action"] for event in audit_events.json()}
+        assert "source_config.create" in actions
+        assert "destination_config.delete" in actions
 
     with SessionLocal() as session:
         count_a = session.scalar(

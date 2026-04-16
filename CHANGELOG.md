@@ -18,6 +18,7 @@
 - Replicação para destinos configurados adicionada ao worker, com entrega por tenant.
 - Métricas de entrega em destinos e painel de destinations configuradas adicionados.
 - Endpoints de summary para source e destination por tenant adicionados na API administrativa.
+- Auditoria persistente de alterações de configuracao com ator, acao e recurso adicionada.
 - Suíte automatizada estabilizada com `12 passed`.
 
 ### Planejado

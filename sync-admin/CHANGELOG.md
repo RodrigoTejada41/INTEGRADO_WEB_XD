@@ -15,6 +15,7 @@
 - Retry/backoff and dead-letter handling added for sync jobs.
 - Dashboard now exposes queue counters, dead-letter jobs, and manual retry action for admin users.
 - Dashboard and settings now expose destination delivery metrics and destination status.
+- Settings page now exposes configuration audit trail with actor and action details.
 - Full test suite stabilized at `12 passed`.
 
 ### Planned

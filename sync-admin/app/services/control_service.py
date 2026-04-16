@@ -23,6 +23,16 @@ class ControlSummary:
 
 
 @dataclass
+class AuditSummary:
+    empresa_id: str
+    total_count: float
+    success_count: float
+    failure_count: float
+    actors: list[str]
+    actions: list[str]
+
+
+@dataclass
 class SyncJobsSummary:
     empresa_id: str
     pending_count: float
@@ -71,23 +81,29 @@ class ControlService:
             ),
         )
 
-    def provision_tenant(self, empresa_id: str, nome: str) -> str:
+    def provision_tenant(self, empresa_id: str, nome: str, actor: str | None = None) -> str:
         payload = {'empresa_id': empresa_id, 'nome': nome}
+        headers = dict(self.admin_headers)
+        if actor:
+            headers['X-Audit-Actor'] = actor
         with httpx.Client(timeout=15.0) as client:
             response = client.post(
                 f'{self.base_url}/admin/tenants',
-                headers=self.admin_headers,
+                headers=headers,
                 json=payload,
             )
             response.raise_for_status()
             data = response.json()
         return data['api_key']
 
-    def rotate_tenant_key(self, empresa_id: str) -> str:
+    def rotate_tenant_key(self, empresa_id: str, actor: str | None = None) -> str:
+        headers = dict(self.admin_headers)
+        if actor:
+            headers['X-Audit-Actor'] = actor
         with httpx.Client(timeout=15.0) as client:
             response = client.post(
                 f'{self.base_url}/admin/tenants/{empresa_id}/rotate-key',
-                headers=self.admin_headers,
+                headers=headers,
             )
             response.raise_for_status()
             data = response.json()
@@ -244,6 +260,7 @@ class ControlService:
         max_batch_size: int,
         retention_mode: str,
         retention_months: int,
+        actor: str | None = None,
     ) -> dict:
         payload = {
             'ingestion_enabled': ingestion_enabled,
@@ -251,14 +268,73 @@ class ControlService:
             'retention_mode': retention_mode,
             'retention_months': retention_months,
         }
+        headers = dict(self.admin_headers)
+        if actor:
+            headers['X-Audit-Actor'] = actor
         with httpx.Client(timeout=15.0) as client:
             response = client.put(
                 f'{self.base_url}/admin/server-settings',
-                headers=self.admin_headers,
+                headers=headers,
                 json=payload,
             )
             response.raise_for_status()
             return response.json()
+
+    def fetch_audit_summary(self) -> AuditSummary:
+        try:
+            with httpx.Client(timeout=10.0) as client:
+                response = client.get(
+                    f'{self.base_url}/admin/tenants/{settings.control_empresa_id}/audit/summary',
+                    headers=self.admin_headers,
+                )
+                response.raise_for_status()
+                data = response.json()
+        except Exception:
+            return AuditSummary(
+                empresa_id=settings.control_empresa_id,
+                total_count=0.0,
+                success_count=0.0,
+                failure_count=0.0,
+                actors=[],
+                actions=[],
+            )
+        return AuditSummary(
+            empresa_id=data['empresa_id'],
+            total_count=float(data['total_count']),
+            success_count=float(data['success_count']),
+            failure_count=float(data['failure_count']),
+            actors=[str(item) for item in data.get('actors', [])],
+            actions=[str(item) for item in data.get('actions', [])],
+        )
+
+    def fetch_audit_events(self, limit: int = 10) -> list[dict]:
+        try:
+            with httpx.Client(timeout=10.0) as client:
+                response = client.get(
+                    f'{self.base_url}/admin/tenants/{settings.control_empresa_id}/audit/events',
+                    headers=self.admin_headers,
+                    params={'limit': limit},
+                )
+                response.raise_for_status()
+                data = response.json()
+        except Exception:
+            return []
+        rows: list[dict] = []
+        for item in data:
+            rows.append(
+                {
+                    'id': item.get('id', '-'),
+                    'empresa_id': item.get('empresa_id', '-'),
+                    'actor': item.get('actor', '-'),
+                    'action': item.get('action', '-'),
+                    'resource_type': item.get('resource_type', '-'),
+                    'resource_id': item.get('resource_id', '-'),
+                    'status': item.get('status', '-'),
+                    'detail': item.get('detail', {}),
+                    'created_at': item.get('created_at', '-'),
+                }
+            )
+        return rows
 
     @staticmethod
     def _parse_metrics(metrics_text: str) -> dict[str, float]:

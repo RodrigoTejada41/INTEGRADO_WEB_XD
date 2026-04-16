@@ -325,3 +325,4 @@ Voce pediu uma nova fase de produto para uma API comercial multi-tenant com conf
 - [x] Item 4: worker com entrega para destinos configurados por tenant
 - [x] Item 5: metricas e painel de destinacoes expostos para operacao
 - [x] Item 6: endpoints de summary por tenant para source e destination expostos na API
+- [x] Item 7: auditoria persistente de configuracoes por ator e acao

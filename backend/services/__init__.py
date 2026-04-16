@@ -1,4 +1,5 @@
 from backend.services.admin_service import AdminService
+from backend.services.tenant_audit_service import TenantAuditService
 from backend.services.tenant_destination_dispatcher import TenantDestinationDispatcher
 from backend.services.retention_service import RetentionService
 from backend.services.server_settings_service import ServerSettingsService
@@ -10,6 +11,7 @@ __all__ = [
     "RetentionService",
     "ServerSettingsService",
     "SyncService",
+    "TenantAuditService",
     "TenantDestinationDispatcher",
     "TenantService",
 ]

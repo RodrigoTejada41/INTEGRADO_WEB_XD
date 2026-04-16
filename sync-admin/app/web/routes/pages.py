@@ -249,6 +249,8 @@ def settings_page(
     control = ControlService()
     control_summary = control.fetch_summary()
     destination_configs = control.fetch_destination_configs()
+    audit_summary = control.fetch_audit_summary()
+    audit_events = control.fetch_audit_events(limit=10)
     server_settings = None
     try:
         server_settings = control.get_server_settings()
@@ -278,6 +280,8 @@ def settings_page(
             'server_settings': server_settings,
             'users': user_service.list_users(),
             'destination_configs': destination_configs,
+            'audit_summary': audit_summary,
+            'audit_events': audit_events,
         },
     )
 
@@ -287,11 +291,11 @@ def settings_provision_tenant(
     request: Request,
     empresa_id: str = Form(...),
     nome: str = Form(...),
-    _: object = Depends(require_web_role('admin')),
+    current_user: User = Depends(require_web_role('admin')),
 ):
     control = ControlService()
     try:
-        api_key = control.provision_tenant(empresa_id=empresa_id, nome=nome)
+        api_key = control.provision_tenant(empresa_id=empresa_id, nome=nome, actor=current_user.username)
         key_file = control.update_agent_key_file(api_key)
         return RedirectResponse(
             f'/settings?flash=Tenant+provisionado+e+chave+aplicada+no+agente+({key_file})&generated_key={api_key}',
@@ -308,11 +312,11 @@ def settings_provision_tenant(
 def settings_rotate_tenant_key(
     request: Request,
     empresa_id: str = Form(...),
-    _: object = Depends(require_web_role('admin')),
+    current_user: User = Depends(require_web_role('admin')),
 ):
     control = ControlService()
     try:
-        api_key = control.rotate_tenant_key(empresa_id=empresa_id)
+        api_key = control.rotate_tenant_key(empresa_id=empresa_id, actor=current_user.username)
         key_file = control.update_agent_key_file(api_key)
         return RedirectResponse(
             f'/settings?flash=Chave+rotacionada+e+aplicada+no+agente+({key_file})&generated_key={api_key}',
@@ -332,7 +336,7 @@ def settings_server_settings(
     max_batch_size: int = Form(...),
     retention_mode: str = Form(...),
     retention_months: int = Form(...),
-    _: object = Depends(require_web_role('admin')),
+    current_user: User = Depends(require_web_role('admin')),
 ):
     control = ControlService()
     try:
@@ -341,6 +345,7 @@ def settings_server_settings(
             max_batch_size=max_batch_size,
             retention_mode=retention_mode,
             retention_months=retention_months,
+            actor=current_user.username,
         )
         return RedirectResponse(
             '/settings?flash=Configuracoes+de+servidor+atualizadas',

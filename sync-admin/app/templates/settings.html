@@ -145,6 +145,57 @@
 <div class="row g-3 mt-1">
   <div class="col-12">
     <div class="card p-3">
+      <h5 class="mb-3">Auditoria de configuracoes</h5>
+      <div class="row g-3 mb-3">
+        <div class="col-md-3"><div class="card p-3"><small>Total</small><h6>{{ audit_summary.total_count }}</h6></div></div>
+        <div class="col-md-3"><div class="card p-3"><small>Sucesso</small><h6>{{ audit_summary.success_count }}</h6></div></div>
+        <div class="col-md-3"><div class="card p-3"><small>Falhas</small><h6>{{ audit_summary.failure_count }}</h6></div></div>
+        <div class="col-md-3"><div class="card p-3"><small>Atores</small><h6>{{ audit_summary.actors|length }}</h6></div></div>
+      </div>
+      <div class="table-responsive">
+        <table class="table table-sm align-middle">
+          <thead>
+            <tr>
+              <th>Quando</th>
+              <th>Ator</th>
+              <th>Ação</th>
+              <th>Recurso</th>
+              <th>Alvo</th>
+              <th>Status</th>
+              <th>Detalhe</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for audit in audit_events %}
+            <tr>
+              <td>{{ audit.created_at }}</td>
+              <td>{{ audit.actor }}</td>
+              <td><code>{{ audit.action }}</code></td>
+              <td>{{ audit.resource_type }}</td>
+              <td>{{ audit.resource_id or '-' }}</td>
+              <td>
+                {% if audit.status == 'success' %}
+                <span class="badge text-bg-success">{{ audit.status }}</span>
+                {% else %}
+                <span class="badge text-bg-danger">{{ audit.status }}</span>
+                {% endif %}
+              </td>
+              <td><code>{{ audit.detail }}</code></td>
+            </tr>
+            {% endfor %}
+            {% if audit_events|length == 0 %}
+            <tr><td colspan="7" class="text-muted">Sem eventos de auditoria.</td></tr>
+            {% endif %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="row g-3 mt-1">
+  <div class="col-12">
+    <div class="card p-3">
       <h5 class="mb-3">Usuarios do painel</h5>
       <div class="table-responsive mb-3">
         <table class="table table-sm align-middle">
