@@ -14,6 +14,7 @@ from backend.schemas.tenant_configs import (
     TenantConfigCreateRequest,
     TenantConfigDeleteResponse,
     TenantConfigResponse,
+    TenantConfigSummaryResponse,
     TenantConfigUpdateRequest,
 )
 from backend.schemas.tenant_jobs import TenantJobResponse, TenantJobRetryResponse, TenantJobSummaryResponse
@@ -105,6 +106,19 @@ def list_source_configs(
     return service.list_source_configs(empresa_id)
 
 
+@router.get(
+    "/tenants/{empresa_id}/source-configs/summary",
+    response_model=TenantConfigSummaryResponse,
+    dependencies=[Depends(require_admin_token)],
+)
+def get_source_configs_summary(
+    empresa_id: str,
+    session: Session = Depends(get_session),
+) -> TenantConfigSummaryResponse:
+    service = _tenant_config_service(session)
+    return service.get_source_summary(empresa_id)
+
+
 @router.post(
     "/tenants/{empresa_id}/source-configs",
     response_model=TenantConfigResponse,
@@ -165,6 +179,19 @@ def list_destination_configs(
 ) -> list[TenantConfigResponse]:
     service = _tenant_config_service(session)
     return service.list_destination_configs(empresa_id)
+
+
+@router.get(
+    "/tenants/{empresa_id}/destination-configs/summary",
+    response_model=TenantConfigSummaryResponse,
+    dependencies=[Depends(require_admin_token)],
+)
+def get_destination_configs_summary(
+    empresa_id: str,
+    session: Session = Depends(get_session),
+) -> TenantConfigSummaryResponse:
+    service = _tenant_config_service(session)
+    return service.get_destination_summary(empresa_id)
 
 
 @router.post(

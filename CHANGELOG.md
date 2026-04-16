@@ -17,6 +17,7 @@
 - Painel administrativo passou a exibir o estado da fila, a DLQ e o reenfileiramento manual de jobs.
 - Replicação para destinos configurados adicionada ao worker, com entrega por tenant.
 - Métricas de entrega em destinos e painel de destinations configuradas adicionados.
+- Endpoints de summary para source e destination por tenant adicionados na API administrativa.
 - Suíte automatizada estabilizada com `12 passed`.
 
 ### Planejado

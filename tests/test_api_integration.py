@@ -76,6 +76,26 @@ def test_full_flow_sync_and_tenant_isolation() -> None:
         assert destination_create.status_code == 200, destination_create.text
         destination_config_id = destination_create.json()["id"]
 
+        source_summary = client.get(
+            "/admin/tenants/12345678000199/source-configs/summary",
+            headers={"X-Admin-Token": "admin-token-test"},
+        )
+        assert source_summary.status_code == 200, source_summary.text
+        assert source_summary.json()["scope"] == "source"
+        assert source_summary.json()["total_count"] == 1
+        assert source_summary.json()["active_count"] == 1
+        assert source_summary.json()["connector_types"] == ["mariadb"]
+
+        destination_summary = client.get(
+            "/admin/tenants/12345678000199/destination-configs/summary",
+            headers={"X-Admin-Token": "admin-token-test"},
+        )
+        assert destination_summary.status_code == 200, destination_summary.text
+        assert destination_summary.json()["scope"] == "destination"
+        assert destination_summary.json()["total_count"] == 1
+        assert destination_summary.json()["active_count"] == 1
+        assert destination_summary.json()["connector_types"] == ["postgresql"]
+
         source_list = client.get(
             "/admin/tenants/12345678000199/source-configs",
             headers={"X-Admin-Token": "admin-token-test"},

@@ -41,3 +41,17 @@ class TenantConfigDeleteResponse(BaseModel):
     id: str
     empresa_id: str
     status: str
+
+
+class TenantConfigSummaryResponse(BaseModel):
+    empresa_id: str
+    scope: str
+    total_count: int
+    active_count: int
+    inactive_count: int
+    pending_count: int
+    ok_count: int
+    failed_count: int
+    retrying_count: int
+    dead_letter_count: int
+    connector_types: list[str]

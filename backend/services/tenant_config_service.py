@@ -12,6 +12,7 @@ from backend.schemas.tenant_configs import (
     TenantConfigDeleteResponse,
     TenantConfigResponse,
     TenantConfigUpdateRequest,
+    TenantConfigSummaryResponse,
 )
 from backend.utils.crypto import decrypt_json, encrypt_json
 from backend.utils.security import validate_empresa_id
@@ -83,6 +84,32 @@ class TenantConfigService:
         self._ensure_tenant_exists(empresa_id)
         configs = self.destination_repository.list_by_empresa_id(empresa_id)
         return [self._to_response(config, empresa_id) for config in configs]
+
+    @staticmethod
+    def _to_summary(empresa_id: str, scope: str, summary: dict[str, object]) -> TenantConfigSummaryResponse:
+        return TenantConfigSummaryResponse(
+            empresa_id=empresa_id,
+            scope=scope,
+            total_count=int(summary.get("total_count", 0)),
+            active_count=int(summary.get("active_count", 0)),
+            inactive_count=int(summary.get("inactive_count", 0)),
+            pending_count=int(summary.get("pending_count", 0)),
+            ok_count=int(summary.get("ok_count", 0)),
+            failed_count=int(summary.get("failed_count", 0)),
+            retrying_count=int(summary.get("retrying_count", 0)),
+            dead_letter_count=int(summary.get("dead_letter_count", 0)),
+            connector_types=[str(item) for item in summary.get("connector_types", [])],
+        )
+
+    def get_source_summary(self, empresa_id: str) -> TenantConfigSummaryResponse:
+        self._ensure_tenant_exists(empresa_id)
+        summary = self.source_repository.summary_by_empresa_id(empresa_id)
+        return self._to_summary(empresa_id, "source", summary)
+
+    def get_destination_summary(self, empresa_id: str) -> TenantConfigSummaryResponse:
+        self._ensure_tenant_exists(empresa_id)
+        summary = self.destination_repository.summary_by_empresa_id(empresa_id)
+        return self._to_summary(empresa_id, "destination", summary)
 
     def create_source_config(
         self, empresa_id: str, payload: TenantConfigCreateRequest
