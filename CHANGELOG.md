@@ -7,6 +7,8 @@
 - Cadastro de usuários no painel com validação de perfil.
 - Ajustes de infraestrutura para execução confiável em teste e desenvolvimento.
 - Suíte automatizada estabilizada com `8 passed`.
+- Cadastro de `source_configs` e `destination_configs` por tenant no backend.
+- Registry inicial de conectores para validar tipos suportados antes de persistir.
 
 ### Planejado
 - Multiempresa completa com isolamento por empresa, filial e terminal.

@@ -100,6 +100,18 @@ def test_full_flow_sync_and_tenant_isolation() -> None:
         assert destination_delete.status_code == 200, destination_delete.text
         assert destination_delete.json()["status"] == "deleted"
 
+        unsupported_connector = client.post(
+            "/admin/tenants/12345678000199/source-configs",
+            headers={"X-Admin-Token": "admin-token-test"},
+            json={
+                "nome": "Conector invalido",
+                "connector_type": "oracle",
+                "settings": {},
+            },
+        )
+        assert unsupported_connector.status_code == 400
+        assert unsupported_connector.json()["detail"] == "connector_type nao suportado."
+
         empty_destination_list = client.get(
             "/admin/tenants/12345678000199/destination-configs",
             headers={"X-Admin-Token": "admin-token-test"},

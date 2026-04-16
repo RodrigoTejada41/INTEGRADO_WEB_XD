@@ -7,6 +7,7 @@
 - User creation and listing inside the panel.
 - Path handling fixes for test and import stability on Windows.
 - Full test suite stabilized at `8 passed`.
+- Backend base for tenant-scoped source and destination configuration management.
 
 ### Planned
 - Multi-company isolation across company, branch, and terminal scopes.
