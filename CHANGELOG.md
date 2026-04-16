@@ -1,5 +1,19 @@
 # Changelog
 
+## v0.2.0 - Em andamento
+
+### Entregue
+- RBAC real no painel administrativo, com perfis `admin`, `analyst` e `viewer`.
+- Cadastro de usuários no painel com validação de perfil.
+- Ajustes de infraestrutura para execução confiável em teste e desenvolvimento.
+- Suíte automatizada estabilizada com `8 passed`.
+
+### Planejado
+- Multiempresa completa com isolamento por empresa, filial e terminal.
+- Exportação de planilhas Excel e relatórios em PDF.
+- Monitoramento avançado com métricas operacionais mais granulares.
+- Camada de auditoria administrativa mais detalhada.
+
 ## v0.1.0 - 2026-04-15
 
 ### Adicionado

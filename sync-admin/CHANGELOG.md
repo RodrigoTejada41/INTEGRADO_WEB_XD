@@ -1,5 +1,19 @@
 # Changelog
 
+## v0.2.0 - 2026-04-16
+
+### Added
+- Role-based access control for the admin panel with `admin`, `analyst`, and `viewer` profiles.
+- User creation and listing inside the panel.
+- Path handling fixes for test and import stability on Windows.
+- Full test suite stabilized at `8 passed`.
+
+### Planned
+- Multi-company isolation across company, branch, and terminal scopes.
+- Excel and PDF exports.
+- Advanced monitoring and operational alerting.
+- Expanded administrative audit trail.
+
 ## v0.1.0 - 2026-04-15
 
 ### Added
