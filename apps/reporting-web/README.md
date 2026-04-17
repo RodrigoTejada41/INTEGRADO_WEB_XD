@@ -1,13 +1,17 @@
 ﻿# Reporting Web
 
-This module consumes `apps/api-service` endpoints for dashboards and exports.
+Este módulo consome os endpoints de `apps/api-service` para dashboards e exportações.
 
-Suggested stack:
+## Protocolo de atuação
+Antes de alterar este módulo, seguir:
+- [`../../PROTOCOLO_ESPECIALISTAS.md`](../../PROTOCOLO_ESPECIALISTAS.md)
+
+## Stack sugerida
 - React + Vite
-- Charts for operational metrics
-- Auth via API token/OAuth2 gateway
+- Gráficos para métricas operacionais
+- Autenticação via token da API ou gateway OAuth2
 
-Initial MVP pages:
-- Processing jobs timeline
-- Dataset version history
-- Artifacts and lineage view
+## Páginas iniciais do MVP
+- Linha do tempo de jobs de processamento
+- Histórico de versões de datasets
+- Visão de artefatos e lineage
