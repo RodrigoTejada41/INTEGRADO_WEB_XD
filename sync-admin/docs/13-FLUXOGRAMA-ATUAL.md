@@ -54,3 +54,4 @@ flowchart TD
 - Fluxo completo ponta a ponta implementado e validado localmente.
 - Ambiente Docker com 3 serviços operacional.
 - Documentação de operação e diagnóstico finalizada.
+

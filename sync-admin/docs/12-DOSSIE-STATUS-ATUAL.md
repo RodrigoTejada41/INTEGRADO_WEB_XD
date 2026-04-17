@@ -60,7 +60,7 @@ Registrar exatamente onde o projeto parou, o que já foi entregue e o que ainda 
 - Segredos via `.env`.
 
 ### Containers/deploy
-- Stack em Docker Compose operacional:
+- Pilha em Docker Compose operacional:
   - `sync_db` (PostgreSQL)
   - `sync_api` (FastAPI)
   - `sync_web` (Nginx)
@@ -103,3 +103,5 @@ Se o projeto for pausado aqui, para retomar:
 3. Validar login em `/login`.
 4. Enviar lote de teste em `POST /api/sync-data`.
 5. Verificar painel e histórico.
+
+

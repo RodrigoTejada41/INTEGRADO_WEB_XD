@@ -1,4 +1,4 @@
-﻿# Changelog
+﻿# Registro de Mudanças
 
 ## v0.2.0 - 2026-04-16
 
@@ -13,8 +13,8 @@
 - Execução real de conectores de origem adicionada ao worker do backend.
 - Cobertura de testes ampliada para registro de conectores e execução real de origem.
 - Retry com backoff e tratamento de dead-letter para jobs de sync.
-- O dashboard passou a exibir contadores da fila, jobs mortos e ação manual de retry para administradores.
-- O dashboard e a página de configurações passaram a exibir métricas de entrega em destinos e status de destinos.
+- O painel passou a exibir contadores da fila, jobs mortos e ação manual de retry para administradores.
+- O painel e a página de configurações passaram a exibir métricas de entrega em destinos e status de destinos.
 - A página de configurações passou a exibir a trilha de auditoria com detalhes de ator e ação.
 - Suíte completa estabilizada em `12 passed`.
 
@@ -30,9 +30,9 @@
 - Arquitetura modular completa (`api`, `web`, `models`, `repositories`, `services`, `core`, `config`).
 - Endpoint de ingestão `POST /api/sync-data` com validação de payload e autenticação por `X-API-Key`.
 - Persistência de lotes e registros (`sync_batches`, `sync_records`) com rastreio de IP, status e quantidade.
-- Painel administrativo com login/sessão, dashboard, registros, histórico e configurações.
+- Painel administrativo com login/sessão, painel de resumo, registros, histórico e configurações.
 - Gráfico de movimentação (`Chart.js`) e exportação CSV.
-- Stack Docker com 3 serviços:
+- Pilha Docker com 3 serviços:
   - `sync_db` (PostgreSQL)
   - `sync_api` (FastAPI)
   - `sync_web` (Nginx)
@@ -51,3 +51,5 @@
 ### Observações
 - `CEREBRO_VIVO` definido como base de consulta (fora da ingestão do projeto).
 - Fonte de processamento focada em `ENGENHARIA_REVERSA`.
+
+
