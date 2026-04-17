@@ -8,15 +8,15 @@
 - `/settings`
 
 ## Funcionalidades implementadas
-- Dashboard com cards:
+- Painel com cards de resumo:
   - total de registros
-  - ultimo recebimento
+  - último recebimento
   - status da API
   - quantidade de falhas
-- Grafico de movimentacao diaria (Chart.js).
-- Tabela de registros com busca/filtro/paginacao.
-- Historico de sincronizacao com status e erro.
-- Exportacao CSV em `/records/export.csv`.
+- Gráfico de movimentação diária com Chart.js.
+- Tabela de registros com busca, filtro e paginação.
+- Histórico de sincronizações com status e erro.
+- Exportação CSV em `/records/export.csv`.
 
 ## UI/UX
 - Layout administrativo responsivo.

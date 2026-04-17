@@ -1,6 +1,6 @@
-# Fluxograma Atual
+﻿# Fluxograma Atual
 
-## Fluxo funcional (alto nivel)
+## Fluxo funcional (alto nível)
 
 ```mermaid
 flowchart LR
@@ -14,23 +14,23 @@ flowchart LR
     C --> I[(sync_db<br/>PostgreSQL)]
     J[Painel Web] --> B
     B --> C
-    C --> K[Dashboard / Registros / Historico]
+    C --> K[Painel / Registros / Histórico]
     K --> I
 ```
 
-## Fluxo de autenticacao do painel
+## Fluxo de autenticação do painel
 
 ```mermaid
 flowchart TD
-    A[Usuario acessa /login] --> B[Envia usuario/senha]
+    A[Usuário acessa /login] --> B[Envia usuário/senha]
     B --> C[AuthService valida hash]
     C -->|Falha| D[Retorna login com erro]
-    C -->|Sucesso| E[Cria sessao]
+    C -->|Sucesso| E[Cria sessão]
     E --> F[Redireciona /dashboard]
     F --> G[Rotas protegidas por require_web_user]
 ```
 
-## Fluxo de persistencia da sincronizacao
+## Fluxo de persistência da sincronização
 
 ```mermaid
 flowchart TD
@@ -44,14 +44,13 @@ flowchart TD
 
 ## Pontos de controle
 - Entrada API: `POST /api/sync-data`
-- Health: `GET /health`
+- Saúde: `GET /health`
 - Painel: `/login`, `/dashboard`, `/records`, `/history`, `/settings`
 - Banco:
-  - `sync_batches` para historico do envio
+  - `sync_batches` para histórico do envio
   - `sync_records` para dados detalhados
 
 ## Onde paramos
 - Fluxo completo ponta a ponta implementado e validado localmente.
-- Ambiente Docker com 3 servicos operacional.
-- Documentacao de operacao e troubleshooting finalizada.
-
+- Ambiente Docker com 3 serviços operacional.
+- Documentação de operação e diagnóstico finalizada.

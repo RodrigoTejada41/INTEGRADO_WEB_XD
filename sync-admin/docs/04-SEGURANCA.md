@@ -1,24 +1,24 @@
-﻿# Seguranca
+﻿# Segurança
 
 ## Painel web
-- Login via formulario (`/login`).
-- Sessao com `SessionMiddleware`.
-- Rotas administrativas protegidas por sessao (`require_web_user`).
+- Login via formulário (`/login`).
+- Sessão com `SessionMiddleware`.
+- Rotas administrativas protegidas por sessão (`require_web_user`).
 - Senhas armazenadas com hash `bcrypt` (`passlib`).
 
-## API de integracao
-- Autenticacao por chave no header `X-API-Key`.
+## API de integração
+- Autenticação por chave no header `X-API-Key`.
 - Chave armazenada com hash SHA-256 em `integration_keys`.
-- Ultimo uso da chave registrado (`last_used_at`).
+- Último uso da chave registrado (`last_used_at`).
 
-## Boas praticas aplicadas
+## Boas práticas aplicadas
 - Segredos em `.env`.
-- Separacao de camada de autenticacao/negocio.
-- Validacao estrita de entrada via schemas.
+- Separação entre camada de autenticação e de negócio.
+- Validação estrita de entrada por schemas.
 
-## Recomendacoes de hardening (proxima fase)
-- HTTPS obrigatorio (TLS no Nginx).
-- Rotacao de API key e trilha de revogacao.
-- CSRF protection para formularios web.
-- Rate limiting para rota de ingestao.
-- Auditoria dedicada para acoes administrativas.
+## Recomendações de fortalecimento na próxima fase
+- HTTPS obrigatório (TLS no Nginx).
+- Rotação de API key e trilha de revogação.
+- Proteção CSRF para formulários web.
+- Limitação de taxa para a rota de ingestão.
+- Auditoria dedicada para ações administrativas.
