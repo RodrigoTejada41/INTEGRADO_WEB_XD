@@ -152,7 +152,7 @@ Ponto atual:
 
 Próximos passos recomendados para produção comercial:
 1. Cadastro completo de múltiplas `sources` e `destinations` por tenant via API
-2. Conectores plugin-like (MariaDB, API externa, arquivo futuro)
+2. Conectores plugin-like com descoberta automática no pacote (MariaDB, API externa, arquivo futuro)
 3. Fila assíncrona robusta (Redis/RabbitMQ + worker dedicado)
 4. Criptografia forte de credenciais em repouso (KMS/secret manager)
 5. RBAC no painel admin e trilha de auditoria avançada
@@ -181,7 +181,7 @@ Esse desenho arquitetural já foi detalhado na conversa e deve ser a base da pr�
 - [x] Gráfico de movimentação menor
 - [x] Separar métrica de falha de conexão vs falha de aplicação
 - [x] Registrar tudo para continuidade futura
-- [ ] Configuração completa FROM/TO por tenant (múltiplas origens/destinos plugáveis)
+- [x] Configuração completa FROM/TO por tenant (múltiplas origens/destinos plugáveis)
 - [ ] Plataforma comercial full (RBAC avançado, conectores genéricos, fila enterprise, etc.)
 
 ### 9.2 Checklist do que foi feito (implementado)
@@ -207,9 +207,9 @@ Esse desenho arquitetural já foi detalhado na conversa e deve ser a base da pr�
 
 ### 9.3 Checklist do que falta (gap para comercial-ready completo)
 
-- [ ] API de cadastro de múltiplas `source_configs` por tenant (MariaDB/API/file)
-- [ ] API de cadastro de múltiplas `destination_configs` por tenant (Postgres/API externa)
-- [ ] Motor ETL com registry de conectores plugin-like completo
+- [x] API de cadastro de múltiplas `source_configs` por tenant (MariaDB/API/file)
+- [x] API de cadastro de múltiplas `destination_configs` por tenant (Postgres/API externa)
+- [x] Motor ETL com registry de conectores plugin-like completo e descoberta automática
 - [ ] Scheduler por tenant orientado a configuração persistida (intervalo por fonte)
 - [ ] Fila assíncrona robusta (Redis/RabbitMQ + worker pool + DLQ)
 - [ ] Criptografia de credenciais com KMS/secret manager (além de env/file)

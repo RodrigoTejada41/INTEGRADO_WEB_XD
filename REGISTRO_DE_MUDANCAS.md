@@ -14,6 +14,7 @@
 - Fila persistida de jobs de sync e worker dedicado para processar a execução.
 - Criptografia em repouso das credenciais e configurações dos conectores.
 - Execução real de conectores de origem no worker, com suporte inicial a MariaDB, API e arquivo.
+- Descoberta automática de conectores plugin-like no pacote, sem registro manual centralizado.
 - Cobertura de testes para registro de conectores, conector de arquivo e fluxo MariaDB real.
 - Retry com backoff e DLQ para jobs falhos da fila de sync.
 - Painel administrativo passou a exibir o estado da fila, a DLQ e o reenfileiramento manual de jobs.

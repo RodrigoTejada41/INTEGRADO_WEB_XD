@@ -1,3 +1,4 @@
+from backend.connectors.discovery import discover_connector_classes
 from backend.connectors.registry import ConnectorRegistry, get_default_connector_registry
 from backend.connectors.destination_connectors import (
     DestinationConnectorRegistry,
@@ -19,6 +20,7 @@ __all__ = [
     "FileSourceConnector",
     "MariaDBSourceConnector",
     "PostgreSQLDestinationConnector",
+    "discover_connector_classes",
     "SourceConnectorRegistry",
     "get_default_connector_registry",
     "get_default_destination_connector_registry",

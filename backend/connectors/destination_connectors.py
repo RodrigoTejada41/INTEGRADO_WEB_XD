@@ -7,6 +7,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, sessionmaker
 
 from backend.repositories.venda_repository import VendaRepository
+from backend.connectors.discovery import discover_connector_classes
 
 
 @dataclass(frozen=True)
@@ -70,5 +71,6 @@ class DestinationConnectorRegistry:
 
 def get_default_destination_connector_registry() -> DestinationConnectorRegistry:
     registry = DestinationConnectorRegistry()
-    registry.register(PostgreSQLDestinationConnector())
+    for connector_class in discover_connector_classes("backend.connectors", DestinationConnector):
+        registry.register(connector_class())
     return registry

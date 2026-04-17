@@ -10,6 +10,8 @@ import httpx
 from sqlalchemy import create_engine, text
 from sqlalchemy.orm import Session, sessionmaker
 
+from backend.connectors.discovery import discover_connector_classes
+
 
 @dataclass(frozen=True)
 class SourceFetchResult:
@@ -217,7 +219,6 @@ class SourceConnectorRegistry:
 
 def get_default_source_connector_registry() -> SourceConnectorRegistry:
     registry = SourceConnectorRegistry()
-    registry.register(MariaDBSourceConnector())
-    registry.register(ApiSourceConnector())
-    registry.register(FileSourceConnector())
+    for connector_class in discover_connector_classes("backend.connectors", SourceConnector):
+        registry.register(connector_class())
     return registry
