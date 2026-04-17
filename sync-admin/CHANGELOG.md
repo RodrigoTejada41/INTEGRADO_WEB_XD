@@ -1,53 +1,53 @@
-# Changelog
+﻿# Changelog
 
 ## v0.2.0 - 2026-04-16
 
-### Added
-- Role-based access control for the admin panel with `admin`, `analyst`, and `viewer` profiles.
-- User creation and listing inside the panel.
-- Path handling fixes for test and import stability on Windows.
-- Backend base for tenant-scoped source and destination configuration management.
-- Tenant-scoped scheduler support prepared on the backend with persisted source intervals.
-- Persistent sync queue and worker flow added on the backend.
-- Connector settings encrypted at rest before storage.
-- Real source connector execution added in the backend worker.
-- Test coverage expanded for connector registry and real source execution.
-- Retry/backoff and dead-letter handling added for sync jobs.
-- Dashboard now exposes queue counters, dead-letter jobs, and manual retry action for admin users.
-- Dashboard and settings now expose destination delivery metrics and destination status.
-- Settings page now exposes configuration audit trail with actor and action details.
-- Full test suite stabilized at `12 passed`.
+### Adicionado
+- Controle de acesso baseado em papéis no painel administrativo, com perfis `admin`, `analyst` e `viewer`.
+- Cadastro e listagem de usuários dentro do painel.
+- Correções de tratamento de caminhos para estabilidade de testes e importação no Windows.
+- Base no backend para gerenciamento de configuração de origem e destino por tenant.
+- Suporte a scheduler por tenant no backend com intervalos persistidos em origem.
+- Fila persistente de sync e worker dedicado para processar a execução.
+- Configurações de conectores criptografadas em repouso antes do armazenamento.
+- Execução real de conectores de origem adicionada ao worker do backend.
+- Cobertura de testes ampliada para registro de conectores e execução real de origem.
+- Retry com backoff e tratamento de dead-letter para jobs de sync.
+- O dashboard passou a exibir contadores da fila, jobs mortos e ação manual de retry para administradores.
+- O dashboard e a página de configurações passaram a exibir métricas de entrega em destinos e status de destinos.
+- A página de configurações passou a exibir a trilha de auditoria com detalhes de ator e ação.
+- Suíte completa estabilizada em `12 passed`.
 
-### Planned
-- Multi-company isolation across company, branch, and terminal scopes.
-- Excel and PDF exports.
-- Advanced monitoring and operational alerting.
-- Expanded administrative audit trail.
+### Planejado
+- Isolamento multiempresa entre empresa, filial e terminal.
+- Exportação para Excel e PDF.
+- Monitoramento avançado e alertas operacionais.
+- Trilhas de auditoria administrativa ampliadas.
 
 ## v0.1.0 - 2026-04-15
 
-### Added
+### Adicionado
 - Arquitetura modular completa (`api`, `web`, `models`, `repositories`, `services`, `core`, `config`).
-- Endpoint de ingestao `POST /api/sync-data` com validacao de payload e autenticacao por `X-API-Key`.
-- Persistencia de lotes e registros (`sync_batches`, `sync_records`) com rastreio de IP, status e quantidade.
-- Painel administrativo com login/sessao, dashboard, registros, historico e configuracoes.
-- Grafico de movimentacao (Chart.js) e exportacao CSV.
-- Stack Docker com 3 servicos:
+- Endpoint de ingestão `POST /api/sync-data` com validação de payload e autenticação por `X-API-Key`.
+- Persistência de lotes e registros (`sync_batches`, `sync_records`) com rastreio de IP, status e quantidade.
+- Painel administrativo com login/sessão, dashboard, registros, histórico e configurações.
+- Gráfico de movimentação (`Chart.js`) e exportação CSV.
+- Stack Docker com 3 serviços:
   - `sync_db` (PostgreSQL)
   - `sync_api` (FastAPI)
   - `sync_web` (Nginx)
-- Pacote de documentacao operacional e tecnica em `docs/`.
+- Pacote de documentação operacional e técnica em `docs/`.
 
-### Security
+### Segurança
 - Senhas com hash (`bcrypt` + `passlib`).
-- Sessao para rotas administrativas.
-- Chave de integracao armazenada por hash.
+- Sessão para rotas administrativas.
+- Chave de integração armazenada por hash.
 - Segredos externalizados via `.env`.
 
-### Docs
-- Dossie de status da entrega: `docs/12-DOSSIE-STATUS-ATUAL.md`.
+### Documentação
+- Dossiê de status da entrega: `docs/12-DOSSIE-STATUS-ATUAL.md`.
 - Fluxograma operacional atual: `docs/13-FLUXOGRAMA-ATUAL.md`.
 
-### Notes
-- `CEREBRO_VIVO` definido como base de consulta (fora da ingestao do projeto).
+### Observações
+- `CEREBRO_VIVO` definido como base de consulta (fora da ingestão do projeto).
 - Fonte de processamento focada em `ENGENHARIA_REVERSA`.

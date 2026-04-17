@@ -1,83 +1,83 @@
-# AGENTS.md
+﻿# AGENTS.md
 
-## PROJECT OVERVIEW
+## VISÃO GERAL DO PROJETO
 
-This project is a multi-tenant data synchronization platform.
+Este projeto é uma plataforma de sincronização de dados multi-tenant.
 
-Architecture:
-- Local agents (MariaDB)
-- Central API (FastAPI)
-- Central database (PostgreSQL)
+Arquitetura:
+- Agentes locais (MariaDB)
+- API central (FastAPI)
+- Banco central (PostgreSQL)
 
-Main goals:
-- Sync data every 15 minutes
-- Ensure strict data isolation per company
-- Maintain only 14 months of data in primary database
+Objetivos principais:
+- Sincronizar dados a cada 15 minutos
+- Garantir isolamento rigoroso por empresa
+- Manter apenas 14 meses de dados no banco principal
 
-## CRITICAL RULES (NEVER VIOLATE)
+## REGRAS CRÍTICAS (NUNCA VIOLAR)
 
-- NEVER mix data between companies
-- ALWAYS use empresa_id in all queries
-- ALWAYS use UUID as primary sync identifier
-- NEVER create monolithic code
-- NEVER bypass validation or authentication
-- NEVER store data older than 14 months in main tables
+- Nunca misturar dados entre empresas
+- Sempre usar `empresa_id` em todas as consultas
+- Sempre usar UUID como identificador primário de sincronização
+- Nunca criar código monolítico
+- Nunca burlar validação ou autenticação
+- Nunca armazenar dados com mais de 14 meses nas tabelas principais
 
-## ARCHITECTURE RULES
+## REGRAS DE ARQUITETURA
 
-- Follow layered architecture:
-  - API (routes)
-  - Services (business logic)
-  - Repositories (database access)
+- Seguir arquitetura em camadas:
+  - API (rotas)
+  - Services (lógica de negócio)
+  - Repositories (acesso a banco)
   - Models (ORM)
-  - Schemas (validation)
+  - Schemas (validação)
 
-- Each layer must have a single responsibility
-- No direct DB access from API layer
+- Cada camada deve ter responsabilidade única
+- Não acessar o banco diretamente pela camada de API
 
-## DATABASE RULES
+## REGRAS DE BANCO DE DADOS
 
-- Multi-tenant via column:
-  - empresa_id (indexed)
+- Multi-tenant via coluna:
+  - `empresa_id` (indexada)
 
-- Required fields in all sync tables:
-  - uuid (unique global id)
-  - empresa_id
-  - data_atualizacao
+- Campos obrigatórios em todas as tabelas de sync:
+  - `uuid` (identificador global único)
+  - `empresa_id`
+  - `data_atualizacao`
 
-- Use UPSERT for all writes
+- Usar UPSERT em todas as gravações
 
-- Use PostgreSQL partitioning by date
+- Usar particionamento por data no PostgreSQL
 
-## DATA RETENTION POLICY
+## POLÍTICA DE RETENÇÃO DE DADOS
 
-- Keep only 14 months in main tables
-- Older data must be:
-  - deleted OR
-  - moved to archive tables
+- Manter apenas 14 meses nas tabelas principais
+- Dados antigos devem ser:
+  - excluídos OU
+  - movidos para tabelas de arquivo
 
-- Prefer partition drop instead of DELETE
+- Preferir remoção de partição em vez de DELETE
 
-## SECURITY RULES
+## REGRAS DE SEGURANÇA
 
-- All endpoints require API KEY
-- Validate empresa_id against API KEY
-- Prevent SQL injection
-- Validate all inputs
+- Todos os endpoints exigem API KEY
+- Validar `empresa_id` com a API KEY
+- Prevenir SQL injection
+- Validar todas as entradas
 
-## CODE STYLE
+## PADRÃO DE CÓDIGO
 
-- Use Python
-- Use FastAPI
-- Use SQLAlchemy ORM
+- Usar Python
+- Usar FastAPI
+- Usar SQLAlchemy ORM
 
-Rules:
-- Use clear naming (English)
-- Avoid abbreviations
-- Prefer small functions
-- Follow SOLID principles
+Regras:
+- Usar nomes claros em inglês quando fizer sentido técnico
+- Evitar abreviações
+- Preferir funções pequenas
+- Seguir princípios SOLID
 
-## PROJECT STRUCTURE
+## ESTRUTURA DO PROJETO
 
 /backend
     /api
@@ -93,30 +93,30 @@ Rules:
     /sync
     /config
 
-## SYNC RULES
+## REGRAS DE SINCRONIZAÇÃO
 
-- Only send new or updated records
-- Use data_atualizacao for filtering
-- Batch requests (avoid single record calls)
+- Enviar apenas registros novos ou atualizados
+- Usar `data_atualizacao` para filtragem
+- Processar em lote, evitando chamadas unitárias
 
-## TESTING RULES
+## REGRAS DE TESTE
 
-- Always create unit tests
-- Validate:
-  - multi-tenant isolation
-  - upsert behavior
-  - retention rules
+- Sempre criar testes unitários
+- Validar:
+  - isolamento multi-tenant
+  - comportamento de upsert
+  - regras de retenção
 
-## BEFORE FINISHING ANY TASK
+## ANTES DE FINALIZAR QUALQUER TAREFA
 
-The agent must:
+O agente deve:
 
-1. Validate architecture compliance
-2. Check multi-tenant isolation
-3. Ensure no hardcoded values
-4. Ensure retention rule is respected
-5. Ensure code is modular
+1. Validar conformidade com a arquitetura
+2. Verificar isolamento multi-tenant
+3. Garantir ausência de valores hardcoded
+4. Garantir que a regra de retenção foi respeitada
+5. Garantir que o código está modular
 
-## RESPONSE PROTOCOL
+## PROTOCOLO DE RESPOSTA
 
-Follow [`PROTOCOLO_ESPECIALISTAS.md`](PROTOCOLO_ESPECIALISTAS.md) as the operational model for role selection, response format, and senior-level execution.
+Seguir [`PROTOCOLO_ESPECIALISTAS.md`](PROTOCOLO_ESPECIALISTAS.md) como modelo operacional para seleção de papel, formato de resposta e execução sênior.

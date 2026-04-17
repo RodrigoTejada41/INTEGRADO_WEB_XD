@@ -4,17 +4,17 @@
 
 ## Autenticação
 
-- API KEY per company
+- API KEY por empresa
 
 ## Validação
 
-- Input validation required
-- Reject malformed data
+- Validação de entrada obrigatória
+- Rejeitar dados malformados
 
 ## Isolamento
 
-- empresa_id must be enforced in all queries
+- `empresa_id` deve ser aplicado em todas as consultas
 
 ## Logging
 
-- Log all sync operations
+- Registrar todas as operações de sync
