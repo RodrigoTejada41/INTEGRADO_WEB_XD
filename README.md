@@ -141,3 +141,4 @@ Isso valida:
 - artefatos gerados em Obsidian e nas pastas de manifestos Nexus
 - login JWT e endpoints protegidos da API
 
+
