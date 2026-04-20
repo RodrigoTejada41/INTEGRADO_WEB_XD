@@ -61,6 +61,7 @@ jobs:
                 echo "LETSENCRYPT_EMAIL=${{ secrets.LETSENCRYPT_EMAIL }}" >> .env.prod
               fi
               APP_DIR="$APP_DIR" bash infra/scripts/enable-https.sh || APP_DIR="$APP_DIR" bash infra/scripts/renew-certificates.sh
+              APP_DIR="$APP_DIR" bash infra/scripts/install-https-cron.sh
             fi
 
       - name: Validate application endpoint

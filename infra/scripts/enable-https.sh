@@ -54,6 +54,6 @@ docker run --rm \
 
 echo "[https] Switching nginx to HTTPS config"
 DOMAIN="$DOMAIN" envsubst '${DOMAIN}' < infra/nginx/default.https.template.conf > infra/nginx/default.conf
-docker compose --env-file "$ENV_FILE" -f "$COMPOSE_FILE" up -d nginx
+docker compose --env-file "$ENV_FILE" -f "$COMPOSE_FILE" up -d --force-recreate nginx
 
 echo "[https] HTTPS enabled for $DOMAIN"

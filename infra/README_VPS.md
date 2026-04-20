@@ -21,6 +21,7 @@ Este projeto esta preparado para deploy em VPS Linux (Ubuntu) com Docker + Docke
 - `infra/scripts/setup-ssh-key-auth.sh`
 - `infra/scripts/enable-https.sh`
 - `infra/scripts/renew-certificates.sh`
+- `infra/scripts/install-https-cron.sh`
 - `.github/workflows/deploy-prod.yml`
 
 ## Arquitetura de producao
@@ -129,7 +130,7 @@ APP_DIR=/opt/integrado_web_xd bash infra/scripts/renew-certificates.sh
 
 Renovacao automatica recomendada (cron):
 ```bash
-0 2 * * * root APP_DIR=/opt/integrado_web_xd bash /opt/integrado_web_xd/infra/scripts/renew-certificates.sh
+APP_DIR=/opt/integrado_web_xd bash infra/scripts/install-https-cron.sh
 ```
 
 ## Monitoramento e alertas
