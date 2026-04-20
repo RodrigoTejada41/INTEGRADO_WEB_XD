@@ -6,6 +6,9 @@ Este projeto é um pipeline modular e não monolítico que consome arquivos de c
 O ponto de retomada do projeto está em:
 - [`CONTINUIDADE_PROJETO_SYNC.md`](CONTINUIDADE_PROJETO_SYNC.md)
 
+## Deploy em VPS (producao)
+- Guia de deploy e operacao: [`infra/README_VPS.md`](infra/README_VPS.md)
+
 ## Protocolo de atuação
 Base de resposta para outra IA ou agente:
 - [`PROTOCOLO_ESPECIALISTAS.md`](PROTOCOLO_ESPECIALISTAS.md)
