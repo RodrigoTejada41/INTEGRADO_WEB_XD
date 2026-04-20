@@ -19,6 +19,7 @@ jobs:
         run: pip install -r requirements.txt
       - name: Run backend tests
         env:
+          PYTHONPATH: ${{ github.workspace }}
           DATABASE_URL: "sqlite+pysqlite:///:memory:"
           ADMIN_TOKEN: test-admin-token
           JWT_SECRET: test-jwt-secret

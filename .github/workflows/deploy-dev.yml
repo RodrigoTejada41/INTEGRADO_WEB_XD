@@ -11,14 +11,30 @@ permissions:
 
 jobs:
   deploy-dev:
-    if: ${{ secrets.DEV_VPS_HOST != '' && secrets.DEV_VPS_USER != '' && secrets.DEV_VPS_SSH_KEY != '' }}
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    env:
+      DEV_VPS_HOST: ${{ secrets.DEV_VPS_HOST }}
+      DEV_VPS_USER: ${{ secrets.DEV_VPS_USER }}
+      DEV_VPS_SSH_KEY: ${{ secrets.DEV_VPS_SSH_KEY }}
     steps:
+      - name: Check DEV secrets
+        id: guard
+        shell: bash
+        run: |
+          if [ -z "${DEV_VPS_HOST}" ] || [ -z "${DEV_VPS_USER}" ] || [ -z "${DEV_VPS_SSH_KEY}" ]; then
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+            echo "DEV secrets ausentes. Deploy sera ignorado."
+          else
+            echo "enabled=true" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Checkout
+        if: ${{ steps.guard.outputs.enabled == 'true' }}
         uses: actions/checkout@v4
 
       - name: Deploy on DEV VPS via SSH
+        if: ${{ steps.guard.outputs.enabled == 'true' }}
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.DEV_VPS_HOST }}
