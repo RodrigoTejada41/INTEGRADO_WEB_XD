@@ -42,7 +42,7 @@ services:
       RETENTION_MODE: ${RETENTION_MODE:-archive}
       RETENTION_JOB_ENABLED: ${RETENTION_JOB_ENABLED:-true}
       RETENTION_JOB_INTERVAL_MINUTES: ${RETENTION_JOB_INTERVAL_MINUTES:-60}
-      AUTO_CREATE_TABLES: ${AUTO_CREATE_TABLES:-false}
+      AUTO_CREATE_TABLES: ${AUTO_CREATE_TABLES:-true}
     depends_on:
       db:
         condition: service_healthy
