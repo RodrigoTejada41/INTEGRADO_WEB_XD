@@ -19,7 +19,7 @@ jobs:
         run: pip install -r requirements.txt
       - name: Run backend tests
         env:
-          DATABASE_URL: sqlite+pysqlite:///:memory:
+          DATABASE_URL: "sqlite+pysqlite:///:memory:"
           ADMIN_TOKEN: test-admin-token
           JWT_SECRET: test-jwt-secret
           AUTO_CREATE_TABLES: "true"
