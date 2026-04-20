@@ -117,6 +117,7 @@ APP_DIR=/opt/integrado_web_xd bash infra/scripts/test-restore.sh
 Defina no `.env.prod`:
 - `DOMAIN=seu-dominio.com`
 - `LETSENCRYPT_EMAIL=voce@seu-dominio.com`
+- `ENABLE_WWW_DOMAIN=false` (true se voce tambem tiver DNS para `www`)
 
 Emissao inicial:
 ```bash

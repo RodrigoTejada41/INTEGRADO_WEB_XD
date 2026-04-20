@@ -25,6 +25,7 @@ read_env() {
 
 DOMAIN="$(read_env DOMAIN)"
 LETSENCRYPT_EMAIL="$(read_env LETSENCRYPT_EMAIL)"
+ENABLE_WWW_DOMAIN="$(read_env ENABLE_WWW_DOMAIN false)"
 
 if [ -z "${DOMAIN:-}" ] || [ -z "${LETSENCRYPT_EMAIL:-}" ]; then
   echo "[https] DOMAIN and LETSENCRYPT_EMAIL are required in $ENV_FILE"
@@ -39,6 +40,13 @@ cp infra/nginx/default.http.conf infra/nginx/default.conf
 docker compose --env-file "$ENV_FILE" -f "$COMPOSE_FILE" up -d nginx
 
 echo "[https] Requesting Let's Encrypt certificate for $DOMAIN"
+cert_domains=(-d "$DOMAIN")
+server_names="$DOMAIN"
+if [ "$ENABLE_WWW_DOMAIN" = "true" ]; then
+  cert_domains+=(-d "www.$DOMAIN")
+  server_names="$DOMAIN www.$DOMAIN"
+fi
+
 docker run --rm \
   -v "$APP_DIR/infra/nginx/certs:/etc/letsencrypt" \
   -v "$APP_DIR/infra/nginx/certbot:/var/www/certbot" \
@@ -49,11 +57,10 @@ docker run --rm \
   --agree-tos \
   --non-interactive \
   --keep-until-expiring \
-  -d "$DOMAIN" \
-  -d "www.$DOMAIN"
+  "${cert_domains[@]}"
 
 echo "[https] Switching nginx to HTTPS config"
-DOMAIN="$DOMAIN" envsubst '${DOMAIN}' < infra/nginx/default.https.template.conf > infra/nginx/default.conf
+DOMAIN="$DOMAIN" SERVER_NAMES="$server_names" envsubst '${DOMAIN} ${SERVER_NAMES}' < infra/nginx/default.https.template.conf > infra/nginx/default.conf
 docker compose --env-file "$ENV_FILE" -f "$COMPOSE_FILE" up -d --force-recreate nginx
 
 echo "[https] HTTPS enabled for $DOMAIN"

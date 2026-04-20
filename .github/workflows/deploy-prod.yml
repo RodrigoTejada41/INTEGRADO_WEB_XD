@@ -60,6 +60,13 @@ jobs:
               else
                 echo "LETSENCRYPT_EMAIL=${{ secrets.LETSENCRYPT_EMAIL }}" >> .env.prod
               fi
+              if [ -n "${{ secrets.ENABLE_WWW_DOMAIN }}" ]; then
+                if grep -q '^ENABLE_WWW_DOMAIN=' .env.prod; then
+                  sed -i "s/^ENABLE_WWW_DOMAIN=.*/ENABLE_WWW_DOMAIN=${{ secrets.ENABLE_WWW_DOMAIN }}/" .env.prod
+                else
+                  echo "ENABLE_WWW_DOMAIN=${{ secrets.ENABLE_WWW_DOMAIN }}" >> .env.prod
+                fi
+              fi
               APP_DIR="$APP_DIR" bash infra/scripts/enable-https.sh || APP_DIR="$APP_DIR" bash infra/scripts/renew-certificates.sh
               APP_DIR="$APP_DIR" bash infra/scripts/install-https-cron.sh
             fi
