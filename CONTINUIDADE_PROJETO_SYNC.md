@@ -299,3 +299,33 @@ Pendências operacionais para continuar:
 - concluir DNS do domínio `MOVISYSTECNOLOGIA.COM.BR`
 - fazer merge da PR #1 em `main` quando DEV estiver aprovado
 - validar HTTPS/Let's Encrypt após DNS propagado
+
+## 12) Fechamento do dia - DNS, SSL e acesso (2026-04-20)
+
+Status final confirmado:
+- DNS do domínio `movisystecnologia.com.br` publicado no Registro.br.
+- DNS do `www.movisystecnologia.com.br` publicado no Registro.br.
+- Ambos apontam para a VPS `172.238.213.72`.
+- HTTPS emitido via Let's Encrypt para domínio raiz e `www`.
+- Certificado válido até `2026-07-19`.
+- Renovação automática instalada em `/etc/cron.d/integrado-https`.
+- API validada em `https://movisystecnologia.com.br/api/health`.
+- Painel validado em `https://movisystecnologia.com.br`.
+- Login testado e funcional.
+
+Acesso atual de teste:
+- URL: `https://movisystecnologia.com.br`
+- Usuário: `admin`
+- Senha temporária: `admin123`
+
+Notas de segurança:
+- A senha `admin123` deve ser trocada antes do uso real em produção.
+- Não registrar segredos de VPS no repositório.
+- Acesso SSH por chave local `movisys_vps` foi validado.
+
+Próxima retomada:
+- validar navegação completa do painel
+- trocar senha do painel
+- revisar empresas/usuários
+- configurar GitHub Secrets faltantes, se necessário
+- decidir merge da PR #1 em `main`

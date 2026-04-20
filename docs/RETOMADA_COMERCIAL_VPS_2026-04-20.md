@@ -156,3 +156,45 @@ O Registro.br nao aceita IP como servidor DNS delegado. Para apontar direto para
 - Validar o dominio depois da propagacao DNS.
 - Fazer merge da PR #1 para `main` quando DEV estiver aceito.
 - Testar HTTPS/Let's Encrypt em producao.
+
+## Fechamento operacional do dia
+
+Registro feito em 2026-04-20, apos configuracao DNS/SSL.
+
+Status confirmado:
+
+- DNS do Registro.br publicado para `movisystecnologia.com.br`.
+- DNS do Registro.br publicado para `www.movisystecnologia.com.br`.
+- Ambos apontam para `172.238.213.72`.
+- VPS responde HTTP/HTTPS.
+- Let's Encrypt emitido com sucesso para:
+  - `movisystecnologia.com.br`
+  - `www.movisystecnologia.com.br`
+- Certificado valido ate `2026-07-19`.
+- Renovacao automatica instalada em `/etc/cron.d/integrado-https`.
+- `https://movisystecnologia.com.br/api/health` responde `{"status":"ok"}`.
+- `https://movisystecnologia.com.br` abre o painel `Painel Sync`.
+- Login validado com redirecionamento para `/dashboard`.
+
+Acesso de teste atual do painel:
+
+- URL: `https://movisystecnologia.com.br`
+- Usuario: `admin`
+- Senha temporaria: `admin123`
+
+Observacoes importantes:
+
+- A senha `admin123` foi definida a pedido do usuario para facilitar o acesso inicial.
+- Trocar a senha do painel antes de uso real em producao.
+- Acesso SSH por chave local validado com `~/.ssh/movisys_vps`.
+- Nao registrar senha root, chave privada ou tokens no repositorio.
+- O repositorio na VPS tinha alteracoes locais em scripts e backup gerado; nao foram revertidos.
+
+Retomada amanha:
+
+1. Entrar no painel e validar fluxo visual.
+2. Trocar senha `admin123` por senha forte.
+3. Validar usuarios/empresas no painel.
+4. Conferir GitHub Secrets de PROD/DEV.
+5. Decidir merge da PR #1 em `main`.
+6. Acompanhar deploy PROD apos merge.
