@@ -12,9 +12,19 @@ if [ ! -f "$ENV_FILE" ]; then
   exit 1
 fi
 
-set -a
-source "$ENV_FILE"
-set +a
+read_env() {
+  local key="$1"
+  local default_value="${2:-}"
+  local value
+  value="$(grep -E "^${key}=" "$ENV_FILE" | tail -n 1 | cut -d '=' -f 2- | tr -d '\r' || true)"
+  if [ -z "$value" ]; then
+    value="$default_value"
+  fi
+  printf '%s' "$value"
+}
+
+DOMAIN="$(read_env DOMAIN)"
+LETSENCRYPT_EMAIL="$(read_env LETSENCRYPT_EMAIL)"
 
 if [ -z "${DOMAIN:-}" ] || [ -z "${LETSENCRYPT_EMAIL:-}" ]; then
   echo "[cert-renew] DOMAIN and LETSENCRYPT_EMAIL are required in $ENV_FILE"

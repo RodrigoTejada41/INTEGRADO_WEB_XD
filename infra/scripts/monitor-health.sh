@@ -11,14 +11,24 @@ mkdir -p "$LOG_DIR"
 cd "$APP_DIR"
 
 if [ -f "$ENV_FILE" ]; then
-  set -a
-  source "$ENV_FILE"
-  set +a
+  read_env() {
+    local key="$1"
+    local default_value="${2:-}"
+    local value
+    value="$(grep -E "^${key}=" "$ENV_FILE" | tail -n 1 | cut -d '=' -f 2- | tr -d '\r' || true)"
+    if [ -z "$value" ]; then
+      value="$default_value"
+    fi
+    printf '%s' "$value"
+  }
+  ALERT_WEBHOOK_URL="$(read_env ALERT_WEBHOOK_URL)"
+  DISK_ALERT_PERCENT="$(read_env DISK_ALERT_PERCENT 85)"
+  MEM_ALERT_PERCENT="$(read_env MEM_ALERT_PERCENT 90)"
+else
+  ALERT_WEBHOOK_URL=""
+  DISK_ALERT_PERCENT=85
+  MEM_ALERT_PERCENT=90
 fi
-
-ALERT_WEBHOOK_URL="${ALERT_WEBHOOK_URL:-}"
-DISK_ALERT_PERCENT="${DISK_ALERT_PERCENT:-85}"
-MEM_ALERT_PERCENT="${MEM_ALERT_PERCENT:-90}"
 
 timestamp() { date -u +"%Y-%m-%dT%H:%M:%SZ"; }
 

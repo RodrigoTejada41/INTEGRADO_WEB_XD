@@ -18,9 +18,18 @@ fi
 
 cd "$APP_DIR"
 
-set -a
-source "$ENV_FILE"
-set +a
+read_env() {
+  local key="$1"
+  local default_value="${2:-}"
+  local value
+  value="$(grep -E "^${key}=" "$ENV_FILE" | tail -n 1 | cut -d '=' -f 2- | tr -d '\r' || true)"
+  if [ -z "$value" ]; then
+    value="$default_value"
+  fi
+  printf '%s' "$value"
+}
+
+POSTGRES_USER="$(read_env POSTGRES_USER sync_user)"
 
 echo "[restore] Restoring database from $BACKUP_FILE"
 gzip -dc "$BACKUP_FILE" | docker compose --env-file "$ENV_FILE" -f "$COMPOSE_FILE" exec -T db \
