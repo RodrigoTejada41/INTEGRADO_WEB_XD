@@ -157,6 +157,20 @@ Cron:
 - `deploy-dev.yml`: deploy automático branch `dev`
 - `deploy-prod.yml`: deploy automático branch `main`
 
+## Continuidade do Projeto
+
+Registro de retomada da fase comercial/VPS:
+
+- `docs/RETOMADA_COMERCIAL_VPS_2026-04-20.md`
+
+Status registrado:
+
+- PR #1 aberta em `codex-commercial-platform`
+- branch `dev` publicada
+- checks da PR passando
+- deploy DEV executado com sucesso no GitHub Actions
+- PROD preparado para disparar no merge em `main`, desde que os GitHub Secrets estejam configurados
+
 ## Observações Operacionais
 
 - Respeite o fluxo obrigatório: `LOCAL -> DEV -> PROD`

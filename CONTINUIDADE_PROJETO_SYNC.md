@@ -267,3 +267,35 @@ Você pediu uma nova fase de produto para uma API comercial multi-tenant com con
   - database_name
   - username
   - password
+
+## 11) Registro adicional - fase comercial/VPS (2026-04-20)
+
+Documento detalhado de retomada:
+- [`docs/RETOMADA_COMERCIAL_VPS_2026-04-20.md`](docs/RETOMADA_COMERCIAL_VPS_2026-04-20.md)
+
+Estado registrado nesta fase:
+- Branch atual: `codex-commercial-platform`
+- Branch DEV publicada: `dev`
+- Pull Request: `https://github.com/RodrigoTejada41/INTEGRADO_WEB_XD/pull/1`
+- Status da PR: checks passando
+- CI confirmado: backend e frontend OK
+- Deploy DEV confirmado: sucesso no GitHub Actions
+
+Entregas adicionadas:
+- autenticação JWT com access/refresh/logout
+- multi-empresa por CNPJ
+- gestão de empresas e usuários
+- auditoria básica
+- painel administrativo frontend
+- migrations e seed comercial
+- Docker DEV/PROD
+- Nginx reverso para frontend e API
+- scripts reais de VPS
+- workflows CI, deploy DEV e deploy PROD
+
+Pendências operacionais para continuar:
+- configurar GitHub Secrets reais da VPS
+- trocar senha root informada anteriormente e confirmar SSH por chave
+- concluir DNS do domínio `MOVISYSTECNOLOGIA.COM.BR`
+- fazer merge da PR #1 em `main` quando DEV estiver aprovado
+- validar HTTPS/Let's Encrypt após DNS propagado
