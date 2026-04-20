@@ -1,148 +1,178 @@
-﻿# INTEGRADO WEB XD - Pipeline de Conhecimento de Engenharia Reversa
+# MoviSys Platform - Comercial Multi-Tenant
 
-Este projeto é um pipeline modular e não monolítico que consome arquivos de conhecimento de engenharia reversa e os transforma em dados estruturados, versionados e expostos por API.
+Sistema profissional com backend API comercial, painel administrativo, autenticação JWT, multi-empresa por CNPJ, auditoria, backup e fluxo completo `LOCAL -> DEV -> PROD`.
 
-## Registro de continuidade
-O ponto de retomada do projeto está em:
-- [`CONTINUIDADE_PROJETO_SYNC.md`](CONTINUIDADE_PROJETO_SYNC.md)
+## Arquitetura
 
-## Deploy em VPS (producao)
-- Guia de deploy e operacao: [`infra/README_VPS.md`](infra/README_VPS.md)
+- `backend/`
+  - `api/` rotas, middlewares e dependências
+  - `services/` regras de negócio
+  - `repositories/` acesso a dados
+  - `models/` ORM SQLAlchemy
+  - `schemas/` contratos e validações Pydantic
+  - `migrations/` SQL versionado
+  - `scripts/` migrate/seed
+- `frontend/`
+  - painel administrativo modular por componentes JS
+- `infra/`
+  - `nginx/` proxy reverso, HTTP/HTTPS
+  - `scripts/` setup/deploy/update/backup/restore/monitoramento
+  - `env/` exemplos de ambiente
+- `.github/workflows/`
+  - `ci.yml`
+  - `deploy-dev.yml`
+  - `deploy-prod.yml`
 
-## Protocolo de atuação
-Base de resposta para outra IA ou agente:
-- [`PROTOCOLO_ESPECIALISTAS.md`](PROTOCOLO_ESPECIALISTAS.md)
+## Funcionalidades Implementadas
 
-## Índice mestre da documentação
-- [`INDICE_DOCUMENTACAO_MESTRA.md`](INDICE_DOCUMENTACAO_MESTRA.md)
+- Login com JWT (`access` + `refresh`)
+- Logout e revogação de refresh token
+- Multi-tenant por CNPJ com isolamento por empresa
+- Gestão de empresas
+- Gestão de usuários
+- Dashboard administrativo
+- Logs de requisição e auditoria de operações
+- Backup automático + rotação + teste de restore
+- Nginx como proxy (`/` frontend, `/api` backend)
+- Docker DEV e PROD
+- CI e deploy automático DEV/PROD
 
-## Lançamentos e registro de mudanças
-- [`REGISTRO_DE_MUDANCAS.md`](REGISTRO_DE_MUDANCAS.md)
-- [`NOTAS_DE_RELEASE_v0.1.0.md`](NOTAS_DE_RELEASE_v0.1.0.md)
-- Tag publicada: `v0.1.0`
+## Endpoints Principais
 
-## Caminho principal da origem (processado pelo pipeline)
-A origem de ingestão é configurada em `.env`:
-- `E:\Projetos\ENGENHARIA_REVERSA\XDSoftware-Reverse-Engineering`
-
-Use `KNOWLEDGE_SOURCE_PATHS` para alterar a pasta de origem processada.
-
-## Referência externa de conhecimento (não processada)
-`CEREBRO_VIVO` deve ser usado apenas para consulta, não para ingestão.
-Use `KNOWLEDGE_REFERENCE_PATHS` somente como metadados de referência.
-
-## Módulos
-- `apps/ingestion-service`: monitora pastas de origem, indexa arquivos e cria eventos de ingestão
-- `apps/reverse-engineering-service`: interpreta arquivos e infere estrutura
-- `apps/transformation-service`: normaliza os dados interpretados e cria versões de dataset
-- `apps/persistence-service`: grava evidências no cofre do Obsidian e nas pastas de manifestos Nexus
-- `apps/api-service`: API RBAC protegida por JWT para arquivos, jobs, datasets e relatórios
-- `packages/shared`: configuração compartilhada, persistência SQLite, fila de eventos e adaptadores
-
-## Execução local
-1. Crie o virtualenv e instale as dependências:
-```powershell
-py -3 -m venv .venv
-.\.venv\Scripts\Activate.ps1
-pip install -r requirements.txt
-```
-2. Copie o arquivo de ambiente:
-```powershell
-Copy-Item .env.example .env
-```
-
-## Execução rápida (lote único)
-```powershell
-.\scripts\run-pipeline-once.ps1
-```
-Isso executa a ingestão e processa todos os eventos pendentes por engenharia reversa, transformação e persistência.
-
-## Execução contínua
-```powershell
-.\scripts\start-services.ps1
-```
-Isso abre 5 terminais e inicia todos os serviços, incluindo a API.
-
-## Autenticação JWT, renovação e RBAC
-1. Faça login e receba `access_token` + `refresh_token`:
-```http
-POST /auth/token
-{
-  "username": "admin",
-  "password": "admin123"
-}
-```
-2. Renovar sessão (rotaciona o refresh token e invalida o antigo):
-```http
-POST /auth/refresh
-{
-  "refresh_token": "<refresh_token>"
-}
-```
-3. Encerrar sessão (revoga o access token atual e o refresh token opcional):
-```http
-POST /auth/logout
-Authorization: Bearer <access_token>
-{
-  "refresh_token": "<refresh_token_optional>"
-}
-```
-4. Use o access token nos endpoints protegidos:
-```http
-Authorization: Bearer <access_token>
-```
-5. Perfis:
-- `admin`: files/jobs/datasets/reports/audit
-- `analyst`: files/jobs/datasets/reports
-- `viewer`: datasets/reports
-
-## Verificações da API
-- `GET /health`
-- `POST /auth/token`
-- `POST /auth/refresh`
-- `POST /auth/logout`
+- `POST /api/v1/auth/login`
+- `POST /api/v1/auth/refresh`
+- `POST /api/v1/auth/logout`
 - `GET /api/v1/auth/me`
-- `GET /api/v1/files`
-- `GET /api/v1/jobs`
-- `GET /api/v1/datasets`
-- `GET /api/v1/reports/summary`
-- `GET /api/v1/audit-events` (admin only)
+- `GET/POST/PUT /api/v1/empresas`
+- `GET/POST/PUT /api/v1/usuarios`
+- `GET /api/v1/dashboard/summary`
+- `GET /health`
+- `GET /api/health`
 
-## Fluxo de dados
-`source files -> ingestion -> reverse engineering -> transformation -> DB -> Nexus manifests + Obsidian notes -> API reports`
+## Autenticação JWT
 
-## Observações
-- O armazenamento local usa SQLite para velocidade de desenvolvimento (`output/system.db`).
-- A arquitetura é modular e pode ser migrada para PostgreSQL + broker de mensagens sem alterar as fronteiras dos serviços.
-- Os dados do Obsidian são gerados como Markdown em `obsidian-vault`.
-- A integração Nexus é representada por artefatos de manifesto versionados em `nexus-manifests`.
+- Senha com hash `bcrypt`
+- Token `access` com expiração curta
+- Token `refresh` persistido com hash e revogação
+- Rotas protegidas por middleware/deps
+- Base pronta para permissões por `role`
 
-## Testes automatizados
-Execute a suíte de testes em Docker:
-```powershell
-.\scripts\run-tests.ps1
+## Multi-Empresa (CNPJ)
+
+- Tabela `empresas` com `cnpj` único
+- Tabela `user_accounts` vinculada a `empresa_id`
+- Isolamento por tenant em rotas de dados
+- `superadmin` pode atuar globalmente
+
+## Banco de Dados
+
+Tabelas principais:
+
+- `empresas`
+- `user_accounts`
+- `refresh_tokens`
+- `audit_logs`
+
+Migrations e seeds:
+
+```bash
+python -m backend.scripts.migrate
+python -m backend.scripts.seed
 ```
 
-Cobertura automatizada atual:
-- endpoint de saúde
-- login + `/api/v1/auth/me`
-- enforcement de RBAC (viewer negado em `/api/v1/files`)
-- rotação de refresh token (refresh antigo rejeitado)
-- revogação no logout (access token inválido após logout)
+Seed inicial:
 
-## Verificação end-to-end
-Execute o smoke rápido (ingestão limitada):
-```powershell
-.\scripts\run-smoke-check.ps1
+- `admin@movisys.local`
+- `Admin@123456`
+
+## Rodando Local (LOCAL)
+
+```bash
+docker compose -f docker-compose.dev.yml up -d --build
 ```
 
-Execute o smoke completo (sem limite de ingestão):
-```powershell
-.\scripts\run-smoke-check-full.ps1
-```
+Aplicação local:
 
-Isso valida:
-- ingestão a partir de `ENGENHARIA_REVERSA`
-- engenharia reversa + transformação + persistência
-- artefatos gerados em Obsidian e nas pastas de manifestos Nexus
-- login JWT e endpoints protegidos da API
+- Frontend: `http://localhost:8080`
+- API: `http://localhost:8080/api`
+
+## Ambiente DEV (VPS DEV)
+
+Fluxo automático ao subir na branch `dev`:
+
+- workflow: `.github/workflows/deploy-dev.yml`
+- script de deploy: `infra/scripts/deploy-dev.sh`
+- update: `infra/scripts/update.sh` com `TARGET_ENV=dev`
+
+Secrets esperados:
+
+- `DEV_VPS_HOST`
+- `DEV_VPS_USER`
+- `DEV_VPS_SSH_KEY`
+- `DEV_VPS_PORT` (opcional)
+
+## Ambiente PROD (VPS PROD)
+
+Fluxo automático ao subir na branch `main`:
+
+- workflow: `.github/workflows/deploy-prod.yml`
+- script de deploy: `infra/scripts/deploy-prod.sh`
+
+Secrets esperados:
+
+- `VPS_HOST`
+- `VPS_USER`
+- `VPS_SSH_KEY`
+- `VPS_PORT`
+- `DOMAIN` e `LETSENCRYPT_EMAIL` (opcional para HTTPS automático)
+
+## Backup, Restore e Logs
+
+Scripts:
+
+- `infra/scripts/backup-db.sh`
+- `infra/scripts/restore-db.sh`
+- `infra/scripts/backup-rotate.sh`
+- `infra/scripts/test-restore.sh`
+- `infra/scripts/monitor-health.sh`
+
+Cron:
+
+- `infra/scripts/install-backup-cron.sh`
+- `infra/scripts/install-monitoring-cron.sh`
+- `infra/scripts/install-https-cron.sh`
+
+## Segurança
+
+- Banco não exposto publicamente
+- Backend não exposto diretamente (somente via Nginx `/api`)
+- Segredos via variáveis de ambiente e GitHub Secrets
+- Senhas com `bcrypt`
+- JWT assinado
+- SSH por chave (workflow PROD)
+
+## CI/CD
+
+- `ci.yml`: valida backend e frontend
+- `deploy-dev.yml`: deploy automático branch `dev`
+- `deploy-prod.yml`: deploy automático branch `main`
+
+## Continuidade do Projeto
+
+Registro de retomada da fase comercial/VPS:
+
+- `docs/RETOMADA_COMERCIAL_VPS_2026-04-20.md`
+
+Status registrado:
+
+- PR #1 aberta em `codex-commercial-platform`
+- branch `dev` publicada
+- checks da PR passando
+- deploy DEV executado com sucesso no GitHub Actions
+- PROD preparado para disparar no merge em `main`, desde que os GitHub Secrets estejam configurados
+
+## Observações Operacionais
+
+- Respeite o fluxo obrigatório: `LOCAL -> DEV -> PROD`
+- Não faça deploy direto em PROD sem passar por DEV
+- Mantenha backups e testes de restore ativos para continuidade do negócio

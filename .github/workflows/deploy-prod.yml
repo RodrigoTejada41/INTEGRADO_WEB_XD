@@ -13,11 +13,28 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    env:
+      VPS_HOST_SECRET: ${{ secrets.VPS_HOST }}
+      VPS_USER_SECRET: ${{ secrets.VPS_USER }}
+      VPS_SSH_KEY_SECRET: ${{ secrets.VPS_SSH_KEY }}
     steps:
+      - name: Check PROD secrets
+        id: guard
+        shell: bash
+        run: |
+          if [ -z "${VPS_HOST_SECRET}" ] || [ -z "${VPS_USER_SECRET}" ] || [ -z "${VPS_SSH_KEY_SECRET}" ]; then
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+            echo "PROD secrets ausentes. Deploy sera ignorado."
+          else
+            echo "enabled=true" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Checkout
+        if: ${{ steps.guard.outputs.enabled == 'true' }}
         uses: actions/checkout@v4
 
       - name: Deploy on VPS via SSH
+        if: ${{ steps.guard.outputs.enabled == 'true' }}
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.VPS_HOST }}
@@ -71,6 +88,7 @@ jobs:
             fi
 
       - name: Validate application endpoint
+        if: ${{ steps.guard.outputs.enabled == 'true' }}
         shell: bash
         run: |
           curl -fsS "http://${{ secrets.VPS_HOST }}/healthz"

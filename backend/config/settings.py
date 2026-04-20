@@ -9,6 +9,7 @@ class Settings(BaseSettings):
     app_name: str = "multi-tenant-sync-api"
     environment: str = "production"
     log_level: str = "INFO"
+    cors_origins: str = "http://localhost:3000,http://localhost:8080"
 
     database_url: str = Field(..., alias="DATABASE_URL")
     api_key_header: str = "X-API-Key"
@@ -23,6 +24,10 @@ class Settings(BaseSettings):
 
     batch_max_size: int = 1000
     auto_create_tables: bool = False
+    jwt_secret: str = Field("change-this-jwt-secret", alias="JWT_SECRET")
+    jwt_algorithm: str = "HS256"
+    jwt_access_expires_minutes: int = 30
+    jwt_refresh_expires_minutes: int = 10080
 
     model_config = SettingsConfigDict(
         env_file=".env",
