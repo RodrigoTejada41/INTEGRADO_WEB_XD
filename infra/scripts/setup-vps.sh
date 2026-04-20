@@ -38,11 +38,15 @@ fi
 mkdir -p "$APP_DIR/runtime"
 mkdir -p "$APP_DIR/infra/backups"
 mkdir -p "$APP_DIR/infra/nginx/certs"
+mkdir -p "$APP_DIR/infra/nginx/certbot"
+mkdir -p "$APP_DIR/infra/logs"
 
 if [ ! -f "$APP_DIR/.env.prod" ]; then
   echo "[setup] Creating .env.prod from template"
   cp "$APP_DIR/infra/env/.env.prod.example" "$APP_DIR/.env.prod"
   echo "[setup] Fill $APP_DIR/.env.prod before first deploy."
 fi
+
+chmod +x "$APP_DIR"/infra/scripts/*.sh || true
 
 echo "[setup] VPS setup completed"

@@ -12,6 +12,15 @@ Este projeto esta preparado para deploy em VPS Linux (Ubuntu) com Docker + Docke
 - `infra/scripts/update.sh`
 - `infra/scripts/backup-db.sh`
 - `infra/scripts/restore-db.sh`
+- `infra/scripts/backup-rotate.sh`
+- `infra/scripts/test-restore.sh`
+- `infra/scripts/install-backup-cron.sh`
+- `infra/scripts/monitor-health.sh`
+- `infra/scripts/install-monitoring-cron.sh`
+- `infra/scripts/harden-vps.sh`
+- `infra/scripts/setup-ssh-key-auth.sh`
+- `infra/scripts/enable-https.sh`
+- `infra/scripts/renew-certificates.sh`
 - `.github/workflows/deploy-prod.yml`
 
 ## Arquitetura de producao
@@ -27,6 +36,7 @@ Regras aplicadas:
 - rede interna para containers
 - reinicio automatico (`restart: unless-stopped`)
 - retencao de 14 meses configuravel por variavel
+- challenge ACME habilitado no Nginx para Let's Encrypt
 
 ## Primeira instalacao na VPS
 
@@ -57,6 +67,22 @@ APP_DIR=/opt/integrado_web_xd BRANCH=main bash infra/scripts/setup-vps.sh
 APP_DIR=/opt/integrado_web_xd bash infra/scripts/deploy-prod.sh
 ```
 
+6. Instale monitoramento e backup automatico:
+```bash
+APP_DIR=/opt/integrado_web_xd bash infra/scripts/install-monitoring-cron.sh
+APP_DIR=/opt/integrado_web_xd bash infra/scripts/install-backup-cron.sh
+```
+
+7. Aplique hardening de seguranca:
+```bash
+bash infra/scripts/harden-vps.sh
+```
+
+Opcional para endurecer SSH apos configurar chave:
+```bash
+ROOT_LOGIN_MODE=prohibit-password DISABLE_SSH_PASSWORD=true bash infra/scripts/harden-vps.sh
+```
+
 ## Atualizacoes de deploy
 
 ```bash
@@ -70,10 +96,52 @@ Backup:
 APP_DIR=/opt/integrado_web_xd bash infra/scripts/backup-db.sh
 ```
 
+Backup com rotacao:
+```bash
+APP_DIR=/opt/integrado_web_xd bash infra/scripts/backup-rotate.sh
+```
+
 Restore:
 ```bash
 APP_DIR=/opt/integrado_web_xd bash infra/scripts/restore-db.sh /opt/integrado_web_xd/infra/backups/postgres_YYYYMMDD_HHMMSS.sql.gz
 ```
+
+Teste automatico de restore:
+```bash
+APP_DIR=/opt/integrado_web_xd bash infra/scripts/test-restore.sh
+```
+
+## HTTPS com Let's Encrypt
+
+Defina no `.env.prod`:
+- `DOMAIN=seu-dominio.com`
+- `LETSENCRYPT_EMAIL=voce@seu-dominio.com`
+
+Emissao inicial:
+```bash
+APP_DIR=/opt/integrado_web_xd bash infra/scripts/enable-https.sh
+```
+
+Renovacao manual:
+```bash
+APP_DIR=/opt/integrado_web_xd bash infra/scripts/renew-certificates.sh
+```
+
+Renovacao automatica recomendada (cron):
+```bash
+0 2 * * * root APP_DIR=/opt/integrado_web_xd bash /opt/integrado_web_xd/infra/scripts/renew-certificates.sh
+```
+
+## Monitoramento e alertas
+
+`monitor-health.sh` valida:
+- uptime do Nginx (`/healthz`)
+- health da API (`/api/health`)
+- containers com status `exited`
+- uso de disco e memoria
+
+Alerta webhook opcional:
+- `ALERT_WEBHOOK_URL` no `.env.prod`
 
 ## GitHub Actions deploy automatico
 
@@ -88,10 +156,12 @@ Secrets necessarios:
 - `VPS_USER`
 - `VPS_SSH_KEY`
 - `VPS_PORT` (opcional; default 22)
+- `VPS_PASSWORD` (fallback, opcional se usar chave)
+- `DOMAIN` (opcional, para HTTPS automatico)
+- `LETSENCRYPT_EMAIL` (opcional, para HTTPS automatico)
 
 ## Dominio e HTTPS (preparado)
 
-- Ajustar `server_name` em `infra/nginx/default.conf`
-- Apontar DNS para a VPS
-- Provisionar certificados LetsEncrypt e montar em `infra/nginx/certs`
-- Habilitar bloco HTTPS comentado no arquivo de Nginx
+- Apontar DNS do dominio para a VPS
+- Configurar `DOMAIN` e `LETSENCRYPT_EMAIL` no `.env.prod` (ou nos GitHub Secrets)
+- Rodar `infra/scripts/enable-https.sh`

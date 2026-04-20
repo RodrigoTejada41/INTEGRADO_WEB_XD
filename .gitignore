@@ -27,6 +27,11 @@ release-artifacts/
 nexus-manifests/
 obsidian-vault/
 input/
+infra/logs/
+infra/nginx/certbot/*
+!infra/nginx/certbot/.gitkeep
+infra/nginx/certs/*
+!infra/nginx/certs/.gitkeep
 
 # Build / package artifacts
 dist/
