@@ -11,6 +11,8 @@ __pycache__/
 .venv/
 venv/
 env/
+!infra/env/
+!infra/env/.env.prod.example
 
 # Local configuration and secrets
 .env
