@@ -43,6 +43,11 @@ services:
       RETENTION_JOB_ENABLED: ${RETENTION_JOB_ENABLED:-true}
       RETENTION_JOB_INTERVAL_MINUTES: ${RETENTION_JOB_INTERVAL_MINUTES:-60}
       AUTO_CREATE_TABLES: ${AUTO_CREATE_TABLES:-true}
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_ALGORITHM: ${JWT_ALGORITHM:-HS256}
+      JWT_ACCESS_EXPIRES_MINUTES: ${JWT_ACCESS_EXPIRES_MINUTES:-30}
+      JWT_REFRESH_EXPIRES_MINUTES: ${JWT_REFRESH_EXPIRES_MINUTES:-10080}
+      CORS_ORIGINS: ${CORS_ORIGINS:-https://movisystecnologia.com.br}
     depends_on:
       db:
         condition: service_healthy
@@ -60,39 +65,17 @@ services:
 
   frontend:
     build:
-      context: ./sync-admin
+      context: ./frontend
       dockerfile: Dockerfile
     container_name: integrado_frontend
     restart: unless-stopped
-    env_file:
-      - .env.prod
-    environment:
-      APP_ENV: production
-      APP_HOST: 0.0.0.0
-      APP_PORT: 8000
-      SECRET_KEY: ${SYNC_ADMIN_SECRET_KEY}
-      DATABASE_URL: postgresql+psycopg2://${POSTGRES_USER:-sync_user}:${POSTGRES_PASSWORD}@db:5432/${SYNC_ADMIN_DB:-sync_admin}
-      INITIAL_ADMIN_USERNAME: ${INITIAL_ADMIN_USERNAME:-admin}
-      INITIAL_ADMIN_PASSWORD: ${INITIAL_ADMIN_PASSWORD}
-      INTEGRATION_API_KEY: ${INTEGRATION_API_KEY}
-      CONTROL_API_BASE_URL: http://backend:8000
-      CONTROL_ADMIN_TOKEN: ${ADMIN_TOKEN}
-      CONTROL_EMPRESA_ID: ${CONTROL_EMPRESA_ID}
-      CONTROL_EMPRESA_NOME: ${CONTROL_EMPRESA_NOME:-Empresa XD}
-      AGENT_API_KEY_FILE: /shared/agent_api_key.txt
-      AGENT_AUDIT_FILE: /shared/agent_audit.log
-      LOG_LEVEL: ${FRONTEND_LOG_LEVEL:-INFO}
-    volumes:
-      - ./runtime:/shared
     depends_on:
-      db:
-        condition: service_healthy
       backend:
         condition: service_healthy
     expose:
-      - "8000"
+      - "80"
     healthcheck:
-      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://localhost:8000/health', timeout=3)\""]
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://localhost/ || exit 1"]
       interval: 15s
       timeout: 5s
       retries: 10

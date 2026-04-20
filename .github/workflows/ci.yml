@@ -1,0 +1,36 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      - dev
+      - main
+
+jobs:
+  backend-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+      - name: Run backend tests
+        env:
+          DATABASE_URL: sqlite+pysqlite:///:memory:
+          ADMIN_TOKEN: test-admin-token
+          JWT_SECRET: test-jwt-secret
+          AUTO_CREATE_TABLES: "true"
+        run: pytest -q
+
+  frontend-validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate frontend files
+        run: |
+          test -f frontend/index.html
+          test -f frontend/js/app.js
+          test -f frontend/styles.css

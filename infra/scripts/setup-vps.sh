@@ -47,6 +47,12 @@ if [ ! -f "$APP_DIR/.env.prod" ]; then
   echo "[setup] Fill $APP_DIR/.env.prod before first deploy."
 fi
 
+if [ ! -f "$APP_DIR/.env.dev" ] && [ -f "$APP_DIR/infra/env/.env.dev.example" ]; then
+  echo "[setup] Creating .env.dev from template"
+  cp "$APP_DIR/infra/env/.env.dev.example" "$APP_DIR/.env.dev"
+  echo "[setup] Fill $APP_DIR/.env.dev before first dev deploy."
+fi
+
 chmod +x "$APP_DIR"/infra/scripts/*.sh || true
 
 echo "[setup] VPS setup completed"

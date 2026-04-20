@@ -1,34 +1,28 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-APP_DIR="${APP_DIR:-/opt/integrado_web_xd}"
+APP_DIR="${APP_DIR:-/opt/integrado_web_xd_dev}"
 COMPOSE_FILE="${COMPOSE_FILE:-docker-compose.prod.yml}"
-ENV_FILE="${ENV_FILE:-.env.prod}"
+ENV_FILE="${ENV_FILE:-.env.dev}"
 
 cd "$APP_DIR"
 
 if [ ! -f "$ENV_FILE" ]; then
-  echo "[deploy] Missing $ENV_FILE in $APP_DIR"
+  echo "[deploy-dev] Missing $ENV_FILE in $APP_DIR"
   exit 1
 fi
 
-echo "[deploy] Pulling latest images (if any)"
+echo "[deploy-dev] Pulling images"
 docker compose --env-file "$ENV_FILE" -f "$COMPOSE_FILE" pull || true
 
-echo "[deploy] Building and starting containers"
+echo "[deploy-dev] Building and starting containers"
 docker compose --env-file "$ENV_FILE" -f "$COMPOSE_FILE" up -d --build --remove-orphans
 
-echo "[deploy] Waiting for service health checks"
 sleep 10
-
-echo "[deploy] Running migrations and seeds"
+echo "[deploy-dev] Running migrations and seeds"
 docker compose --env-file "$ENV_FILE" -f "$COMPOSE_FILE" exec -T backend python -m backend.scripts.migrate
 docker compose --env-file "$ENV_FILE" -f "$COMPOSE_FILE" exec -T backend python -m backend.scripts.seed
-
 docker compose --env-file "$ENV_FILE" -f "$COMPOSE_FILE" ps
-
-echo "[deploy] Validating backend and nginx health"
 curl -fsS http://127.0.0.1/healthz >/dev/null
 curl -fsS http://127.0.0.1/api/health >/dev/null
-
-echo "[deploy] Production deploy finished successfully"
+echo "[deploy-dev] Dev deploy finished successfully"
