@@ -1,0 +1,57 @@
+name: Deploy Dev VPS
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Deploy on Dev VPS via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.DEV_VPS_HOST }}
+          username: ${{ secrets.DEV_VPS_USER }}
+          key: ${{ secrets.DEV_VPS_SSH_KEY }}
+          port: ${{ secrets.DEV_VPS_PORT || '22' }}
+          script_stop: true
+          script: |
+            set -euo pipefail
+            APP_DIR="${{ secrets.DEV_VPS_APP_DIR || '/opt/integrado_web_xd-dev' }}"
+            REPO_URL="https://github.com/${{ github.repository }}.git"
+            BRANCH="${{ secrets.DEV_VPS_BRANCH || 'dev' }}"
+
+            if [ -z "${{ secrets.DEV_VPS_HOST }}" ] || [ -z "${{ secrets.DEV_VPS_USER }}" ] || [ -z "${{ secrets.DEV_VPS_SSH_KEY }}" ]; then
+              echo "Missing required DEV_VPS_* secrets"
+              exit 1
+            fi
+
+            if [ ! -d "$APP_DIR/.git" ]; then
+              sudo mkdir -p "$APP_DIR"
+              sudo chown -R "$USER":"$USER" "$APP_DIR"
+              git clone --branch "$BRANCH" "$REPO_URL" "$APP_DIR"
+            fi
+
+            cd "$APP_DIR"
+            git fetch origin "$BRANCH"
+            git checkout "$BRANCH"
+            git reset --hard "origin/$BRANCH"
+
+            chmod +x infra/scripts/*.sh
+            APP_DIR="$APP_DIR" REPO_URL="$REPO_URL" BRANCH="$BRANCH" APP_USER="$USER" bash infra/scripts/setup-vps.sh
+            APP_DIR="$APP_DIR" BRANCH="$BRANCH" bash infra/scripts/update.sh
+
+      - name: Validate dev endpoint
+        shell: bash
+        run: |
+          curl -fsS "http://${{ secrets.DEV_VPS_HOST }}/healthz"
+          curl -fsS "http://${{ secrets.DEV_VPS_HOST }}/readyz/backend"
+          curl -fsS "http://${{ secrets.DEV_VPS_HOST }}/readyz/sync-admin"
+          curl -fsS "http://${{ secrets.DEV_VPS_HOST }}/api/health/ready"

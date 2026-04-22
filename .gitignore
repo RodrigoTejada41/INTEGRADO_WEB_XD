@@ -18,6 +18,12 @@ env/
 .env
 .env.prod
 .secrets/
+infra/keys/
+*.pem
+*.key
+*.ppk
+id_ed25519
+id_ed25519.pub
 
 # Generated databases and runtime artifacts
 output/
