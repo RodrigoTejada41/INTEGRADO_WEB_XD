@@ -40,6 +40,9 @@ jobs:
             cd "$APP_DIR"
             git fetch origin "$BRANCH"
             git checkout "$BRANCH"
+            # Evita falha de pull quando houver ajuste manual tracked na VPS.
+            git restore .
+            git reset --hard HEAD
             git pull --ff-only origin "$BRANCH"
 
             chmod +x infra/scripts/*.sh
