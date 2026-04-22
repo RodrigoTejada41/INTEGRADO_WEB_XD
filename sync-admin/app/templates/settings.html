@@ -63,6 +63,63 @@
 <div class="row g-3 mt-1">
   <div class="col-12">
     <div class="card p-3">
+      <h5 class="mb-3">Administracao de APIs por Cliente</h5>
+      <p class="text-muted mb-3">
+        Painel operacional real para gerir credenciais por tenant: listar, rotacionar e desativar.
+      </p>
+      <div class="table-responsive">
+        <table class="table table-sm align-middle">
+          <thead>
+            <tr>
+              <th>Empresa (ID)</th>
+              <th>Nome</th>
+              <th>Status</th>
+              <th class="text-end">Acoes</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for tenant in tenants %}
+            <tr>
+              <td><code>{{ tenant.empresa_id }}</code></td>
+              <td>{{ tenant.nome }}</td>
+              <td>
+                {% if tenant.ativo %}
+                <span class="badge text-bg-success">ativo</span>
+                {% else %}
+                <span class="badge text-bg-secondary">inativo</span>
+                {% endif %}
+              </td>
+              <td class="text-end">
+                <div class="d-inline-flex gap-2">
+                  {% if tenant.ativo %}
+                  <form method="post" action="/settings/rotate-tenant-key" class="m-0">
+                    <input type="hidden" name="empresa_id" value="{{ tenant.empresa_id }}" />
+                    <button class="btn btn-sm btn-warning" type="submit">Rotacionar chave</button>
+                  </form>
+                  <form method="post" action="/settings/deactivate-tenant" class="m-0">
+                    <input type="hidden" name="empresa_id" value="{{ tenant.empresa_id }}" />
+                    <button class="btn btn-sm btn-outline-danger" type="submit">Desativar API</button>
+                  </form>
+                  {% else %}
+                  <span class="text-muted">Sem acoes (tenant desativado)</span>
+                  {% endif %}
+                </div>
+              </td>
+            </tr>
+            {% endfor %}
+            {% if tenants|length == 0 %}
+            <tr><td colspan="4" class="text-muted">Nenhum tenant encontrado.</td></tr>
+            {% endif %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="row g-3 mt-1">
+  <div class="col-12">
+    <div class="card p-3">
       <h5 class="mb-3">Configuracoes de Servidor (API)</h5>
       <form method="post" action="/settings/server-settings" class="row g-2">
         <div class="col-md-3">

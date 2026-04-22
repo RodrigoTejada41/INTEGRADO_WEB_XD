@@ -20,3 +20,14 @@ class TenantRotateKeyResponse(BaseModel):
     api_key: str
     status: str
 
+
+class TenantListItemResponse(BaseModel):
+    empresa_id: str
+    nome: str
+    ativo: bool
+
+
+class TenantDeactivateResponse(BaseModel):
+    empresa_id: str
+    status: str
+

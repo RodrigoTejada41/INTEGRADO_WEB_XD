@@ -42,6 +42,13 @@ class SyncJobsSummary:
     failed_count: float
 
 
+@dataclass
+class TenantAdminEntry:
+    empresa_id: str
+    nome: str
+    ativo: bool
+
+
 class ControlService:
     def __init__(self) -> None:
         self.base_url = settings.control_api_base_url.rstrip('/')
@@ -101,13 +108,46 @@ class ControlService:
         if actor:
             headers['X-Audit-Actor'] = actor
         with httpx.Client(timeout=15.0) as client:
-            response = client.post(
-                f'{self.base_url}/admin/tenants/{empresa_id}/rotate-key',
-                headers=headers,
-            )
-            response.raise_for_status()
+            url = f'{self.base_url}/admin/tenants/{empresa_id}/rotate-key'
+            response = client.post(url, headers=headers)
+            try:
+                response.raise_for_status()
+            except httpx.HTTPStatusError as exc:
+                if self._is_tenant_not_found(exc.response):
+                    # Ambiente novo pode estar sem tenant provisionado para o CNPJ padrao.
+                    self.provision_tenant(
+                        empresa_id=empresa_id,
+                        nome=settings.control_empresa_nome,
+                        actor=actor,
+                    )
+                    response = client.post(url, headers=headers)
+                    response.raise_for_status()
+                else:
+                    raise
             data = response.json()
         return data['api_key']
+
+    def list_tenants(self) -> list[TenantAdminEntry]:
+        with httpx.Client(timeout=10.0) as client:
+            response = client.get(f'{self.base_url}/admin/tenants', headers=self.admin_headers)
+            response.raise_for_status()
+            data = response.json()
+        return [
+            TenantAdminEntry(
+                empresa_id=str(item.get('empresa_id', '')),
+                nome=str(item.get('nome', '')),
+                ativo=bool(item.get('ativo', False)),
+            )
+            for item in data
+        ]
+
+    def deactivate_tenant(self, empresa_id: str, actor: str | None = None) -> None:
+        headers = dict(self.admin_headers)
+        if actor:
+            headers['X-Audit-Actor'] = actor
+        with httpx.Client(timeout=15.0) as client:
+            response = client.delete(f'{self.base_url}/admin/tenants/{empresa_id}', headers=headers)
+            response.raise_for_status()
 
     def update_agent_key_file(self, api_key: str) -> str:
         file_path = Path(settings.agent_api_key_file)
@@ -386,3 +426,14 @@ class ControlService:
                     total += 1
                     break
         return total
+
+    @staticmethod
+    def _is_tenant_not_found(response: httpx.Response | None) -> bool:
+        if response is None or response.status_code != 404:
+            return False
+        try:
+            detail = str(response.json().get('detail', ''))
+        except Exception:
+            detail = response.text
+        detail_norm = detail.lower()
+        return 'tenant' in detail_norm and ('nao encontrado' in detail_norm or 'not found' in detail_norm)
