@@ -101,11 +101,22 @@ class ControlService:
         if actor:
             headers['X-Audit-Actor'] = actor
         with httpx.Client(timeout=15.0) as client:
-            response = client.post(
-                f'{self.base_url}/admin/tenants/{empresa_id}/rotate-key',
-                headers=headers,
-            )
-            response.raise_for_status()
+            url = f'{self.base_url}/admin/tenants/{empresa_id}/rotate-key'
+            response = client.post(url, headers=headers)
+            try:
+                response.raise_for_status()
+            except httpx.HTTPStatusError as exc:
+                if self._is_tenant_not_found(exc.response):
+                    # Ambiente novo pode estar sem tenant provisionado para o CNPJ padrao.
+                    self.provision_tenant(
+                        empresa_id=empresa_id,
+                        nome=settings.control_empresa_nome,
+                        actor=actor,
+                    )
+                    response = client.post(url, headers=headers)
+                    response.raise_for_status()
+                else:
+                    raise
             data = response.json()
         return data['api_key']
 
@@ -386,3 +397,14 @@ class ControlService:
                     total += 1
                     break
         return total
+
+    @staticmethod
+    def _is_tenant_not_found(response: httpx.Response | None) -> bool:
+        if response is None or response.status_code != 404:
+            return False
+        try:
+            detail = str(response.json().get('detail', ''))
+        except Exception:
+            detail = response.text
+        detail_norm = detail.lower()
+        return 'tenant' in detail_norm and ('nao encontrado' in detail_norm or 'not found' in detail_norm)
