@@ -42,3 +42,15 @@ class TenantRepository:
         tenant.api_key_hash = new_api_key_hash
         self.session.flush()
         return tenant
+
+    def list_all(self) -> list[Tenant]:
+        stmt = select(Tenant).order_by(Tenant.empresa_id.asc())
+        return list(self.session.scalars(stmt).all())
+
+    def deactivate(self, empresa_id: str) -> Tenant | None:
+        tenant = self.get_by_empresa_id(empresa_id)
+        if tenant is None:
+            return None
+        tenant.ativo = False
+        self.session.flush()
+        return tenant

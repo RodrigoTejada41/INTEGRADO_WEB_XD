@@ -56,6 +56,17 @@ Este arquivo e o ponto de entrada para retomar o projeto sem redescobrir context
   - registro presente em `empresa_id=99887766000155`
   - `count=0` para o mesmo `uuid` em `empresa_id=12345678000199`
 
+## Painel real de administracao de APIs (2026-04-22)
+- Backend admin expandido com gestao real de tenants/API:
+  - `GET /admin/tenants` (listagem)
+  - `DELETE /admin/tenants/{empresa_id}` (desativacao)
+- Painel `settings` atualizado com tabela operacional:
+  - lista de clientes (empresa_id, nome, status)
+  - acao de rotacionar chave por cliente
+  - acao de desativar API por cliente
+- Validacao executada em producao:
+  - tenant temporario criado, listado como ativo, desativado e listado como inativo.
+
 ## Risco importante observado
 - Durante ajuste manual houve loop de restart do Nginx por BOM no arquivo de config (`unknown directive "﻿upstream"`).
 - Mitigacao aplicada: arquivo salvo sem BOM e Nginx reiniciado com sucesso.

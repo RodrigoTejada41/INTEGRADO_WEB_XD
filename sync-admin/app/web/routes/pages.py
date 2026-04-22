@@ -249,6 +249,10 @@ def settings_page(
     control = ControlService()
     control_summary = control.fetch_summary()
     destination_configs = control.fetch_destination_configs()
+    try:
+        tenants = control.list_tenants()
+    except Exception:
+        tenants = []
     audit_summary = control.fetch_audit_summary()
     audit_events = control.fetch_audit_events(limit=10)
     server_settings = None
@@ -280,6 +284,7 @@ def settings_page(
             'server_settings': server_settings,
             'users': user_service.list_users(),
             'destination_configs': destination_configs,
+            'tenants': tenants,
             'audit_summary': audit_summary,
             'audit_events': audit_events,
         },
@@ -325,6 +330,26 @@ def settings_rotate_tenant_key(
     except Exception as exc:
         return RedirectResponse(
             f'/settings?error=Falha+ao+rotacionar+chave:+{str(exc)}',
+            status_code=status.HTTP_302_FOUND,
+        )
+
+
+@router.post('/settings/deactivate-tenant')
+def settings_deactivate_tenant(
+    request: Request,
+    empresa_id: str = Form(...),
+    current_user: User = Depends(require_web_role('admin')),
+):
+    control = ControlService()
+    try:
+        control.deactivate_tenant(empresa_id=empresa_id, actor=current_user.username)
+        return RedirectResponse(
+            '/settings?flash=Tenant+desativado+com+sucesso',
+            status_code=status.HTTP_302_FOUND,
+        )
+    except Exception as exc:
+        return RedirectResponse(
+            f'/settings?error=Falha+ao+desativar+tenant:+{str(exc)}',
             status_code=status.HTTP_302_FOUND,
         )
 

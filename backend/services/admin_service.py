@@ -2,6 +2,8 @@ from fastapi import HTTPException, status
 
 from backend.repositories.tenant_repository import TenantRepository
 from backend.schemas.tenant import (
+    TenantDeactivateResponse,
+    TenantListItemResponse,
     TenantProvisionRequest,
     TenantProvisionResponse,
     TenantRotateKeyResponse,
@@ -55,4 +57,29 @@ class AdminService:
             api_key=raw_api_key,
             status="ok",
         )
+
+    def list_tenants(self) -> list[TenantListItemResponse]:
+        tenants = self.tenant_repository.list_all()
+        return [
+            TenantListItemResponse(
+                empresa_id=tenant.empresa_id,
+                nome=tenant.nome,
+                ativo=tenant.ativo,
+            )
+            for tenant in tenants
+        ]
+
+    def deactivate_tenant(self, empresa_id: str) -> TenantDeactivateResponse:
+        if not validate_empresa_id(empresa_id):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="empresa_id invalido.",
+            )
+        tenant = self.tenant_repository.deactivate(empresa_id=empresa_id)
+        if tenant is None:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Tenant nao encontrado.",
+            )
+        return TenantDeactivateResponse(empresa_id=tenant.empresa_id, status="deactivated")
 

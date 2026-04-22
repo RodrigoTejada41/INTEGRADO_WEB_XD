@@ -21,6 +21,8 @@ from backend.schemas.tenant_configs import (
 )
 from backend.schemas.tenant_jobs import TenantJobResponse, TenantJobRetryResponse, TenantJobSummaryResponse
 from backend.schemas.tenant import (
+    TenantDeactivateResponse,
+    TenantListItemResponse,
     TenantProvisionRequest,
     TenantProvisionResponse,
     TenantRotateKeyResponse,
@@ -66,6 +68,17 @@ def create_or_update_tenant(
     return result
 
 
+@router.get(
+    "/tenants",
+    response_model=list[TenantListItemResponse],
+    dependencies=[Depends(require_admin_token)],
+)
+def list_tenants(session: Session = Depends(get_session)) -> list[TenantListItemResponse]:
+    repository = TenantRepository(session)
+    service = AdminService(repository)
+    return service.list_tenants()
+
+
 @router.post(
     "/tenants/{empresa_id}/rotate-key",
     response_model=TenantRotateKeyResponse,
@@ -86,6 +99,31 @@ def rotate_tenant_key(
         resource_type="tenant",
         resource_id=empresa_id,
         detail={"status": "rotated"},
+    )
+    session.commit()
+    return result
+
+
+@router.delete(
+    "/tenants/{empresa_id}",
+    response_model=TenantDeactivateResponse,
+    dependencies=[Depends(require_admin_token)],
+)
+def deactivate_tenant(
+    empresa_id: str,
+    request: Request,
+    session: Session = Depends(get_session),
+) -> TenantDeactivateResponse:
+    repository = TenantRepository(session)
+    service = AdminService(repository)
+    result = service.deactivate_tenant(empresa_id=empresa_id)
+    _audit_service(session).record(
+        empresa_id=empresa_id,
+        actor=request.headers.get("X-Audit-Actor", "system"),
+        action="tenant.deactivate",
+        resource_type="tenant",
+        resource_id=empresa_id,
+        detail={"status": "deactivated"},
     )
     session.commit()
     return result
