@@ -5,10 +5,12 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class AgentSettings(BaseSettings):
-    empresa_id: str = Field(..., alias="AGENT_EMPRESA_ID")
+    empresa_id: str | None = Field(default=None, alias="AGENT_EMPRESA_ID")
     api_base_url: str = Field(..., alias="AGENT_API_BASE_URL")
-    api_key: str = Field(..., alias="AGENT_API_KEY")
+    api_key: str | None = Field(default=None, alias="AGENT_API_KEY")
     api_key_file: str | None = Field(default=None, alias="AGENT_API_KEY_FILE")
+    pairing_code: str | None = Field(default=None, alias="AGENT_PAIRING_CODE")
+    device_label: str = Field(default="local-agent", alias="AGENT_DEVICE_LABEL")
     mariadb_url: str = Field(..., alias="AGENT_MARIADB_URL")
 
     sync_interval_minutes: int = 15

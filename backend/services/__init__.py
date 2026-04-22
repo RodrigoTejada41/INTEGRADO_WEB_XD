@@ -4,6 +4,7 @@ from backend.services.tenant_destination_dispatcher import TenantDestinationDisp
 from backend.services.retention_service import RetentionService
 from backend.services.server_settings_service import ServerSettingsService
 from backend.services.sync_service import SyncService
+from backend.services.tenant_pairing_service import TenantPairingService
 from backend.services.tenant_service import TenantService
 
 __all__ = [
@@ -13,5 +14,6 @@ __all__ = [
     "SyncService",
     "TenantAuditService",
     "TenantDestinationDispatcher",
+    "TenantPairingService",
     "TenantService",
 ]

@@ -49,6 +49,13 @@ class TenantAdminEntry:
     ativo: bool
 
 
+@dataclass
+class PairingCodeResult:
+    empresa_id: str
+    pairing_code: str
+    expires_at: str
+
+
 class ControlService:
     def __init__(self) -> None:
         self.base_url = settings.control_api_base_url.rstrip('/')
@@ -148,6 +155,31 @@ class ControlService:
         with httpx.Client(timeout=15.0) as client:
             response = client.delete(f'{self.base_url}/admin/tenants/{empresa_id}', headers=headers)
             response.raise_for_status()
+
+    def create_pairing_code(
+        self,
+        *,
+        empresa_id: str,
+        ttl_minutes: int = 10,
+        actor: str | None = None,
+    ) -> PairingCodeResult:
+        headers = dict(self.admin_headers)
+        if actor:
+            headers['X-Audit-Actor'] = actor
+        payload = {'ttl_minutes': ttl_minutes}
+        with httpx.Client(timeout=15.0) as client:
+            response = client.post(
+                f'{self.base_url}/admin/tenants/{empresa_id}/pairing-codes',
+                headers=headers,
+                json=payload,
+            )
+            response.raise_for_status()
+            data = response.json()
+        return PairingCodeResult(
+            empresa_id=str(data['empresa_id']),
+            pairing_code=str(data['pairing_code']),
+            expires_at=str(data['expires_at']),
+        )
 
     def update_agent_key_file(self, api_key: str) -> str:
         file_path = Path(settings.agent_api_key_file)

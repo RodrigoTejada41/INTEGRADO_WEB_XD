@@ -13,6 +13,14 @@
   <code>{{ generated_key }}</code>
 </div>
 {% endif %}
+{% if generated_pairing_code %}
+<div class="alert alert-info">
+  <strong>Codigo de vinculacao:</strong>
+  <code>{{ generated_pairing_code }}</code>
+  <br />
+  <small>Valido ate: {{ pairing_expires_at }}</small>
+</div>
+{% endif %}
 
 <div class="row g-3">
   <div class="col-md-6">
@@ -49,6 +57,15 @@
     </div>
   </div>
   <div class="col-md-6">
+    <div class="card p-3 mb-3">
+      <h5 class="mb-3">Vincular API local por codigo</h5>
+      <form method="post" action="/settings/generate-pairing-code" class="d-flex flex-column gap-2">
+        <input class="form-control" type="text" name="empresa_id" placeholder="empresa_id" value="{{ default_empresa_id }}" required />
+        <input class="form-control" type="number" min="1" max="60" name="ttl_minutes" value="10" required />
+        <button class="btn btn-info" type="submit">Gerar codigo de vinculacao</button>
+      </form>
+      <p class="text-muted mt-2 mb-0">Use o codigo no cliente local para ativar sem expor IP, SSH ou senha.</p>
+    </div>
     <div class="card p-3">
       <h5 class="mb-3">Rotacionar API Key</h5>
       <form method="post" action="/settings/rotate-tenant-key" class="d-flex flex-column gap-2">

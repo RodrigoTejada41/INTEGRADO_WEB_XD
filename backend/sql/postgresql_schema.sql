@@ -7,6 +7,43 @@ CREATE TABLE IF NOT EXISTS tenants (
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
+CREATE TABLE IF NOT EXISTS tenant_agent_credentials (
+    id VARCHAR(36) PRIMARY KEY,
+    empresa_id VARCHAR(32) NOT NULL REFERENCES tenants (empresa_id) ON DELETE CASCADE,
+    device_label VARCHAR(120) NOT NULL,
+    api_key_hash VARCHAR(128) NOT NULL,
+    active BOOLEAN NOT NULL DEFAULT TRUE,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    last_used_at TIMESTAMPTZ NULL,
+    revoked_at TIMESTAMPTZ NULL,
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS ix_tenant_agent_credentials_empresa_id
+    ON tenant_agent_credentials (empresa_id);
+
+CREATE INDEX IF NOT EXISTS ix_tenant_agent_credentials_active
+    ON tenant_agent_credentials (active);
+
+CREATE TABLE IF NOT EXISTS tenant_pairing_codes (
+    id VARCHAR(36) PRIMARY KEY,
+    empresa_id VARCHAR(32) NOT NULL REFERENCES tenants (empresa_id) ON DELETE CASCADE,
+    code_hash VARCHAR(128) NOT NULL UNIQUE,
+    active BOOLEAN NOT NULL DEFAULT TRUE,
+    created_by VARCHAR(120) NOT NULL DEFAULT 'system',
+    used_by VARCHAR(120) NULL,
+    expires_at TIMESTAMPTZ NOT NULL,
+    used_at TIMESTAMPTZ NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS ix_tenant_pairing_codes_empresa_id
+    ON tenant_pairing_codes (empresa_id);
+
+CREATE INDEX IF NOT EXISTS ix_tenant_pairing_codes_expires_at
+    ON tenant_pairing_codes (expires_at);
+
 CREATE TABLE IF NOT EXISTS server_settings (
     key VARCHAR(64) PRIMARY KEY,
     value VARCHAR(255) NOT NULL,

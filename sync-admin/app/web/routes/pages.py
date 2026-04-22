@@ -268,6 +268,8 @@ def settings_page(
     flash = request.query_params.get('flash')
     error = request.query_params.get('error')
     generated_key = request.query_params.get('generated_key')
+    generated_pairing_code = request.query_params.get('generated_pairing_code')
+    pairing_expires_at = request.query_params.get('pairing_expires_at')
     return templates.TemplateResponse(
         request,
         'settings.html',
@@ -279,6 +281,8 @@ def settings_page(
             'flash': flash,
             'error': error,
             'generated_key': generated_key,
+            'generated_pairing_code': generated_pairing_code,
+            'pairing_expires_at': pairing_expires_at,
             'default_empresa_id': settings.control_empresa_id,
             'default_empresa_nome': settings.control_empresa_nome,
             'server_settings': server_settings,
@@ -330,6 +334,35 @@ def settings_rotate_tenant_key(
     except Exception as exc:
         return RedirectResponse(
             f'/settings?error=Falha+ao+rotacionar+chave:+{str(exc)}',
+            status_code=status.HTTP_302_FOUND,
+        )
+
+
+@router.post('/settings/generate-pairing-code')
+def settings_generate_pairing_code(
+    request: Request,
+    empresa_id: str = Form(...),
+    ttl_minutes: int = Form(10),
+    current_user: User = Depends(require_web_role('admin')),
+):
+    control = ControlService()
+    try:
+        pairing = control.create_pairing_code(
+            empresa_id=empresa_id,
+            ttl_minutes=ttl_minutes,
+            actor=current_user.username,
+        )
+        return RedirectResponse(
+            (
+                '/settings?flash=Codigo+de+vinculacao+gerado'
+                f'&generated_pairing_code={quote_plus(pairing.pairing_code)}'
+                f'&pairing_expires_at={quote_plus(pairing.expires_at)}'
+            ),
+            status_code=status.HTTP_302_FOUND,
+        )
+    except Exception as exc:
+        return RedirectResponse(
+            f'/settings?error=Falha+ao+gerar+codigo:+{quote_plus(str(exc))}',
             status_code=status.HTTP_302_FOUND,
         )
 

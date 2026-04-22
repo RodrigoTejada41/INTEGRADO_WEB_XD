@@ -4,6 +4,7 @@ from sqlalchemy.orm import Session
 from backend.config.database import get_session
 from backend.config.settings import get_settings
 from backend.models.tenant import Tenant
+from backend.repositories.tenant_agent_credential_repository import TenantAgentCredentialRepository
 from backend.repositories.tenant_repository import TenantRepository
 from backend.services.tenant_service import TenantService
 
@@ -21,6 +22,7 @@ def get_current_tenant(
             detail="Cabecalhos de autenticacao ausentes.",
         )
     tenant_repository = TenantRepository(session)
-    tenant_service = TenantService(tenant_repository)
+    credential_repository = TenantAgentCredentialRepository(session)
+    tenant_service = TenantService(tenant_repository, credential_repository)
     return tenant_service.authenticate(empresa_id=empresa_id, api_key=api_key)
 

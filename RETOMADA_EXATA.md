@@ -67,6 +67,32 @@ Este arquivo e o ponto de entrada para retomar o projeto sem redescobrir context
 - Validacao executada em producao:
   - tenant temporario criado, listado como ativo, desativado e listado como inativo.
 
+## Vinculacao por codigo (device code) - implementado no repo (2026-04-22)
+- Objetivo: instalar API local no cliente sem expor IP, SSH, usuario ou senha.
+- Fluxo novo:
+  - Admin gera codigo temporario no painel (`/settings`) por `empresa_id`.
+  - Cliente local informa apenas o codigo no agente.
+  - Backend valida o codigo (uso unico + expiracao) e devolve API key de agente.
+  - Agente salva chave localmente e passa a sincronizar em `POST /sync`.
+- Endpoints novos:
+  - `POST /admin/tenants/{empresa_id}/pairing-codes` (admin)
+  - `POST /agent/pairings/activate` (publico com codigo)
+- Seguranca:
+  - codigo em hash no banco, expira (TTL), nao reutilizavel.
+  - chave gerada vinculada ao `empresa_id` correto, mantendo isolamento multi-tenant.
+- Tela local para tecnico (nova):
+  - `python -m agent_local.pairing_ui`
+  - atalho PowerShell: `scripts/open-agent-pairing-ui.ps1`
+  - finalidade: duas abas para operacao de campo:
+    - `Vinculacao por Codigo` (onboarding sem editar `.env`)
+    - `Configuracao Manual` (troca de URL do servidor/VPS + chave manual)
+  - protecao solicitada:
+    - alteracao manual de servidor/chave exige senha local
+    - senha agora prioriza Windows Credential Manager:
+      - target: `MoviSync.ManualConfig.Password`
+      - script de cadastro: `scripts/set-agent-manual-password.ps1`
+    - fallback opcional por `.env`: `AGENT_MANUAL_CONFIG_PASSWORD`
+
 ## Risco importante observado
 - Durante ajuste manual houve loop de restart do Nginx por BOM no arquivo de config (`unknown directive "﻿upstream"`).
 - Mitigacao aplicada: arquivo salvo sem BOM e Nginx reiniciado com sucesso.
