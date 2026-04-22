@@ -48,6 +48,14 @@ Este arquivo e o ponto de entrada para retomar o projeto sem redescobrir context
 - Validacao de seguranca:
   - Chave invalida retorna `401` com `Credenciais invalidas.`
 
+## Teste real multi-tenant (segundo cliente) - 2026-04-22
+- Tenant de teste adicional provisionado: `99887766000155` (Cliente Teste B).
+- Insert real executado em `POST https://movisystecnologia.com.br/admin/api/sync` com API key propria.
+- Resultado: `200` com `inserted_count=1`.
+- Isolamento validado no banco central:
+  - registro presente em `empresa_id=99887766000155`
+  - `count=0` para o mesmo `uuid` em `empresa_id=12345678000199`
+
 ## Risco importante observado
 - Durante ajuste manual houve loop de restart do Nginx por BOM no arquivo de config (`unknown directive "﻿upstream"`).
 - Mitigacao aplicada: arquivo salvo sem BOM e Nginx reiniciado com sucesso.
