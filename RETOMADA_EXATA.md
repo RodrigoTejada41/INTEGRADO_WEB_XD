@@ -36,6 +36,18 @@ Este arquivo e o ponto de entrada para retomar o projeto sem redescobrir context
 - Containers backend/frontend/db em estado `healthy`
 - Nginx ativo com portas `80/443` publicadas
 
+## Teste real de comunicacao local -> web (2026-04-22)
+- Fluxo validado conforme arquitetura:
+  - Cliente local (simulado com `agent_local` contract) enviando para `POST /sync`
+  - Entrada publica usada: `https://movisystecnologia.com.br/admin/api/sync`
+  - Headers: `X-Empresa-Id` + `X-API-Key`
+- Resultado de integracao:
+  - 1a chamada: `inserted_count=1`, `updated_count=0`
+  - 2a chamada (mesmo `uuid`): `inserted_count=0`, `updated_count=1`
+  - Banco central confirmou UPSERT com valor final atualizado.
+- Validacao de seguranca:
+  - Chave invalida retorna `401` com `Credenciais invalidas.`
+
 ## Risco importante observado
 - Durante ajuste manual houve loop de restart do Nginx por BOM no arquivo de config (`unknown directive "﻿upstream"`).
 - Mitigacao aplicada: arquivo salvo sem BOM e Nginx reiniciado com sucesso.
@@ -57,4 +69,3 @@ Este arquivo e o ponto de entrada para retomar o projeto sem redescobrir context
 1. Fazer push do commit `34d467f` e merge em `main` para manter convergencia repo <-> VPS.
 2. Executar deploy via GitHub Actions em `main` e validar rotas publicas novamente.
 3. Opcional tecnico: migrar docs da API para `docs_url='/admin/docs'` + `root_path='/admin'` no FastAPI para eliminar dependencia do alias `/openapi.json`.
-
