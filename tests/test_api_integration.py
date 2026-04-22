@@ -277,3 +277,76 @@ def test_full_flow_sync_and_tenant_isolation() -> None:
     assert count_a == 1
     assert count_b == 1
     assert venda_a.produto == "Produto A (Atualizado)"
+
+
+def test_pairing_code_activation_creates_agent_key_and_prevents_reuse() -> None:
+    db_path = Path("output/test_pairing_activation.db")
+    if db_path.exists():
+        db_path.unlink()
+
+    os.environ["DATABASE_URL"] = f"sqlite+pysqlite:///{db_path.as_posix()}"
+    os.environ["ADMIN_TOKEN"] = "admin-token-test"
+    os.environ["AUTO_CREATE_TABLES"] = "true"
+    os.environ["RETENTION_JOB_ENABLED"] = "false"
+    audit_headers = {"X-Admin-Token": "admin-token-test", "X-Audit-Actor": "panel.admin"}
+
+    from backend.main import app
+
+    with TestClient(app) as client:
+        create_resp = client.post(
+            "/admin/tenants",
+            headers=audit_headers,
+            json={"empresa_id": "12345678000199", "nome": "Empresa A"},
+        )
+        assert create_resp.status_code == 200, create_resp.text
+        primary_key = create_resp.json()["api_key"]
+
+        code_resp = client.post(
+            "/admin/tenants/12345678000199/pairing-codes",
+            headers=audit_headers,
+            json={"ttl_minutes": 10},
+        )
+        assert code_resp.status_code == 200, code_resp.text
+        pairing_code = code_resp.json()["pairing_code"]
+
+        activate_resp = client.post(
+            "/agent/pairings/activate",
+            json={"pairing_code": pairing_code, "device_label": "loja-01"},
+        )
+        assert activate_resp.status_code == 200, activate_resp.text
+        activated_key = activate_resp.json()["api_key"]
+        assert activated_key != primary_key
+        assert activate_resp.json()["empresa_id"] == "12345678000199"
+
+        payload = {
+            "empresa_id": "12345678000199",
+            "records": [
+                {
+                    "uuid": "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+                    "produto": "Produto Pairing",
+                    "valor": "10.00",
+                    "data": "2026-04-22",
+                    "data_atualizacao": "2026-04-22T10:00:00Z",
+                }
+            ],
+        }
+        sync_resp = client.post(
+            "/sync",
+            headers={"X-Empresa-Id": "12345678000199", "X-API-Key": activated_key},
+            json=payload,
+        )
+        assert sync_resp.status_code == 200, sync_resp.text
+        assert sync_resp.json()["inserted_count"] == 1
+
+        sync_with_primary = client.post(
+            "/sync",
+            headers={"X-Empresa-Id": "12345678000199", "X-API-Key": primary_key},
+            json=payload,
+        )
+        assert sync_with_primary.status_code == 200, sync_with_primary.text
+
+        reuse_resp = client.post(
+            "/agent/pairings/activate",
+            json={"pairing_code": pairing_code, "device_label": "loja-02"},
+        )
+        assert reuse_resp.status_code == 404

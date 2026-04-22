@@ -31,3 +31,17 @@ class SyncApiClient:
             )
         response.raise_for_status()
         return response.json()
+
+    def activate_pairing_code(self, pairing_code: str, device_label: str) -> dict:
+        payload = {
+            "pairing_code": pairing_code,
+            "device_label": device_label,
+        }
+        with httpx.Client(timeout=self.timeout_seconds, verify=self.verify_ssl) as client:
+            response = client.post(
+                f"{self.base_url}/agent/pairings/activate",
+                headers={"Content-Type": "application/json"},
+                json=payload,
+            )
+        response.raise_for_status()
+        return response.json()

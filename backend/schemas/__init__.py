@@ -12,6 +12,12 @@ from backend.schemas.tenant import (
     TenantProvisionResponse,
     TenantRotateKeyResponse,
 )
+from backend.schemas.tenant_pairing import (
+    TenantPairingActivateRequest,
+    TenantPairingActivateResponse,
+    TenantPairingCodeCreateRequest,
+    TenantPairingCodeCreateResponse,
+)
 
 __all__ = [
     "SyncRequest",
@@ -28,4 +34,8 @@ __all__ = [
     "TenantProvisionRequest",
     "TenantProvisionResponse",
     "TenantRotateKeyResponse",
+    "TenantPairingCodeCreateRequest",
+    "TenantPairingCodeCreateResponse",
+    "TenantPairingActivateRequest",
+    "TenantPairingActivateResponse",
 ]

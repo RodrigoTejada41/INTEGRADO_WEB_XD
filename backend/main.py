@@ -4,7 +4,13 @@ from contextlib import asynccontextmanager
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from fastapi import FastAPI
 
-from backend.api.routes import health_router, metrics_router, sync_router, tenant_admin_router
+from backend.api.routes import (
+    health_router,
+    metrics_router,
+    sync_router,
+    tenant_admin_router,
+    tenant_pairing_router,
+)
 from backend.config.database import SessionLocal, engine
 from backend.config.logging import configure_logging
 from backend.config.settings import get_settings
@@ -75,3 +81,4 @@ app.include_router(health_router)
 app.include_router(metrics_router)
 app.include_router(sync_router)
 app.include_router(tenant_admin_router)
+app.include_router(tenant_pairing_router)
