@@ -5,6 +5,18 @@
 ## v0.2.0 - Em andamento
 
 ### Entregue
+- Estrutura de deploy VPS em producao consolidada com:
+  - `docker-compose.prod.yml`
+  - `infra/nginx/default.conf`
+  - scripts operacionais em `infra/scripts/*`
+  - workflow de deploy via GitHub Actions em `.github/workflows/deploy-prod.yml`
+- Dominio e HTTPS ativos com Nginx reverso, separando:
+  - cliente em `/MoviRelatorios`
+  - API em `/admin`
+- Correcao de documentacao da API em producao:
+  - `https://movisystecnologia.com.br/admin/docs` voltou a carregar com sucesso
+  - roteamento de `/openapi.json` e `/docs/oauth2-redirect` ajustado no Nginx
+- Processo de retomada formalizado com checkpoint em `RETOMADA_EXATA.md`.
 - RBAC real no painel administrativo, com perfis `admin`, `analyst` e `viewer`.
 - Cadastro de usuários no painel com validação de perfil.
 - Ajustes de infraestrutura para execução confiável em teste e desenvolvimento.
