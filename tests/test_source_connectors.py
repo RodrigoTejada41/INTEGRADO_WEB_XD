@@ -3,6 +3,8 @@ from __future__ import annotations
 import json
 from datetime import UTC, datetime
 from pathlib import Path
+import shutil
+from uuid import uuid4
 
 from backend.connectors.discovery import discover_connector_classes
 from backend.connectors.registry import get_default_connector_registry
@@ -63,12 +65,60 @@ def test_source_connector_registry_and_file_connector() -> None:
     assert result.records[0]["produto"] == "Produto arquivo"
 
 
-def test_connector_discovery_loads_plugins_from_package(tmp_path, monkeypatch) -> None:
-    package_dir = tmp_path / "sample_plugins"
+def test_file_source_connector_resolves_settings_from_file_reference() -> None:
+    records_path = Path("output/test_source_records_ref.json")
+    records_path.parent.mkdir(parents=True, exist_ok=True)
+    records_path.write_text(
+        json.dumps(
+            [
+                {
+                    "uuid": "33333333-3333-3333-3333-333333333333",
+                    "empresa_id": "12345678000199",
+                    "produto": "Produto via referencia",
+                    "valor": "55.00",
+                    "data": "2026-04-16",
+                    "data_atualizacao": "2026-04-16T12:00:00+00:00",
+                }
+            ]
+        ),
+        encoding="utf-8",
+    )
+
+    settings_path = Path("output/test_source_settings_ref.json")
+    settings_path.write_text(
+        json.dumps(
+            {
+                "tenant_a": {
+                    "path": str(records_path),
+                }
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    connector = FileSourceConnector()
+    result = connector.fetch_records(
+        settings={
+            "settings_file": str(settings_path),
+            "settings_key": "tenant_a",
+        },
+        empresa_id="12345678000199",
+        since=datetime(2026, 4, 15, tzinfo=UTC),
+        limit=10,
+    )
+
+    assert result.connector_type == "file"
+    assert len(result.records) == 1
+    assert result.records[0]["produto"] == "Produto via referencia"
+
+
+def test_connector_discovery_loads_plugins_from_package(monkeypatch) -> None:
+    package_dir = Path("output") / f"sample_plugins_{uuid4().hex}"
     package_dir.mkdir()
-    (package_dir / "__init__.py").write_text("", encoding="utf-8")
-    (package_dir / "custom_source.py").write_text(
-        """
+    try:
+        (package_dir / "__init__.py").write_text("", encoding="utf-8")
+        (package_dir / "custom_source.py").write_text(
+            """
 from backend.connectors.source_connectors import SourceConnector, SourceFetchResult
 
 
@@ -78,11 +128,11 @@ class CustomSourceConnector(SourceConnector):
     def fetch_records(self, settings, empresa_id, since, limit):
         return SourceFetchResult(records=[{"uuid": "1", "produto": "Plugin", "valor": "1.00", "data": "2026-04-16", "data_atualizacao": since}], connector_type=self.connector_type)
 """.strip()
-        + "\n",
-        encoding="utf-8",
-    )
-    (package_dir / "custom_destination.py").write_text(
-        """
+            + "\n",
+            encoding="utf-8",
+        )
+        (package_dir / "custom_destination.py").write_text(
+            """
 from backend.connectors.destination_connectors import DestinationConnector, DestinationDeliveryResult
 
 
@@ -92,14 +142,16 @@ class CustomDestinationConnector(DestinationConnector):
     def deliver_records(self, settings, empresa_id, records):
         return DestinationDeliveryResult(delivered_count=len(records), connector_type=self.connector_type)
 """.strip()
-        + "\n",
-        encoding="utf-8",
-    )
+            + "\n",
+            encoding="utf-8",
+        )
 
-    monkeypatch.syspath_prepend(str(tmp_path))
+        monkeypatch.syspath_prepend(str(Path("output").resolve()))
 
-    source_plugins = discover_connector_classes("sample_plugins", SourceConnector)
-    destination_plugins = discover_connector_classes("sample_plugins", DestinationConnector)
+        source_plugins = discover_connector_classes(package_dir.name, SourceConnector)
+        destination_plugins = discover_connector_classes(package_dir.name, DestinationConnector)
 
-    assert [plugin.connector_type for plugin in source_plugins] == ["custom_source"]
-    assert [plugin.connector_type for plugin in destination_plugins] == ["custom_destination"]
+        assert [plugin.connector_type for plugin in source_plugins] == ["custom_source"]
+        assert [plugin.connector_type for plugin in destination_plugins] == ["custom_destination"]
+    finally:
+        shutil.rmtree(package_dir, ignore_errors=True)

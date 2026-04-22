@@ -1,13 +1,26 @@
-﻿# Ponto de Controle da Release v0.1.0
+# Ponto de Controle da Release v0.1.0
 
-## Objetivo
-Registrar o checkpoint técnico associado à release `v0.1.0`.
+## Description
+Página legada de navegação para o checkpoint da release inicial.
 
-## Conteúdo validado
-- Estrutura modular do painel
-- Fluxo de integração com a API
-- Registro de dados e auditoria operacional
-- Base para evolução do painel administrativo
+## Structure
+- [`CHANGELOG.md`](../CHANGELOG.md)
+- [`VERSION`](../VERSION)
+- [`docs/15-REGISTRO-DE-RELEASE.md`](./15-REGISTRO-DE-RELEASE.md)
 
-## Observação
-Este documento deve ser usado em conjunto com [`../PROTOCOLO_ESPECIALISTAS.md`](../PROTOCOLO_ESPECIALISTAS.md) para qualquer alteração futura.
+## Integrations
+- Release package
+- Hash validation
+- Version marker
+
+## Flow
+1. Consulte o registro de release.
+2. Consulte o changelog.
+3. Use esta página como verificação rápida do checkpoint.
+
+## Critical Points
+- Não duplicar o histórico da release aqui.
+- Manter este documento como ponte de navegação.
+
+## Tests
+- Conferir versão, hash e changelog.

@@ -5,6 +5,7 @@ import hashlib
 import json
 import os
 from functools import lru_cache
+from pathlib import Path
 
 from cryptography.fernet import Fernet
 
@@ -15,6 +16,17 @@ def _derive_key_material() -> bytes:
     explicit_key = os.getenv("TENANT_CONFIG_ENCRYPTION_KEY")
     if explicit_key:
         return explicit_key.encode("utf-8")
+
+    key_file = os.getenv("TENANT_CONFIG_ENCRYPTION_KEY_FILE")
+    if not key_file:
+        settings = get_settings()
+        key_file = settings.tenant_config_encryption_key_file
+    if key_file:
+        file_path = Path(key_file)
+        if file_path.exists():
+            file_key = file_path.read_text(encoding="utf-8").strip()
+            if file_key:
+                return file_key.encode("utf-8")
 
     settings = get_settings()
     seed = settings.admin_token.encode("utf-8")

@@ -1,6 +1,12 @@
 {% extends "base.html" %}
 {% block content %}
 <h3 class="mb-3">Configuracoes</h3>
+<div class="mb-3 d-flex gap-2 flex-wrap">
+  <a class="btn btn-outline-secondary btn-sm" href="/dashboard/export.md">Exportar snapshot local</a>
+  <a class="btn btn-outline-secondary btn-sm" href="/dashboard/audit.csv">Auditoria CSV</a>
+  <a class="btn btn-outline-secondary btn-sm" href="/dashboard/audit.xlsx">Auditoria XLSX</a>
+  <a class="btn btn-outline-secondary btn-sm" href="/dashboard/audit.pdf">Auditoria PDF</a>
+</div>
 {% if flash %}
 <div class="alert alert-success">{{ flash }}</div>
 {% endif %}
@@ -11,6 +17,7 @@
 <div class="alert alert-warning">
   <strong>Nova API KEY gerada:</strong>
   <code>{{ generated_key }}</code>
+  <div class="mt-2"><strong>Expira em:</strong> {{ request.query_params.get('generated_key_expires_at', '-') }}</div>
 </div>
 {% endif %}
 
@@ -87,10 +94,171 @@
           <label class="form-label">Retencao (meses)</label>
           <input class="form-control" type="number" min="1" max="120" name="retention_months" value="{{ server_settings.retention_months }}" required />
         </div>
+        <div class="col-md-12">
+          <label class="form-label">Arquivo de segredos das conexoes</label>
+          <input class="form-control" type="text" name="connection_secrets_file" value="{{ server_settings.connection_secrets_file }}" required />
+          <div class="form-text">Arquivo lido pelo backend para resolver `settings_file` e `settings_key` no runtime.</div>
+        </div>
         <div class="col-12">
           <button class="btn btn-success" type="submit">Salvar configuracoes de servidor</button>
         </div>
       </form>
+    </div>
+  </div>
+</div>
+
+<div class="row g-3 mt-1">
+  <div class="col-12">
+    <div class="card p-3">
+      <h5 class="mb-3">Servidores de conexao seguros</h5>
+      <p class="text-muted">Cadastre a conexao com referencia segura. O backend guarda apenas `settings_file` e `settings_key`; IP, URL e credenciais ficam fora do payload administrativo.</p>
+      <form method="post" action="/settings/secure-connection-config" class="row g-2">
+        <div class="col-md-2">
+          <label class="form-label">Escopo</label>
+          <select class="form-select" name="scope">
+            <option value="source">source</option>
+            <option value="destination">destination</option>
+          </select>
+        </div>
+        <div class="col-md-3">
+          <label class="form-label">Nome</label>
+          <input class="form-control" type="text" name="nome" placeholder="Servidor principal" required />
+        </div>
+        <div class="col-md-3">
+          <label class="form-label">Connector</label>
+          <select class="form-select" name="connector_type">
+            <option value="api">api</option>
+            <option value="mariadb">mariadb</option>
+            <option value="postgresql">postgresql</option>
+            <option value="file">file</option>
+          </select>
+        </div>
+        <div class="col-md-2">
+          <label class="form-label">Intervalo</label>
+          <input class="form-control" type="number" min="1" max="1440" name="sync_interval_minutes" value="15" required />
+        </div>
+        <div class="col-md-2">
+          <label class="form-label">Gerar chave</label>
+          <select class="form-select" name="generate_access_key">
+            <option value="true">true</option>
+            <option value="false">false</option>
+          </select>
+        </div>
+        <div class="col-md-4">
+          <label class="form-label">Campo da chave</label>
+          <input class="form-control" type="text" name="access_key_field" value="api_key" />
+        </div>
+        <div class="col-md-4">
+          <label class="form-label">Settings publicos (JSON)</label>
+          <textarea class="form-control" name="settings_json" rows="4">{}</textarea>
+        </div>
+        <div class="col-md-4">
+          <label class="form-label">Settings secretos (JSON)</label>
+          <textarea class="form-control" name="secret_settings_json" rows="4">{}</textarea>
+        </div>
+        <div class="col-12">
+          <button class="btn btn-primary" type="submit">Criar servidor seguro</button>
+        </div>
+      </form>
+
+      <div class="row g-3 mt-2">
+        <div class="col-md-6">
+          <h6>Sources</h6>
+          <div class="table-responsive">
+            <table class="table table-sm align-middle">
+              <thead>
+                <tr>
+                  <th>Nome</th>
+                  <th>Tipo</th>
+                  <th>Referencia</th>
+                  <th>Arquivo</th>
+                  <th>Status</th>
+                  <th>Acoes</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for source in source_configs %}
+                <tr>
+                  <td>{{ source.nome }}</td>
+                  <td><code>{{ source.connector_type }}</code></td>
+                  <td><code>{{ source.settings.get('settings_key', '-') }}</code></td>
+                  <td><code>{{ source.settings.get('settings_file', '-') }}</code></td>
+                  <td>{{ source.last_status or '-' }}</td>
+                  <td>
+                    {% if source.settings.get('settings_key') %}
+                    <div class="d-flex flex-column gap-2">
+                      <form method="post" action="/settings/secure-connection-config/{{ source.settings.get('settings_key') }}/rotate-key">
+                        <input type="hidden" name="access_key_field" value="api_key" />
+                        <button class="btn btn-outline-warning btn-sm" type="submit">Rotacionar chave</button>
+                      </form>
+                      <form method="post" action="/settings/secure-connection-config/{{ source.settings.get('settings_key') }}/update-secret">
+                        <input type="hidden" name="merge_mode" value="true" />
+                        <textarea class="form-control form-control-sm" name="secret_settings_json" rows="3">{}</textarea>
+                        <button class="btn btn-outline-primary btn-sm mt-1" type="submit">Atualizar segredo</button>
+                      </form>
+                    </div>
+                    {% else %}
+                    <span class="text-muted">-</span>
+                    {% endif %}
+                  </td>
+                </tr>
+                {% endfor %}
+                {% if source_configs|length == 0 %}
+                <tr><td colspan="6" class="text-muted">Sem sources seguras cadastradas.</td></tr>
+                {% endif %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+        <div class="col-md-6">
+          <h6>Destinations</h6>
+          <div class="table-responsive">
+            <table class="table table-sm align-middle">
+              <thead>
+                <tr>
+                  <th>Nome</th>
+                  <th>Tipo</th>
+                  <th>Referencia</th>
+                  <th>Arquivo</th>
+                  <th>Status</th>
+                  <th>Acoes</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for destination in destination_configs %}
+                <tr>
+                  <td>{{ destination.nome }}</td>
+                  <td><code>{{ destination.connector_type }}</code></td>
+                  <td><code>{{ destination.settings.get('settings_key', '-') if destination.settings is defined else '-' }}</code></td>
+                  <td><code>{{ destination.settings.get('settings_file', '-') if destination.settings is defined else '-' }}</code></td>
+                  <td>{{ destination.last_status or '-' }}</td>
+                  <td>
+                    {% if destination.settings is defined and destination.settings.get('settings_key') %}
+                    <div class="d-flex flex-column gap-2">
+                      <form method="post" action="/settings/secure-connection-config/{{ destination.settings.get('settings_key') }}/rotate-key">
+                        <input type="hidden" name="access_key_field" value="api_key" />
+                        <button class="btn btn-outline-warning btn-sm" type="submit">Rotacionar chave</button>
+                      </form>
+                      <form method="post" action="/settings/secure-connection-config/{{ destination.settings.get('settings_key') }}/update-secret">
+                        <input type="hidden" name="merge_mode" value="true" />
+                        <textarea class="form-control form-control-sm" name="secret_settings_json" rows="3">{}</textarea>
+                        <button class="btn btn-outline-primary btn-sm mt-1" type="submit">Atualizar segredo</button>
+                      </form>
+                    </div>
+                    {% else %}
+                    <span class="text-muted">-</span>
+                    {% endif %}
+                  </td>
+                </tr>
+                {% endfor %}
+                {% if destination_configs|length == 0 %}
+                <tr><td colspan="6" class="text-muted">Sem destinations seguras cadastradas.</td></tr>
+                {% endif %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 </div>
@@ -145,6 +313,78 @@
 <div class="row g-3 mt-1">
   <div class="col-12">
     <div class="card p-3">
+      <h5 class="mb-3">Auditoria local de acessos</h5>
+      <div class="table-responsive">
+        <table class="table table-sm align-middle">
+          <thead>
+            <tr>
+              <th>Quando</th>
+              <th>Ator</th>
+              <th>Acao</th>
+              <th>Usuario alvo</th>
+              <th>Status</th>
+              <th>Correlacao</th>
+              <th>Origem</th>
+              <th>Detalhe</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for audit in local_user_audit_events %}
+            <tr class="local-audit-row local-audit-row--{{ audit.severity }}">
+              <td>{{ audit.created_at }}</td>
+              <td>{{ audit.actor }}</td>
+              <td><code>{{ audit.action }}</code></td>
+              <td>{{ audit.target_username }}</td>
+              <td>
+                {% if audit.status == 'success' %}
+                <span class="badge text-bg-success">{{ audit.status }}</span>
+                {% else %}
+                <span class="badge text-bg-danger">{{ audit.status }}</span>
+                {% endif %}
+              </td>
+              <td><code>{{ audit.correlation_id }}</code></td>
+              <td>
+                <div>{{ audit.request_path }}</div>
+                <small class="text-muted">{{ audit.actor_ip }}</small>
+              </td>
+              <td>
+                <div class="d-flex flex-wrap gap-1 mb-2">
+                  <span class="local-audit-pill local-audit-pill--{{ audit.severity }}">{{ audit.severity_label }}</span>
+                  {% for signal in audit.signals %}
+                  <span class="local-audit-pill">{{ signal }}</span>
+                  {% endfor %}
+                </div>
+                {% if audit.detail_summary %}
+                <div class="d-flex flex-column gap-1">
+                  {% for change in audit.detail_summary %}
+                  <div class="local-audit-change{% if change.field in ['empresa_id', 'role'] %} local-audit-change--critical{% elif change.field in ['scope_type', 'allowed_branch_codes', 'is_active'] %} local-audit-change--warning{% endif %}">
+                    <strong>{{ change.label }}:</strong>
+                    <span class="text-muted">{{ change.before }}</span>
+                    <span aria-hidden="true">&rarr;</span>
+                    <span>{{ change.after }}</span>
+                  </div>
+                  {% endfor %}
+                </div>
+                {% else %}
+                <code>{{ audit.detail_raw }}</code>
+                {% endif %}
+                <div><small class="text-muted">{{ audit.user_agent }}</small></div>
+              </td>
+            </tr>
+            {% endfor %}
+            {% if local_user_audit_events|length == 0 %}
+            <tr><td colspan="8" class="text-muted">Sem eventos locais de acesso.</td></tr>
+            {% endif %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="row g-3 mt-1">
+  <div class="col-12">
+    <div class="card p-3">
       <h5 class="mb-3">Auditoria de configuracoes</h5>
       <div class="row g-3 mb-3">
         <div class="col-md-3"><div class="card p-3"><small>Total</small><h6>{{ audit_summary.total_count }}</h6></div></div>
@@ -162,6 +402,8 @@
               <th>Recurso</th>
               <th>Alvo</th>
               <th>Status</th>
+              <th>Correlacao</th>
+              <th>Origem</th>
               <th>Detalhe</th>
             </tr>
           </thead>
@@ -180,11 +422,19 @@
                 <span class="badge text-bg-danger">{{ audit.status }}</span>
                 {% endif %}
               </td>
-              <td><code>{{ audit.detail }}</code></td>
+              <td><code>{{ audit.correlation_id or '-' }}</code></td>
+              <td>
+                <div>{{ audit.request_path or '-' }}</div>
+                <small class="text-muted">{{ audit.actor_ip or '-' }}</small>
+              </td>
+              <td>
+                <div><code>{{ audit.detail }}</code></div>
+                <small class="text-muted">{{ audit.user_agent or '-' }}</small>
+              </td>
             </tr>
             {% endfor %}
             {% if audit_events|length == 0 %}
-            <tr><td colspan="7" class="text-muted">Sem eventos de auditoria.</td></tr>
+            <tr><td colspan="9" class="text-muted">Sem eventos de auditoria.</td></tr>
             {% endif %}
           </tbody>
         </table>
@@ -205,8 +455,12 @@
               <th>Usuario</th>
               <th>Nome</th>
               <th>Perfil</th>
+              <th>Empresa</th>
+              <th>Escopo</th>
+              <th>Filiais</th>
               <th>Ativo</th>
               <th>Ultimo login</th>
+              <th>Acoes</th>
             </tr>
           </thead>
           <tbody>
@@ -216,15 +470,74 @@
               <td>{{ user.username }}</td>
               <td>{{ user.full_name }}</td>
               <td><span class="badge text-bg-secondary">{{ user.role }}</span></td>
+              <td>{{ user.empresa_id or '-' }}</td>
+              <td>{{ user.scope_type or '-' }}</td>
+              <td>{{ user.allowed_branch_codes|join(', ') if user.allowed_branch_codes else '-' }}</td>
               <td>{{ 'sim' if user.is_active else 'nao' }}</td>
               <td>{{ user.last_login_at or '-' }}</td>
+              <td>
+                <details>
+                  <summary class="btn btn-sm btn-outline-secondary">Editar</summary>
+                  <form method="post" action="/settings/users/{{ user.id }}" class="row g-2 mt-2 user-scope-form">
+                    <div class="col-md-6">
+                      <input class="form-control" type="text" name="full_name" value="{{ user.full_name }}" required />
+                    </div>
+                    <div class="col-md-3">
+                      <select class="form-select" name="role">
+                        <option value="viewer" {% if user.role == 'viewer' %}selected{% endif %}>viewer</option>
+                        <option value="analyst" {% if user.role == 'analyst' %}selected{% endif %}>analyst</option>
+                        <option value="admin" {% if user.role == 'admin' %}selected{% endif %}>admin</option>
+                        <option value="client" {% if user.role == 'client' %}selected{% endif %}>client</option>
+                      </select>
+                    </div>
+                    <div class="col-md-3">
+                      <select class="form-select" name="is_active">
+                        <option value="true" {% if user.is_active %}selected{% endif %}>ativo</option>
+                        <option value="false" {% if not user.is_active %}selected{% endif %}>inativo</option>
+                      </select>
+                    </div>
+                    <div class="col-md-4">
+                      <input class="form-control user-company-input" type="text" name="empresa_id" value="{{ user.empresa_id or '' }}" placeholder="empresa_id cliente" />
+                    </div>
+                    <div class="col-md-4">
+                      <select class="form-select user-scope-type" name="scope_type">
+                        <option value="">sem escopo</option>
+                        <option value="company" {% if user.scope_type == 'company' %}selected{% endif %}>empresa inteira</option>
+                        <option value="branch_set" {% if user.scope_type == 'branch_set' %}selected{% endif %}>filiais especificas</option>
+                      </select>
+                    </div>
+                    <div class="col-md-4">
+                      <input class="form-control" type="password" name="password" placeholder="Nova senha (opcional)" />
+                    </div>
+                    <div class="col-md-12 user-branch-permission-panel">
+                      <label class="form-label">Filiais permitidas</label>
+                      <div class="small text-muted mb-2">A matriz usa `0001`. Em escopo `company`, a selecao pode ficar vazia.</div>
+                      <div class="d-flex gap-2 mb-2">
+                        <button class="btn btn-outline-secondary btn-sm load-branch-options" type="button">Carregar filiais</button>
+                        <span class="small text-muted align-self-center branch-options-status">Filiais atuais carregadas abaixo.</span>
+                      </div>
+                      <div class="d-flex flex-wrap gap-3 branch-options-container">
+                        {% for branch_code in user.allowed_branch_codes %}
+                        <label class="form-check">
+                          <input class="form-check-input" type="checkbox" name="allowed_branch_codes" value="{{ branch_code }}" checked />
+                          {{ branch_code }}
+                        </label>
+                        {% endfor %}
+                      </div>
+                    </div>
+                    <div class="col-12">
+                      <button class="btn btn-primary btn-sm" type="submit">Salvar alteracoes</button>
+                    </div>
+                  </form>
+                </details>
+              </td>
             </tr>
             {% endfor %}
           </tbody>
         </table>
       </div>
       <h6 class="mb-3">Criar usuario</h6>
-      <form method="post" action="/settings/users" class="row g-2">
+      <form method="post" action="/settings/users" class="row g-2 user-scope-form">
         <div class="col-md-3">
           <input class="form-control" type="text" name="username" placeholder="Usuario" required />
         </div>
@@ -239,7 +552,27 @@
             <option value="viewer">viewer</option>
             <option value="analyst">analyst</option>
             <option value="admin">admin</option>
+            <option value="client">client</option>
           </select>
+        </div>
+        <div class="col-md-2">
+          <input class="form-control user-company-input" type="text" name="empresa_id" placeholder="empresa_id cliente" />
+        </div>
+        <div class="col-md-2">
+          <select class="form-select user-scope-type" name="scope_type">
+            <option value="">sem escopo</option>
+            <option value="company">empresa inteira</option>
+            <option value="branch_set">filiais especificas</option>
+          </select>
+        </div>
+        <div class="col-md-12 user-branch-permission-panel">
+          <label class="form-label">Filiais permitidas</label>
+          <div class="small text-muted mb-2">Informe a empresa e clique em carregar filiais. A matriz sempre usa `0001`.</div>
+          <div class="d-flex gap-2 mb-2">
+            <button class="btn btn-outline-secondary btn-sm load-branch-options" type="button">Carregar filiais</button>
+            <span class="small text-muted align-self-center branch-options-status">Nenhuma filial carregada.</span>
+          </div>
+          <div class="d-flex flex-wrap gap-3 branch-options-container"></div>
         </div>
         <div class="col-md-1">
           <button class="btn btn-primary w-100" type="submit">Salvar</button>
@@ -248,4 +581,64 @@
     </div>
   </div>
 </div>
+<script>
+  (function () {
+    document.querySelectorAll('.user-scope-form').forEach((form) => {
+      const companyInput = form.querySelector('.user-company-input');
+      const scopeSelect = form.querySelector('.user-scope-type');
+      const loadButton = form.querySelector('.load-branch-options');
+      const statusLabel = form.querySelector('.branch-options-status');
+      const container = form.querySelector('.branch-options-container');
+      const panel = form.querySelector('.user-branch-permission-panel');
+
+      function togglePanel() {
+        const enabled = scopeSelect && scopeSelect.value === 'branch_set';
+        if (panel) {
+          panel.style.display = enabled ? 'block' : 'none';
+        }
+      }
+
+      async function loadBranches() {
+        const empresaId = companyInput ? companyInput.value.trim() : '';
+        if (!empresaId) {
+          statusLabel.textContent = 'Preencha a empresa antes de carregar filiais.';
+          container.innerHTML = '';
+          return;
+        }
+        const selected = new Set(
+          Array.from(container.querySelectorAll('input[name="allowed_branch_codes"]:checked')).map((input) => input.value)
+        );
+        statusLabel.textContent = 'Carregando...';
+        container.innerHTML = '';
+        try {
+          const response = await fetch(`/settings/company-branches?empresa_id=${encodeURIComponent(empresaId)}`);
+          const payload = await response.json();
+          const items = Array.isArray(payload.items) ? payload.items : [];
+          if (!items.length) {
+            statusLabel.textContent = 'Nenhuma filial encontrada para a empresa.';
+            return;
+          }
+          items.forEach((branchCode) => {
+            const label = document.createElement('label');
+            label.className = 'form-check';
+            const checked = selected.has(branchCode) ? 'checked' : '';
+            label.innerHTML = `<input class="form-check-input" type="checkbox" name="allowed_branch_codes" value="${branchCode}" ${checked} /> ${branchCode}`;
+            container.appendChild(label);
+          });
+          statusLabel.textContent = `${items.length} filial(is) carregada(s).`;
+        } catch (error) {
+          statusLabel.textContent = 'Falha ao carregar filiais.';
+        }
+      }
+
+      if (scopeSelect) {
+        scopeSelect.addEventListener('change', togglePanel);
+        togglePanel();
+      }
+      if (loadButton) {
+        loadButton.addEventListener('click', loadBranches);
+      }
+    });
+  })();
+</script>
 {% endblock %}

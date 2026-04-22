@@ -42,6 +42,32 @@ class SyncJobsSummary:
     failed_count: float
 
 
+@dataclass
+class TenantObservabilitySummary:
+    empresa_id: str
+    sync_batches_total: float
+    sync_failures_total: float
+    tenant_scheduler_runs_total: float
+    tenant_queue_processed_total: float
+    tenant_queue_failed_total: float
+    tenant_queue_retried_total: float
+    tenant_queue_dead_letter_total: float
+    tenant_destination_delivery_total: float
+    tenant_destination_delivery_failed_total: float
+    sync_last_success_lag_seconds: float
+    tenant_scheduler_last_success_lag_seconds: float
+    tenant_queue_last_event_lag_seconds: float
+    tenant_destination_last_event_lag_seconds: float
+
+
+@dataclass
+class RemoteClientFleetSummary:
+    total_clients: int
+    online_clients: int
+    error_clients: int
+    unique_empresas: int
+
+
 class ControlService:
     def __init__(self) -> None:
         self.base_url = settings.control_api_base_url.rstrip('/')
@@ -81,7 +107,7 @@ class ControlService:
             ),
         )
 
-    def provision_tenant(self, empresa_id: str, nome: str, actor: str | None = None) -> str:
+    def provision_tenant(self, empresa_id: str, nome: str, actor: str | None = None) -> dict:
         payload = {'empresa_id': empresa_id, 'nome': nome}
         headers = dict(self.admin_headers)
         if actor:
@@ -94,9 +120,13 @@ class ControlService:
             )
             response.raise_for_status()
             data = response.json()
-        return data['api_key']
+        return {
+            'api_key': data['api_key'],
+            'api_key_last_rotated_at': data.get('api_key_last_rotated_at'),
+            'api_key_expires_at': data.get('api_key_expires_at'),
+        }
 
-    def rotate_tenant_key(self, empresa_id: str, actor: str | None = None) -> str:
+    def rotate_tenant_key(self, empresa_id: str, actor: str | None = None) -> dict:
         headers = dict(self.admin_headers)
         if actor:
             headers['X-Audit-Actor'] = actor
@@ -107,7 +137,11 @@ class ControlService:
             )
             response.raise_for_status()
             data = response.json()
-        return data['api_key']
+        return {
+            'api_key': data['api_key'],
+            'api_key_last_rotated_at': data.get('api_key_last_rotated_at'),
+            'api_key_expires_at': data.get('api_key_expires_at'),
+        }
 
     def update_agent_key_file(self, api_key: str) -> str:
         file_path = Path(settings.agent_api_key_file)
@@ -240,9 +274,328 @@ class ControlService:
                     'last_run_at': item.get('last_run_at', '-'),
                     'last_status': item.get('last_status', '-'),
                     'last_error': item.get('last_error', '-'),
+                    'settings': item.get('settings', {}),
                 }
             )
         return rows
+
+    def fetch_source_configs(self) -> list[dict]:
+        try:
+            with httpx.Client(timeout=10.0) as client:
+                response = client.get(
+                    f'{self.base_url}/admin/tenants/{settings.control_empresa_id}/source-configs',
+                    headers=self.admin_headers,
+                )
+                response.raise_for_status()
+                data = response.json()
+        except Exception:
+            return []
+        rows: list[dict] = []
+        for item in data:
+            rows.append(
+                {
+                    'id': item.get('id', '-'),
+                    'empresa_id': item.get('empresa_id', '-'),
+                    'nome': item.get('nome', '-'),
+                    'connector_type': item.get('connector_type', '-'),
+                    'sync_interval_minutes': item.get('sync_interval_minutes', 0),
+                    'ativo': item.get('ativo', False),
+                    'last_run_at': item.get('last_run_at', '-'),
+                    'last_status': item.get('last_status', '-'),
+                    'last_error': item.get('last_error', '-'),
+                    'settings': item.get('settings', {}),
+                }
+            )
+        return rows
+
+    def fetch_remote_client_summary(
+        self,
+        *,
+        empresa_id: str | None = None,
+        status: str | None = None,
+        search: str | None = None,
+    ) -> RemoteClientFleetSummary:
+        params = {k: v for k, v in {"empresa_id": empresa_id, "status": status, "search": search}.items() if v}
+        try:
+            with httpx.Client(timeout=10.0) as client:
+                response = client.get(
+                    f'{self.base_url}/api/v1/clients/summary',
+                    headers=self.admin_headers,
+                    params=params,
+                )
+                response.raise_for_status()
+                data = response.json()
+        except Exception:
+            return RemoteClientFleetSummary(0, 0, 0, 0)
+        return RemoteClientFleetSummary(
+            total_clients=int(data.get('total_clients', 0)),
+            online_clients=int(data.get('online_clients', 0)),
+            error_clients=int(data.get('error_clients', 0)),
+            unique_empresas=int(data.get('unique_empresas', 0)),
+        )
+
+    def fetch_remote_clients(
+        self,
+        *,
+        empresa_id: str | None = None,
+        status: str | None = None,
+        search: str | None = None,
+    ) -> list[dict]:
+        params = {k: v for k, v in {"empresa_id": empresa_id, "status": status, "search": search}.items() if v}
+        try:
+            with httpx.Client(timeout=10.0) as client:
+                response = client.get(
+                    f'{self.base_url}/api/v1/clients',
+                    headers=self.admin_headers,
+                    params=params,
+                )
+                response.raise_for_status()
+                return list(response.json())
+        except Exception:
+            return []
+
+    def fetch_remote_client(self, client_id: str) -> dict:
+        with httpx.Client(timeout=10.0) as client:
+            response = client.get(
+                f'{self.base_url}/api/v1/clients/{client_id}/config',
+                headers=self.admin_headers,
+            )
+            response.raise_for_status()
+            return response.json()
+
+    def fetch_remote_client_logs(self, client_id: str, *, limit: int = 20) -> list[dict]:
+        with httpx.Client(timeout=10.0) as client:
+            response = client.get(
+                f'{self.base_url}/api/v1/clients/{client_id}/logs',
+                headers=self.admin_headers,
+                params={'limit': limit},
+            )
+            response.raise_for_status()
+            return list(response.json())
+
+    def fetch_report_overview(
+        self,
+        *,
+        empresa_id: str | None = None,
+        start_date: str | None = None,
+        end_date: str | None = None,
+        branch_code: str | None = None,
+        terminal_code: str | None = None,
+    ) -> dict:
+        params = {
+            key: value
+            for key, value in {
+                'start_date': start_date,
+                'end_date': end_date,
+                'branch_code': branch_code,
+                'terminal_code': terminal_code,
+            }.items()
+            if value
+        }
+        with httpx.Client(timeout=20.0) as client:
+            response = client.get(
+                f'{self.base_url}/admin/tenants/{empresa_id or settings.control_empresa_id}/reports/overview',
+                headers=self.admin_headers,
+                params=params,
+            )
+            response.raise_for_status()
+            return response.json()
+
+    def fetch_report_daily_sales(
+        self,
+        *,
+        empresa_id: str | None = None,
+        start_date: str | None = None,
+        end_date: str | None = None,
+        branch_code: str | None = None,
+        terminal_code: str | None = None,
+    ) -> dict:
+        params = {
+            key: value
+            for key, value in {
+                'start_date': start_date,
+                'end_date': end_date,
+                'branch_code': branch_code,
+                'terminal_code': terminal_code,
+            }.items()
+            if value
+        }
+        with httpx.Client(timeout=20.0) as client:
+            response = client.get(
+                f'{self.base_url}/admin/tenants/{empresa_id or settings.control_empresa_id}/reports/daily-sales',
+                headers=self.admin_headers,
+                params=params,
+            )
+            response.raise_for_status()
+            return response.json()
+
+    def fetch_report_top_products(
+        self,
+        *,
+        empresa_id: str | None = None,
+        start_date: str | None = None,
+        end_date: str | None = None,
+        branch_code: str | None = None,
+        terminal_code: str | None = None,
+        limit: int = 10,
+    ) -> dict:
+        params = {
+            key: value
+            for key, value in {
+                'start_date': start_date,
+                'end_date': end_date,
+                'branch_code': branch_code,
+                'terminal_code': terminal_code,
+                'limit': limit,
+            }.items()
+            if value is not None and value != ''
+        }
+        with httpx.Client(timeout=20.0) as client:
+            response = client.get(
+                f'{self.base_url}/admin/tenants/{empresa_id or settings.control_empresa_id}/reports/top-products',
+                headers=self.admin_headers,
+                params=params,
+            )
+            response.raise_for_status()
+            return response.json()
+
+    def fetch_report_recent_sales(
+        self,
+        *,
+        empresa_id: str | None = None,
+        start_date: str | None = None,
+        end_date: str | None = None,
+        branch_code: str | None = None,
+        terminal_code: str | None = None,
+        limit: int = 20,
+    ) -> dict:
+        params = {
+            key: value
+            for key, value in {
+                'start_date': start_date,
+                'end_date': end_date,
+                'branch_code': branch_code,
+                'terminal_code': terminal_code,
+                'limit': limit,
+            }.items()
+            if value is not None and value != ''
+        }
+        with httpx.Client(timeout=20.0) as client:
+            response = client.get(
+                f'{self.base_url}/admin/tenants/{empresa_id or settings.control_empresa_id}/reports/recent-sales',
+                headers=self.admin_headers,
+                params=params,
+            )
+            response.raise_for_status()
+            return response.json()
+
+    def fetch_report_branch_options(
+        self,
+        *,
+        empresa_id: str | None = None,
+        start_date: str | None = None,
+        end_date: str | None = None,
+        terminal_code: str | None = None,
+    ) -> list[str]:
+        params = {
+            key: value
+            for key, value in {
+                'start_date': start_date,
+                'end_date': end_date,
+                'terminal_code': terminal_code,
+            }.items()
+            if value
+        }
+        with httpx.Client(timeout=20.0) as client:
+            response = client.get(
+                f'{self.base_url}/admin/tenants/{empresa_id or settings.control_empresa_id}/reports/branches',
+                headers=self.admin_headers,
+                params=params,
+            )
+            response.raise_for_status()
+            data = response.json()
+        return [str(item) for item in data.get('items', [])]
+
+    def queue_remote_force_sync(self, client_id: str, *, actor: str | None = None) -> dict:
+        headers = dict(self.admin_headers)
+        if actor:
+            headers['X-Audit-Actor'] = actor
+        with httpx.Client(timeout=10.0) as client:
+            response = client.post(
+                f'{self.base_url}/api/v1/clients/{client_id}/sync',
+                headers=headers,
+            )
+            response.raise_for_status()
+            return response.json()
+
+    def queue_remote_config_update(
+        self,
+        client_id: str,
+        *,
+        payload: dict[str, object],
+        actor: str | None = None,
+    ) -> dict:
+        headers = dict(self.admin_headers)
+        if actor:
+            headers['X-Audit-Actor'] = actor
+        with httpx.Client(timeout=10.0) as client:
+            response = client.post(
+                f'{self.base_url}/api/v1/clients/{client_id}/config',
+                headers=headers,
+                json={'payload': payload},
+            )
+            response.raise_for_status()
+            return response.json()
+
+    def fetch_tenant_observability(self, empresa_id: str | None = None) -> TenantObservabilitySummary:
+        target_empresa = empresa_id or settings.control_empresa_id
+        try:
+            with httpx.Client(timeout=10.0) as client:
+                response = client.get(
+                    f'{self.base_url}/admin/tenants/{target_empresa}/observability',
+                    headers=self.admin_headers,
+                )
+                response.raise_for_status()
+                data = response.json()
+        except Exception:
+            return TenantObservabilitySummary(
+                empresa_id=target_empresa,
+                sync_batches_total=0.0,
+                sync_failures_total=0.0,
+                tenant_scheduler_runs_total=0.0,
+                tenant_queue_processed_total=0.0,
+                tenant_queue_failed_total=0.0,
+                tenant_queue_retried_total=0.0,
+                tenant_queue_dead_letter_total=0.0,
+                tenant_destination_delivery_total=0.0,
+                tenant_destination_delivery_failed_total=0.0,
+                sync_last_success_lag_seconds=0.0,
+                tenant_scheduler_last_success_lag_seconds=0.0,
+                tenant_queue_last_event_lag_seconds=0.0,
+                tenant_destination_last_event_lag_seconds=0.0,
+            )
+        return TenantObservabilitySummary(
+            empresa_id=str(data.get("empresa_id", target_empresa)),
+            sync_batches_total=float(data.get("sync_batches_total", 0)),
+            sync_failures_total=float(data.get("sync_failures_total", 0)),
+            tenant_scheduler_runs_total=float(data.get("tenant_scheduler_runs_total", 0)),
+            tenant_queue_processed_total=float(data.get("tenant_queue_processed_total", 0)),
+            tenant_queue_failed_total=float(data.get("tenant_queue_failed_total", 0)),
+            tenant_queue_retried_total=float(data.get("tenant_queue_retried_total", 0)),
+            tenant_queue_dead_letter_total=float(data.get("tenant_queue_dead_letter_total", 0)),
+            tenant_destination_delivery_total=float(data.get("tenant_destination_delivery_total", 0)),
+            tenant_destination_delivery_failed_total=float(
+                data.get("tenant_destination_delivery_failed_total", 0)
+            ),
+            sync_last_success_lag_seconds=float(data.get("sync_last_success_lag_seconds", 0)),
+            tenant_scheduler_last_success_lag_seconds=float(
+                data.get("tenant_scheduler_last_success_lag_seconds", 0)
+            ),
+            tenant_queue_last_event_lag_seconds=float(data.get("tenant_queue_last_event_lag_seconds", 0)),
+            tenant_destination_last_event_lag_seconds=float(
+                data.get("tenant_destination_last_event_lag_seconds", 0)
+            ),
+        )
 
     def get_server_settings(self) -> dict:
         with httpx.Client(timeout=10.0) as client:
@@ -260,6 +613,7 @@ class ControlService:
         max_batch_size: int,
         retention_mode: str,
         retention_months: int,
+        connection_secrets_file: str,
         actor: str | None = None,
     ) -> dict:
         payload = {
@@ -267,6 +621,7 @@ class ControlService:
             'max_batch_size': max_batch_size,
             'retention_mode': retention_mode,
             'retention_months': retention_months,
+            'connection_secrets_file': connection_secrets_file,
         }
         headers = dict(self.admin_headers)
         if actor:
@@ -276,6 +631,80 @@ class ControlService:
                 f'{self.base_url}/admin/server-settings',
                 headers=headers,
                 json=payload,
+            )
+            response.raise_for_status()
+            return response.json()
+
+    def create_secure_connection_config(
+        self,
+        *,
+        scope: str,
+        nome: str,
+        connector_type: str,
+        sync_interval_minutes: int,
+        settings: dict[str, str],
+        secret_settings: dict[str, str],
+        generate_access_key: bool,
+        access_key_field: str | None = None,
+        actor: str | None = None,
+    ) -> dict:
+        headers = dict(self.admin_headers)
+        if actor:
+            headers['X-Audit-Actor'] = actor
+        payload = {
+            'scope': scope,
+            'nome': nome,
+            'connector_type': connector_type,
+            'sync_interval_minutes': sync_interval_minutes,
+            'settings': settings,
+            'secret_settings': secret_settings,
+            'generate_access_key': generate_access_key,
+            'access_key_field': access_key_field,
+        }
+        with httpx.Client(timeout=20.0) as client:
+            response = client.post(
+                f'{self.base_url}/admin/tenants/{settings.control_empresa_id}/secure-configs',
+                headers=headers,
+                json=payload,
+            )
+            response.raise_for_status()
+            return response.json()
+
+    def rotate_secure_connection_key(
+        self,
+        *,
+        settings_key: str,
+        access_key_field: str | None = None,
+        actor: str | None = None,
+    ) -> dict:
+        headers = dict(self.admin_headers)
+        if actor:
+            headers['X-Audit-Actor'] = actor
+        with httpx.Client(timeout=20.0) as client:
+            response = client.post(
+                f'{self.base_url}/admin/tenants/{settings.control_empresa_id}/secure-configs/{settings_key}/rotate-key',
+                headers=headers,
+                json={'access_key_field': access_key_field},
+            )
+            response.raise_for_status()
+            return response.json()
+
+    def update_secure_connection_secret(
+        self,
+        *,
+        settings_key: str,
+        secret_settings: dict[str, str],
+        merge: bool = True,
+        actor: str | None = None,
+    ) -> dict:
+        headers = dict(self.admin_headers)
+        if actor:
+            headers['X-Audit-Actor'] = actor
+        with httpx.Client(timeout=20.0) as client:
+            response = client.post(
+                f'{self.base_url}/admin/tenants/{settings.control_empresa_id}/secure-configs/{settings_key}/update-secret',
+                headers=headers,
+                json={'secret_settings': secret_settings, 'merge': merge},
             )
             response.raise_for_status()
             return response.json()
@@ -330,6 +759,10 @@ class ControlService:
                     'resource_type': item.get('resource_type', '-'),
                     'resource_id': item.get('resource_id', '-'),
                     'status': item.get('status', '-'),
+                    'correlation_id': item.get('correlation_id', '-'),
+                    'request_path': item.get('request_path', '-'),
+                    'actor_ip': item.get('actor_ip', '-'),
+                    'user_agent': item.get('user_agent', '-'),
                     'detail': item.get('detail', {}),
                     'created_at': item.get('created_at', '-'),
                 }

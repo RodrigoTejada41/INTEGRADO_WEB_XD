@@ -1,6 +1,6 @@
-﻿# Especificação de Banco de Dados
+# Especificação de Banco de Dados
 
-> Esta especificação deve ser interpretada junto com [`PROTOCOLO_ESPECIALISTAS.md`](../PROTOCOLO_ESPECIALISTAS.md) quando usada por um agente neste repositório.
+> Leia esta especificação junto com [`CEREBRO_VIVO.md`](../CEREBRO_VIVO.md) e [`PROTOCOLO_ESPECIALISTAS.md`](../PROTOCOLO_ESPECIALISTAS.md).
 
 ## Motor
 
@@ -11,31 +11,31 @@
 
 Todas as tabelas devem incluir:
 
-- empresa_id (indexed)
+- `empresa_id` indexado
 
 ## Campos obrigatórios
 
-- uuid (unique)
-- data_atualizacao
+- `uuid` único
+- `data_atualizacao`
 
 ## Índices
 
-- empresa_id
-- uuid
-- data
+- `empresa_id`
+- `uuid`
+- `data`
 
 ## Particionamento
 
-- Partition by month
-- Based on date field
+- Particionamento mensal
+- Baseado em campo de data
 
 ## Exemplo de tabela
 
-vendas:
-- id
-- uuid
-- empresa_id
-- produto
-- valor
-- data
-- data_atualizacao
+`vendas`:
+- `id`
+- `uuid`
+- `empresa_id`
+- `produto`
+- `valor`
+- `data`
+- `data_atualizacao`

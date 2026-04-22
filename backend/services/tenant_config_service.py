@@ -15,6 +15,7 @@ from backend.schemas.tenant_configs import (
     TenantConfigSummaryResponse,
 )
 from backend.utils.crypto import decrypt_json, encrypt_json
+from backend.utils.secrets import sanitize_settings_for_output
 from backend.utils.security import validate_empresa_id
 
 
@@ -60,15 +61,18 @@ class TenantConfigService:
 
     @staticmethod
     def _to_response(item: object, empresa_id: str) -> TenantConfigResponse:
+        decrypted_settings = TenantConfigService._from_json(getattr(item, "settings_json"))
         return TenantConfigResponse(
             id=getattr(item, "id"),
             empresa_id=empresa_id,
             nome=getattr(item, "nome"),
             connector_type=getattr(item, "connector_type"),
             sync_interval_minutes=getattr(item, "sync_interval_minutes"),
-            settings=TenantConfigService._from_json(getattr(item, "settings_json")),
+            settings=sanitize_settings_for_output(decrypted_settings),
             ativo=getattr(item, "ativo"),
             last_run_at=getattr(item, "last_run_at"),
+            last_scheduled_at=getattr(item, "last_scheduled_at", None),
+            next_run_at=getattr(item, "next_run_at", None),
             last_status=getattr(item, "last_status"),
             last_error=getattr(item, "last_error"),
             created_at=getattr(item, "created_at"),

@@ -1,14 +1,26 @@
-﻿# Registro de Release
+# Registro de Release
 
-## v0.1.0
-- Status: fechado e registrado
-- Data de registro: 2026-04-15 18:48:27 -03:00
-- Pacote: `E:\Projetos\INTEGRADO_WEB_XD\release-artifacts\sync-admin-v0.1.0.zip`
-- SHA256: `D39C07E816E3E6A4B23E5496575EE74030E9D23D75209F7D654383F3CA4216A5`
-- Ponto de controle técnico: `docs/14-PONTO-DE-CONTROLE-RELEASE-v0.1.0.md`
-- Changelog: `REGISTRO_DE_MUDANCAS.md`
+## Description
+Página legada de navegação para o histórico de releases.
 
-## Procedimento de validação
-1. Conferir hash do arquivo `.zip` com SHA256.
-2. Confirmar versão em `VERSION`.
-3. Confirmar ponto de controle e registro de mudanças da versão correspondente.
+## Structure
+- [`CHANGELOG.md`](../CHANGELOG.md)
+- [`VERSION`](../VERSION)
+- [`docs/14-PONTO-DE-CONTROLE-RELEASE-v0.1.0.md`](./14-PONTO-DE-CONTROLE-RELEASE-v0.1.0.md)
+
+## Integrations
+- Artefatos de release
+- Hash SHA256
+- Versioning
+
+## Flow
+1. Confirme a release publicada.
+2. Confirme o artefato e o hash.
+3. Use esta página como referência rápida.
+
+## Critical Points
+- O histórico não deve ser duplicado em múltiplos locais.
+- O checkpoint técnico é a fonte operacional.
+
+## Tests
+- Conferir hash, versão e checkpoint técnico.

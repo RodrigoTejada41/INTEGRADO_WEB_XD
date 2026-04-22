@@ -1,6 +1,8 @@
-﻿# Roteiro
+# Roteiro
 
-## MVP (estrutura já implementada)
+> Use este roteiro em conjunto com [`CEREBRO_VIVO.md`](../CEREBRO_VIVO.md) e [`CONTINUIDADE_PROJETO_SYNC.md`](../CONTINUIDADE_PROJETO_SYNC.md).
+
+## MVP já implementado
 - Serviços modulares e contratos compartilhados
 - Caminho de origem ligado à pasta de conhecimento de engenharia reversa
 - Persistência estruturada e geração de artefatos
@@ -17,5 +19,3 @@
 - Testes E2E do pipeline com fixtures
 - Adaptador nativo de upload para Nexus
 - Fluxo de auto-commit no Git para Obsidian
-
-

@@ -2,8 +2,34 @@
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-3">
   <h3 class="mb-0">Dashboard</h3>
-  <a class="btn btn-outline-secondary btn-sm" href="/dashboard/audit.csv">Exportar auditoria CSV</a>
+  <div class="d-flex gap-2 flex-wrap">
+    <a class="btn btn-outline-secondary btn-sm" href="/dashboard/audit.csv">CSV</a>
+    <a class="btn btn-outline-secondary btn-sm" href="/dashboard/audit.xlsx">XLSX</a>
+    <a class="btn btn-outline-secondary btn-sm" href="/dashboard/audit.pdf">PDF</a>
+    <a class="btn btn-outline-primary btn-sm" href="/dashboard/export.md?company_code={{ company_code }}&branch_code={{ branch_code }}&terminal_code={{ terminal_code }}">Markdown</a>
+  </div>
 </div>
+
+<form method="get" class="card p-3 mb-4">
+  <div class="row g-2 align-items-end">
+    <div class="col-md-3">
+      <label class="form-label">Empresa</label>
+      <input class="form-control" type="text" name="company_code" value="{{ company_code }}" placeholder="Company code" />
+    </div>
+    <div class="col-md-3">
+      <label class="form-label">Filial</label>
+      <input class="form-control" type="text" name="branch_code" value="{{ branch_code }}" placeholder="Branch code" />
+    </div>
+    <div class="col-md-3">
+      <label class="form-label">Terminal</label>
+      <input class="form-control" type="text" name="terminal_code" value="{{ terminal_code }}" placeholder="Terminal code" />
+    </div>
+    <div class="col-md-3 d-flex gap-2">
+      <button class="btn btn-primary" type="submit">Aplicar filtro</button>
+      <a class="btn btn-outline-secondary" href="/dashboard">Limpar</a>
+    </div>
+  </div>
+</form>
 
 <div class="row g-3 mb-4">
   <div class="col-md-3"><div class="card p-3"><small>Total de registros</small><h4 id="kpi-total-records">{{ summary.total_records }}</h4></div></div>
@@ -45,6 +71,33 @@
       <small>DLQ</small>
       <h6 id="kpi-queue-dlq">{{ job_summary.dead_letter_count }}</h6>
     </div>
+  </div>
+</div>
+
+<div class="card mb-4 p-3">
+  <div class="d-flex justify-content-between align-items-center mb-2">
+    <h6 class="mb-0">Observabilidade avancada por tenant</h6>
+    <small class="text-muted">Empresa {{ tenant_observability.empresa_id }}</small>
+  </div>
+  <div class="table-responsive">
+    <table class="table table-sm table-striped align-middle">
+      <thead><tr><th>Metrica</th><th>Valor</th></tr></thead>
+      <tbody>
+        <tr><td>Lotes de sync (tenant)</td><td>{{ tenant_observability.sync_batches_total }}</td></tr>
+        <tr><td>Falhas de sync (tenant)</td><td>{{ tenant_observability.sync_failures_total }}</td></tr>
+        <tr><td>Execucoes scheduler (tenant)</td><td>{{ tenant_observability.tenant_scheduler_runs_total }}</td></tr>
+        <tr><td>Fila processada (tenant)</td><td>{{ tenant_observability.tenant_queue_processed_total }}</td></tr>
+        <tr><td>Fila falha (tenant)</td><td>{{ tenant_observability.tenant_queue_failed_total }}</td></tr>
+        <tr><td>Fila retry (tenant)</td><td>{{ tenant_observability.tenant_queue_retried_total }}</td></tr>
+        <tr><td>Fila DLQ (tenant)</td><td>{{ tenant_observability.tenant_queue_dead_letter_total }}</td></tr>
+        <tr><td>Destino entregue (tenant)</td><td>{{ tenant_observability.tenant_destination_delivery_total }}</td></tr>
+        <tr><td>Destino falha (tenant)</td><td>{{ tenant_observability.tenant_destination_delivery_failed_total }}</td></tr>
+        <tr><td>Lag ultimo sync (s)</td><td>{{ tenant_observability.sync_last_success_lag_seconds }}</td></tr>
+        <tr><td>Lag scheduler (s)</td><td>{{ tenant_observability.tenant_scheduler_last_success_lag_seconds }}</td></tr>
+        <tr><td>Lag fila (s)</td><td>{{ tenant_observability.tenant_queue_last_event_lag_seconds }}</td></tr>
+        <tr><td>Lag destination (s)</td><td>{{ tenant_observability.tenant_destination_last_event_lag_seconds }}</td></tr>
+      </tbody>
+    </table>
   </div>
 </div>
 
@@ -177,6 +230,9 @@
           <td>{{ b.received_at }}</td>
         </tr>
         {% endfor %}
+        {% if summary.latest_batches|length == 0 %}
+        <tr><td colspan="7" class="text-muted">Sem sincronizacoes no filtro atual.</td></tr>
+        {% endif %}
       </tbody>
     </table>
   </div>

@@ -1,4 +1,6 @@
-﻿# Visão Geral da Arquitetura
+# Visão Geral da Arquitetura
+
+> Leia este documento junto com [`CEREBRO_VIVO.md`](../CEREBRO_VIVO.md), [`PROTOCOLO_ESPECIALISTAS.md`](../PROTOCOLO_ESPECIALISTAS.md) e [`CONTINUIDADE_PROJETO_SYNC.md`](../CONTINUIDADE_PROJETO_SYNC.md) antes de tomar decisões de implementação.
 
 ## Fluxo principal
 `Pasta de conhecimento -> Ingestão -> Engenharia reversa -> Transformação -> Persistência -> API -> Relatórios`
@@ -15,7 +17,7 @@
 - API: acesso seguro e versionado aos dados
 
 ## Base de segurança
-- Token Bearer nos endpoints da API (MVP)
+- Token Bearer nos endpoints da API no MVP
 - Tabela de eventos de auditoria pronta para expansão
 - Separação por processo de serviço e contratos de evento explícitos
 

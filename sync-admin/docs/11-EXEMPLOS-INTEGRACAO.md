@@ -1,40 +1,24 @@
-﻿# Exemplos de Integracao
+# Exemplos de Integração
 
-## cURL - envio de lote
-```bash
-curl -X POST "http://localhost:8080/api/sync-data" \
-  -H "Content-Type: application/json" \
-  -H "X-API-Key: sync-key-change-me" \
-  -d '{
-    "external_batch_id": "BATCH-EX-001",
-    "company_code": "EMP01",
-    "branch_code": "FIL01",
-    "terminal_code": "PDV01",
-    "records": [
-      {
-        "record_key": "DOC-1001",
-        "record_type": "sale",
-        "payload": {"total": 123.45}
-      }
-    ]
-  }'
-```
+## Description
+Página legada de navegação para exemplos de consumo da API de sync.
 
-## PowerShell - envio de lote
-```powershell
-$body = @{
-  external_batch_id = 'BATCH-EX-001'
-  company_code = 'EMP01'
-  branch_code = 'FIL01'
-  terminal_code = 'PDV01'
-  records = @(
-    @{
-      record_key = 'DOC-1001'
-      record_type = 'sale'
-      payload = @{ total = 123.45 }
-    }
-  )
-} | ConvertTo-Json -Depth 6
+## Structure
+- [`modules/api.md`](./modules/api.md)
+- [`modules/schemas.md`](./modules/schemas.md)
 
-Invoke-WebRequest -Uri 'http://localhost:8080/api/sync-data' -Method Post -ContentType 'application/json' -Headers @{ 'X-API-Key'='sync-key-change-me' } -Body $body
-```
+## Integrations
+- cURL
+- PowerShell
+- `POST /api/sync-data`
+
+## Flow
+1. Use a documentação da API como contrato.
+2. Use esta página como referência rápida de uso.
+
+## Critical Points
+- Exemplo não é contrato.
+- O contrato oficial vive no módulo de API e schemas.
+
+## Tests
+- Executar os exemplos contra o ambiente local.

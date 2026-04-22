@@ -1,0 +1,28 @@
+services:
+  db:
+    extends:
+      file: ./docker-compose.prod.yml
+      service: db
+    profiles: ["compat"]
+
+  backend:
+    extends:
+      file: ./docker-compose.prod.yml
+      service: backend
+    profiles: ["compat"]
+
+  frontend:
+    extends:
+      file: ./docker-compose.prod.yml
+      service: frontend
+    profiles: ["compat"]
+
+  nginx:
+    extends:
+      file: ./docker-compose.prod.yml
+      service: nginx
+    profiles: ["compat"]
+
+# Compatibility compose only.
+# Use `docker compose --profile compat up` when a root compose file is required.
+# The production source of truth remains `docker-compose.prod.yml`.

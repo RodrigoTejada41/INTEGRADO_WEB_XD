@@ -1,6 +1,11 @@
-﻿# Documentacao - Sync Admin
+# Documentação - Sync Admin
 
-## Visao geral
+## Base local-first
+- [`../../CEREBRO_VIVO.md`](../../CEREBRO_VIVO.md)
+- [`../../.cerebro-vivo/README.md`](../../.cerebro-vivo/README.md)
+
+## Visão geral
+- [modules/README.md](./modules/README.md)
 - [01-ARQUITETURA.md](./01-ARQUITETURA.md)
 - [02-BANCO-DADOS.md](./02-BANCO-DADOS.md)
 - [03-API.md](./03-API.md)
@@ -18,8 +23,9 @@
 - [15-REGISTRO-DE-RELEASE.md](./15-REGISTRO-DE-RELEASE.md)
 
 ## Escopo
-Esta documentacao cobre arquitetura, execucao, operacao, seguranca, API e evolucao do sistema Sync Admin.
+Esta documentação cobre arquitetura, execução, operação, segurança, API e evolução do sistema Sync Admin.
 
-## Protocolo de atuacao
-Antes de alterar qualquer item desta documentacao, seguir:
-- [`../PROTOCOLO_ESPECIALISTAS.md`](../PROTOCOLO_ESPECIALISTAS.md)
+## Protocolo de atuação
+Antes de alterar qualquer item desta documentação, seguir:
+- [`../../PROTOCOLO_ESPECIALISTAS.md`](../../PROTOCOLO_ESPECIALISTAS.md)
+- [`../../CONTINUIDADE_PROJETO_SYNC.md`](../../CONTINUIDADE_PROJETO_SYNC.md)

@@ -11,7 +11,11 @@ class TenantAuditEventResponse(BaseModel):
     resource_type: str
     resource_id: str | None
     status: str
-    detail: dict[str, str]
+    correlation_id: str | None
+    request_path: str | None
+    actor_ip: str | None
+    user_agent: str | None
+    detail: dict[str, object]
     created_at: datetime
 
 

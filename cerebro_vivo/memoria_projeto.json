@@ -1,0 +1,157 @@
+{
+  "projeto": {
+    "nome": "INTEGRADO_WEB_XD",
+    "tipo": "plataforma de sincronizacao de dados multi-tenant",
+    "arquitetura": [
+      "Agentes locais (MariaDB)",
+      "API central (FastAPI)",
+      "Banco central (PostgreSQL)"
+    ],
+    "objetivos": [
+      "Sincronizar dados a cada 15 minutos",
+      "Garantir isolamento rigoroso por empresa",
+      "Manter apenas 14 meses de dados no banco principal"
+    ]
+  },
+  "governanca": {
+    "modo_oficial": "multi-agentes",
+    "fonte_de_regras": "AGENTS.md",
+    "protocolo_base": "PROTOCOLO_ESPECIALISTAS.md",
+    "fontes_canonicas_operacionais": [
+      "backend/",
+      "agent_local/",
+      "sync-admin/",
+      "infra/"
+    ],
+    "camadas_de_compatibilidade_onboarding": [
+      "backend/src",
+      "frontend",
+      "database",
+      "devops",
+      "docker-compose.yml"
+    ],
+    "restricoes_criticas": [
+      "Nunca misturar dados entre empresas",
+      "Sempre usar empresa_id em todas as consultas",
+      "Sempre usar UUID como identificador primario de sincronizacao",
+      "Nunca criar codigo monolitico",
+      "Nunca burlar validacao ou autenticacao",
+      "Nunca armazenar dados com mais de 14 meses nas tabelas principais"
+    ]
+  },
+  "memoria": {
+    "fonte_canonica_operacional": ".cerebro-vivo/Logs/memory_standard.json",
+    "fonte_canonica_processo": ".cerebro-vivo/Logs/processo_projeto.json",
+    "painel_de_retomada": ".cerebro-vivo/00_PAINEL/PROCESSO_PROJETO.md",
+    "resumo_executivo": "cerebro_vivo/estado_atual.md",
+    "historico_consolidado": "cerebro_vivo/historico_decisoes.md"
+  },
+  "estado_atual": {
+    "checkpoint_base": "P20 concluido com backlog pos-P20 avancado, console web centralizada entregue e frente de relatorios separada entre admin e cliente",
+    "ultimas_entregas": [
+      "P15 concluido: migracoes versionadas com rollback por versao/passos",
+      "P16 concluido: health/live/ready no backend e sync-admin",
+      "P17 concluido: backpressure por tenant e retry por classe de falha",
+      "P18 concluido: observabilidade avancada por tenant e correlacao de logs",
+      "P19 concluido: governanca de segredos e auditoria expandida",
+      "P20 concluido: endurecimento operacional de deploy, readiness e validacao de producao",
+      "Backlog pos-P20 avancado: cobertura automatizada para retencao de 14 meses em archive/delete com preservacao do limite exato",
+      "Pacote backend.services desacoplado com importacao preguicosa para evitar efeitos colaterais em testes",
+      "Receiver-api com registro de clientes locais, fila persistente de comandos e logs operacionais por instalacao",
+      "Sync-admin com configuracao local protegida, status, force sync e polling de comandos remotos",
+      "Observabilidade ponta a ponta no fluxo remoto com X-Request-Id/X-Correlation-Id no sync-admin e correlacao exposta nos logs do receiver-api",
+      "Painel web centralizado para listar, inspecionar e administrar todas as APIs conectadas registradas no receiver-api",
+      "Configuracoes de conexao por tenant aceitam settings_file/settings_env com settings_key para resolver segredos no runtime",
+      "Painel admin cria servidores de conexao seguros, gera chave por servidor, rotaciona chave e atualiza segredo pela mesma settings_key",
+      "Pagina administrativa /reports entregue com overview, serie diaria, top produtos e vendas recentes",
+      "Portal client separado com /client/dashboard e /client/reports, exigindo empresa_id no usuario e escopo preso ao tenant do login",
+      "Relatorios admin e client agora suportam comparativo com periodo anterior e exportacao em CSV, XLSX e PDF",
+      "UX dos relatorios consolidada com dashboard compartilhado, metricas derivadas no servidor web e comparativo percentual no periodo anterior",
+      "Sync-admin iniciou a modelagem formal de escopo cliente com scope_type em users e tabela user_branch_permissions para liberar filiais especificas por usuario",
+      "Portal cliente agora resolve escopo por usuario antes de consultar relatorios, aceita matriz 0001 como filial e bloqueia branch_code fora do conjunto permitido",
+      "Painel admin de APIs conectadas agora identifica clientes por CNPJ e nome da empresa e oferece atalho direto para abrir relatorios filtrados por empresa_id",
+      "Backend central passou a enriquecer clientes remotos com empresa_nome para apoiar o fluxo administrativo do sync-admin",
+      "Painel admin agora edita usuarios existentes sem recriacao, incluindo role, empresa_id, scope_type, filiais permitidas, status ativo e senha opcional",
+      "Sync-admin agora registra auditoria local para alteracoes de usuarios e de escopo, com eventos separados da auditoria central de tenant/configuracoes",
+      "Tela settings do sync-admin agora resume a auditoria local por campo com before/after legivel para empresa, escopo, filiais, perfil, nome e status",
+      "Tela settings do sync-admin agora classifica severidade da auditoria local e destaca sinais criticos ou de atencao para troca de empresa, perfil, escopo, desativacao e reducao de filiais",
+      "Validacao operacional local do stack produtivo executada nesta maquina com migracao aplicada, containers saudaveis e edge validado em 8088 por conflito na porta 80 do host",
+      "O compose de producao passou a aceitar NGINX_PUBLIC_PORT para o ambiente local, mantendo 80 como default e usando 8088 apenas nesta maquina",
+      ".env.prod local foi criado e mantido fora do Git para destravar o compose sem expor segredos",
+      "Memoria cerebro_vivo consolidada e alinhada ao estado atual",
+      "Suite recente validada com 10 passed nos testes direcionados de APIs conectadas, relatorios, portal cliente e escopo de acesso"
+    ],
+    "proximos_passos": [
+      "Priorizar backlog pos-P20 com foco em risco operacional, seguranca e continuidade do produto",
+      "Continuar a frente de relatorios com comparacoes adicionais entre filiais e terminais, preferencialmente sem duplicar contratos entre backend e sync-admin",
+      "Consolidar a UX do painel admin para edicao de usuarios e ampliar, se necessario, o refinamento visual da auditoria local de alteracoes de escopo por empresa ou filial"
+    ],
+    "backlog_pos_p20": [
+      {
+        "ordem": 1,
+        "item": "Fechar a trilha de seguranca operacional de producao",
+        "motivo": "Reduzir risco real em ambiente produtivo para secrets, acesso admin e endurecimento de borda",
+        "status": "pendente"
+      },
+      {
+        "ordem": 2,
+        "item": "Validar explicitamente a retencao de 14 meses com teste dedicado",
+        "motivo": "Transformar a regra critica de retencao em evidencia automatizada e verificavel",
+        "status": "concluido"
+      },
+      {
+        "ordem": 3,
+        "item": "Fortalecer observabilidade fim a fim por tenant",
+        "motivo": "Facilitar troubleshooting real com correlation_id, logs por tenant e contexto operacional completo",
+        "status": "concluido"
+      },
+      {
+        "ordem": 4,
+        "item": "Revisar readiness e health de toda a cadeia produtiva",
+        "motivo": "Garantir validacao fiel entre nginx, backend, sync-admin, banco e dependencias",
+        "status": "pendente"
+      },
+      {
+        "ordem": 5,
+        "item": "Consolidar runbooks operacionais recorrentes",
+        "motivo": "Reduzir erro humano em deploy, rotacao de chaves, renovacao HTTPS e recuperacao pos-falha",
+        "status": "pendente"
+      },
+      {
+        "ordem": 6,
+        "item": "Revisar guardrails residuais de multi-tenant",
+        "motivo": "Ampliar cobertura de empresa_id, autenticacao por tenant, uuid e upserts criticos",
+        "status": "pendente"
+      },
+      {
+        "ordem": 7,
+        "item": "Abrir o proximo marco oficial do backlog pos-P20",
+        "motivo": "Transformar a lista pendente em trilha executavel com prioridade formal",
+        "status": "pendente"
+      },
+      {
+        "ordem": 8,
+        "item": "Endurecer a operacao bidirecional em producao",
+        "motivo": "Complementar a entrega inicial com HTTPS obrigatorio de borda, rotacao operacional de tokens locais, IP allowlist real e sync ponta a ponta",
+        "status": "pendente"
+      },
+      {
+        "ordem": 9,
+        "item": "Ampliar o painel central para a frota inteira de APIs conectadas",
+        "motivo": "Transformar o sync-admin em console SaaS real para descoberta e administracao remota multi-tenant",
+        "status": "concluido"
+      }
+    ],
+    "riscos_conhecidos": [
+      "API de memoria primaria indisponivel em http://127.0.0.1:8080/health",
+      "Readiness fim a fim da cadeia produtiva ainda pendente de fechamento operacional",
+      "Runbooks recorrentes de deploy, rotacao de chaves e recuperacao ainda nao consolidados"
+    ]
+  },
+  "coexistencia": {
+    "pasta_top_level": "cerebro_vivo",
+    "pasta_historica": ".cerebro-vivo",
+    "regra": "A pasta top-level resume e aponta; a pasta oculta preserva a base operacional detalhada."
+  },
+  "atualizado_em": "2026-04-21"
+}

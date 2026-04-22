@@ -2,12 +2,19 @@
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-3">
   <h3>Registros recebidos</h3>
-  <a class="btn btn-outline-primary btn-sm" href="/records/export.csv">Exportar CSV</a>
+  <div class="d-flex gap-2 flex-wrap">
+    <a class="btn btn-outline-primary btn-sm" href="/records/export.csv?search={{ search }}&record_type={{ record_type }}&company_code={{ company_code }}&branch_code={{ branch_code }}&terminal_code={{ terminal_code }}">CSV</a>
+    <a class="btn btn-outline-primary btn-sm" href="/records/export.xlsx?search={{ search }}&record_type={{ record_type }}&company_code={{ company_code }}&branch_code={{ branch_code }}&terminal_code={{ terminal_code }}">XLSX</a>
+    <a class="btn btn-outline-primary btn-sm" href="/records/export.pdf?search={{ search }}&record_type={{ record_type }}&company_code={{ company_code }}&branch_code={{ branch_code }}&terminal_code={{ terminal_code }}">PDF</a>
+  </div>
 </div>
 <form class="row g-2 mb-3" method="get" action="/records">
-  <div class="col-md-4"><input class="form-control" name="search" placeholder="Busca" value="{{ search }}" /></div>
-  <div class="col-md-3"><input class="form-control" name="record_type" placeholder="Tipo" value="{{ record_type }}" /></div>
-  <div class="col-md-2"><button class="btn btn-primary w-100">Filtrar</button></div>
+  <div class="col-md-3"><input class="form-control" name="search" placeholder="Busca" value="{{ search }}" /></div>
+  <div class="col-md-2"><input class="form-control" name="record_type" placeholder="Tipo" value="{{ record_type }}" /></div>
+  <div class="col-md-2"><input class="form-control" name="company_code" placeholder="Empresa" value="{{ company_code }}" /></div>
+  <div class="col-md-2"><input class="form-control" name="branch_code" placeholder="Filial" value="{{ branch_code }}" /></div>
+  <div class="col-md-2"><input class="form-control" name="terminal_code" placeholder="Terminal" value="{{ terminal_code }}" /></div>
+  <div class="col-md-1"><button class="btn btn-primary w-100">Filtrar</button></div>
 </form>
 <div class="table-responsive card p-2">
 <table class="table table-sm table-hover align-middle">

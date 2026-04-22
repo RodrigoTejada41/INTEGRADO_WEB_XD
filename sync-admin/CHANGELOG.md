@@ -1,4 +1,4 @@
-﻿# Registro de Mudanças
+# Registro de Mudanças
 
 ## v0.2.0 - 2026-04-16
 
@@ -7,7 +7,7 @@
 - Cadastro e listagem de usuários dentro do painel.
 - Correções de tratamento de caminhos para estabilidade de testes e importação no Windows.
 - Base no backend para gerenciamento de configuração de origem e destino por tenant.
-- Suporte a scheduler por tenant no backend com intervalos persistidos em origem.
+- Suporte a scheduler por tenant com intervalos persistidos em origem.
 - Fila persistente de sync e worker dedicado para processar a execução.
 - Configurações de conectores criptografadas em repouso antes do armazenamento.
 - Execução real de conectores de origem adicionada ao worker do backend.
@@ -16,7 +16,7 @@
 - O painel passou a exibir contadores da fila, jobs mortos e ação manual de retry para administradores.
 - O painel e a página de configurações passaram a exibir métricas de entrega em destinos e status de destinos.
 - A página de configurações passou a exibir a trilha de auditoria com detalhes de ator e ação.
-- Suíte completa estabilizada em `12 passed`.
+- Suíte completa estabilizada em `13 passed`.
 
 ### Planejado
 - Isolamento multiempresa entre empresa, filial e terminal.
@@ -49,7 +49,5 @@
 - Fluxograma operacional atual: `docs/13-FLUXOGRAMA-ATUAL.md`.
 
 ### Observações
-- `CEREBRO_VIVO` definido como base de consulta (fora da ingestão do projeto).
+- `CEREBRO_VIVO` definido como base de consulta fora da ingestão do projeto.
 - Fonte de processamento focada em `ENGENHARIA_REVERSA`.
-
-

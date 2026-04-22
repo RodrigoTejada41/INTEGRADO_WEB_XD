@@ -31,6 +31,8 @@ class TenantConfigResponse(BaseModel):
     settings: dict[str, str]
     ativo: bool
     last_run_at: datetime | None
+    last_scheduled_at: datetime | None
+    next_run_at: datetime | None
     last_status: str
     last_error: str | None
     created_at: datetime

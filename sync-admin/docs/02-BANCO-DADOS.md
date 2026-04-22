@@ -1,32 +1,28 @@
-﻿# Banco de Dados
+# Banco de Dados
 
-## Tecnologia
-- PostgreSQL 16 (container `sync_db`).
-- ORM SQLAlchemy 2.x.
+## Description
+Página legada de navegação para a documentação de banco de dados do `sync-admin`.
 
-## Tabelas principais
+## Structure
+- [`modules/README.md`](./modules/README.md)
+- [`modules/database-and-models.md`](./modules/database-and-models.md)
+- [`modules/repositories.md`](./modules/repositories.md)
+- `app/models/`
+- `app/repositories/`
 
-### `users`
-- Autenticacao do painel.
-- Campos: `username`, `password_hash`, `role`, `is_active`, `last_login_at`.
+## Integrations
+- PostgreSQL 16
+- SQLAlchemy 2.x
+- Schema bootstrap no startup
 
-### `integration_keys`
-- Chaves de integracao para API externa.
-- Campos: `key_hash`, `key_prefix`, `is_active`, `last_used_at`.
+## Flow
+1. Consulte o módulo de modelos para o domínio persistente.
+2. Consulte o módulo de repositórios para as consultas.
+3. Use esta página apenas como ponte de navegação.
 
-### `sync_batches`
-- Cabecalho de cada envio recebido.
-- Campos: `external_batch_id`, `company_code`, `branch_code`, `terminal_code`, `source_ip`, `status`, `records_received`, `payload_hash`, `error_message`, `received_at`.
+## Critical Points
+- Não duplicar o esquema aqui.
+- Não reexplicar o que já está nos módulos.
 
-### `sync_records`
-- Registros individuais por lote.
-- Campos: `batch_id`, `record_key`, `record_type`, `event_time`, `payload_json`, `created_at`.
-
-## Relacoes
-- `sync_batches (1) -> (N) sync_records`.
-
-## Inicializacao
-- No startup da API:
-  - cria schema (`Base.metadata.create_all`).
-  - garante admin inicial.
-  - garante chave de integracao inicial.
+## Tests
+- Verificar persistência via integração e cobertura de repositórios.

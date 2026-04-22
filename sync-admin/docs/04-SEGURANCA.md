@@ -1,24 +1,28 @@
-﻿# Segurança
+# Segurança
 
-## Painel web
-- Login via formulário (`/login`).
-- Sessão com `SessionMiddleware`.
-- Rotas administrativas protegidas por sessão (`require_web_user`).
-- Senhas armazenadas com hash `bcrypt` (`passlib`).
+## Description
+Página legada de navegação para os controles de autenticação, autorização e hashing do `sync-admin`.
 
-## API de integração
-- Autenticação por chave no header `X-API-Key`.
-- Chave armazenada com hash SHA-256 em `integration_keys`.
-- Último uso da chave registrado (`last_used_at`).
+## Structure
+- [`modules/README.md`](./modules/README.md)
+- [`modules/core-infrastructure.md`](./modules/core-infrastructure.md)
+- [`modules/web-ui.md`](./modules/web-ui.md)
+- [`modules/api.md`](./modules/api.md)
 
-## Boas práticas aplicadas
-- Segredos em `.env`.
-- Separação entre camada de autenticação e de negócio.
-- Validação estrita de entrada por schemas.
+## Integrations
+- bcrypt
+- JWT
+- Session middleware
+- `X-API-Key`
 
-## Recomendações de fortalecimento na próxima fase
-- HTTPS obrigatório (TLS no Nginx).
-- Rotação de API key e trilha de revogação.
-- Proteção CSRF para formulários web.
-- Limitação de taxa para a rota de ingestão.
-- Auditoria dedicada para ações administrativas.
+## Flow
+1. Consulte o módulo de infraestrutura para os helpers de segurança.
+2. Consulte o módulo web para sessão e autorização.
+3. Use esta página como ponto de navegação.
+
+## Critical Points
+- Não duplicar regras de segurança aqui.
+- O endurecimento futuro deve entrar nos módulos apropriados.
+
+## Tests
+- Login, sessão, role checks e rejeição de chave inválida.

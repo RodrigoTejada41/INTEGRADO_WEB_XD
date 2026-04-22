@@ -15,7 +15,7 @@ O agente deve atuar com foco em:
 
 ## Especialistas disponíveis
 
-### 1. DBA (Banco de Dados)
+### 1. DBA
 - MySQL, MariaDB, PostgreSQL
 - Modelagem de dados, normalização e performance
 - Índices, queries otimizadas e tuning

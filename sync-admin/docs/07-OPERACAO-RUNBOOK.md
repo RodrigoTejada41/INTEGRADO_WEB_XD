@@ -1,24 +1,26 @@
-﻿# Runbook Operacional
+# Runbook Operacional
 
-## Operacao diaria
-1. Verificar health endpoint.
-2. Verificar ultimos lotes no dashboard.
-3. Verificar falhas em `/history`.
-4. Exportar CSV quando necessario.
+## Description
+Página legada de navegação para a operação diária do `sync-admin`.
 
-## Comandos uteis
-```powershell
-docker compose --env-file .env ps
-docker compose --env-file .env logs api --tail 200
-docker compose --env-file .env logs web --tail 200
-docker compose --env-file .env logs db --tail 200
-```
+## Structure
+- [`modules/README.md`](./modules/README.md)
+- [`modules/deployment-and-operations.md`](./modules/deployment-and-operations.md)
+- [`modules/web-ui.md`](./modules/web-ui.md)
 
-## Backup
-- Banco: dump diario do PostgreSQL.
-- Configuracao: versionar `docker-compose.yml`, `nginx/default.conf`, docs.
+## Integrations
+- Health check
+- Dashboard
+- Logs
+- Backup
 
-## Recuperacao
-1. Restaurar dump no PostgreSQL.
-2. Reaplicar `.env`.
-3. Rebuild e subida com `docker compose up -d --build`.
+## Flow
+1. Consulte o módulo de operações para o runbook técnico.
+2. Use esta página apenas como referência rápida.
+
+## Critical Points
+- O runbook detalhado deve ficar em um só lugar.
+- Evitar instruções repetidas.
+
+## Tests
+- Health e acesso ao painel.

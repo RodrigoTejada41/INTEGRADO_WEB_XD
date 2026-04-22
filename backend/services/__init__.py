@@ -1,10 +1,7 @@
-from backend.services.admin_service import AdminService
-from backend.services.tenant_audit_service import TenantAuditService
-from backend.services.tenant_destination_dispatcher import TenantDestinationDispatcher
-from backend.services.retention_service import RetentionService
-from backend.services.server_settings_service import ServerSettingsService
-from backend.services.sync_service import SyncService
-from backend.services.tenant_service import TenantService
+from __future__ import annotations
+
+from importlib import import_module
+from typing import Any
 
 __all__ = [
     "AdminService",
@@ -13,5 +10,25 @@ __all__ = [
     "SyncService",
     "TenantAuditService",
     "TenantDestinationDispatcher",
+    "TenantReportService",
     "TenantService",
 ]
+
+_SERVICE_MODULES = {
+    "AdminService": "backend.services.admin_service",
+    "RetentionService": "backend.services.retention_service",
+    "ServerSettingsService": "backend.services.server_settings_service",
+    "SyncService": "backend.services.sync_service",
+    "TenantAuditService": "backend.services.tenant_audit_service",
+    "TenantDestinationDispatcher": "backend.services.tenant_destination_dispatcher",
+    "TenantReportService": "backend.services.tenant_report_service",
+    "TenantService": "backend.services.tenant_service",
+}
+
+
+def __getattr__(name: str) -> Any:
+    module_name = _SERVICE_MODULES.get(name)
+    if module_name is None:
+        raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+    module = import_module(module_name)
+    return getattr(module, name)

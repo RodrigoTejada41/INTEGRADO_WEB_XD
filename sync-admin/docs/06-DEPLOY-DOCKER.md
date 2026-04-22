@@ -1,34 +1,28 @@
-﻿# Deploy com Docker
+# Deploy com Docker
 
-## Arquivos
-- `Dockerfile`
+## Description
+Página legada de navegação para execução containerizada do `sync-admin`.
+
+## Structure
+- [`modules/README.md`](./modules/README.md)
+- [`modules/deployment-and-operations.md`](./modules/deployment-and-operations.md)
 - `docker-compose.yml`
+- `Dockerfile`
 - `nginx/default.conf`
 
-## Servicos
-- `db` -> PostgreSQL
-- `api` -> FastAPI
-- `web` -> Nginx
+## Integrations
+- PostgreSQL
+- FastAPI
+- Nginx
+- `scripts/init_db.py`
 
-## Subida local
-```powershell
-cd sync-admin
-Copy-Item .env.example .env
-docker compose --env-file .env up -d --build
-```
+## Flow
+1. Consulte o módulo de operações para detalhes do runtime.
+2. Use esta página como atalho de navegação.
 
-## Verificacao
-```powershell
-docker compose --env-file .env ps
-```
+## Critical Points
+- Evitar duplicar instruções de deploy.
+- Preservar os comandos oficiais apenas em um local.
 
-## Acesso
-- Painel: `http://localhost:8080/login`
-- Health: `http://localhost:8080/health`
-
-## Variaveis sensiveis
-Configurar no `.env`:
-- `SECRET_KEY`
-- `DATABASE_URL`
-- `INITIAL_ADMIN_PASSWORD`
-- `INTEGRATION_API_KEY`
+## Tests
+- Subida do compose e verificação de health.

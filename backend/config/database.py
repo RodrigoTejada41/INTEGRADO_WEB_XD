@@ -11,10 +11,12 @@ settings = get_settings()
 
 sqlite3.register_adapter(datetime, lambda value: value.isoformat(sep=" "))
 
+connect_args = {"check_same_thread": False} if settings.database_url.startswith("sqlite") else {}
 engine = create_engine(
     settings.database_url,
     pool_pre_ping=True,
     future=True,
+    connect_args=connect_args,
 )
 SessionLocal = sessionmaker(
     bind=engine,

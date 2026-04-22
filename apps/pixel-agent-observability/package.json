@@ -1,0 +1,56 @@
+{
+  "name": "pixel-agent-observability",
+  "displayName": "Pixel Agent Observability",
+  "description": "Observability and control center for Pixel Agent-like systems using black-box integration.",
+  "version": "0.1.0",
+  "publisher": "integrado-web-xd",
+  "engines": {
+    "vscode": "^1.95.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "activationEvents": [
+    "onStartupFinished",
+    "onCommand:pixelObservability.openDashboard",
+    "onCommand:pixelObservability.refresh",
+    "onCommand:pixelObservability.safeStart",
+    "onCommand:pixelObservability.safeStop"
+  ],
+  "main": "./dist/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "pixelObservability.openDashboard",
+        "title": "Pixel Observability: Open Dashboard"
+      },
+      {
+        "command": "pixelObservability.refresh",
+        "title": "Pixel Observability: Refresh Sources"
+      },
+      {
+        "command": "pixelObservability.safeStart",
+        "title": "Pixel Observability: Safe Start Agent"
+      },
+      {
+        "command": "pixelObservability.safeStop",
+        "title": "Pixel Observability: Safe Stop Agent"
+      }
+    ]
+  },
+  "scripts": {
+    "build": "tsc -p .",
+    "watch": "tsc -w -p .",
+    "test": "npm run build && node --test dist/test/**/*.test.js"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "@types/vscode": "^1.95.0",
+    "@types/ws": "^8.5.13",
+    "typescript": "^5.7.2"
+  },
+  "dependencies": {
+    "chokidar": "^4.0.3",
+    "ws": "^8.18.0"
+  }
+}

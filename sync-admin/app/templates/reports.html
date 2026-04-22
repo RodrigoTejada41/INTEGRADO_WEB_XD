@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+{% block content %}
+{% set report_title = "Relatorios operacionais" %}
+{% set report_heading = "Visao consolidada de vendas sincronizadas" %}
+{% set report_description = "Acompanhe volume, valor, tendencia diaria e concentracao por produto sem sair do console administrativo." %}
+{% set report_company_label = overview.empresa_id %}
+{% set report_root_path = "/reports" %}
+{% set export_base_path = "/reports" %}
+{% include "partials/report_dashboard_content.html" %}
+{% endblock %}

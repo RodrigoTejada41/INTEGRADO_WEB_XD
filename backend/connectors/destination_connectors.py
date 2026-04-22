@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session, sessionmaker
 
 from backend.repositories.venda_repository import VendaRepository
 from backend.connectors.discovery import discover_connector_classes
+from backend.utils.settings_resolver import resolve_runtime_settings
 
 
 @dataclass(frozen=True)
@@ -37,6 +38,7 @@ class PostgreSQLDestinationConnector(DestinationConnector):
         empresa_id: str,
         records: list[dict],
     ) -> DestinationDeliveryResult:
+        settings = resolve_runtime_settings(settings)
         destination_url = (
             settings.get("database_url")
             or settings.get("postgresql_url")

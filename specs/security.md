@@ -1,10 +1,10 @@
-﻿# Especificação de Segurança
+# Especificação de Segurança
 
-> Esta especificação deve ser interpretada junto com [`PROTOCOLO_ESPECIALISTAS.md`](../PROTOCOLO_ESPECIALISTAS.md) quando usada por um agente neste repositório.
+> Leia esta especificação junto com [`CEREBRO_VIVO.md`](../CEREBRO_VIVO.md) e [`PROTOCOLO_ESPECIALISTAS.md`](../PROTOCOLO_ESPECIALISTAS.md).
 
 ## Autenticação
 
-- API KEY por empresa
+- API key por empresa
 
 ## Validação
 

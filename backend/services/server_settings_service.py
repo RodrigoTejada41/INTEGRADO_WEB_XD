@@ -9,6 +9,7 @@ class ServerSettingsService:
         "max_batch_size": "1000",
         "retention_mode": "archive",
         "retention_months": "14",
+        "connection_secrets_file": "output/tenant_connection_secrets.json",
     }
 
     def __init__(self, repository: ServerSettingRepository, app_settings: Settings | None = None):
@@ -25,6 +26,8 @@ class ServerSettingsService:
                     default_value = str(self.app_settings.retention_months)
                 if key == "max_batch_size":
                     default_value = str(self.app_settings.batch_max_size)
+                if key == "connection_secrets_file":
+                    default_value = self.app_settings.connection_secrets_file
                 self.repository.upsert(key, str(default_value))
 
     def get_settings(self) -> ServerSettingsResponse:
@@ -35,6 +38,10 @@ class ServerSettingsService:
             max_batch_size=int(current.get("max_batch_size", "1000")),
             retention_mode=current.get("retention_mode", "archive"),
             retention_months=int(current.get("retention_months", "14")),
+            connection_secrets_file=current.get(
+                "connection_secrets_file",
+                self.app_settings.connection_secrets_file,
+            ),
         )
 
     def update_settings(self, payload: ServerSettingsUpdateRequest) -> ServerSettingsResponse:
@@ -42,5 +49,5 @@ class ServerSettingsService:
         self.repository.upsert("max_batch_size", str(payload.max_batch_size))
         self.repository.upsert("retention_mode", payload.retention_mode)
         self.repository.upsert("retention_months", str(payload.retention_months))
+        self.repository.upsert("connection_secrets_file", payload.connection_secrets_file)
         return self.get_settings()
-

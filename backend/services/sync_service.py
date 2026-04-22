@@ -11,10 +11,12 @@ class SyncService:
         venda_repository: VendaRepository,
         ingestion_enabled: bool = True,
         max_batch_size: int = 1000,
+        chunk_size: int = 250,
     ):
         self.venda_repository = venda_repository
         self.ingestion_enabled = ingestion_enabled
         self.max_batch_size = max_batch_size
+        self.chunk_size = max(1, chunk_size)
 
     def sync_batch(self, tenant_empresa_id: str, payload: SyncRequest) -> SyncResponse:
         if not self.ingestion_enabled:
@@ -40,6 +42,8 @@ class SyncService:
             records.append(
                 {
                     "uuid": str(record.uuid),
+                    "branch_code": record.branch_code,
+                    "terminal_code": record.terminal_code,
                     "produto": record.produto,
                     "valor": record.valor,
                     "data": record.data,
@@ -50,6 +54,7 @@ class SyncService:
         inserted_count, updated_count = self.venda_repository.bulk_upsert(
             empresa_id=tenant_empresa_id,
             records=records,
+            chunk_size=self.chunk_size,
         )
         metrics_registry.record_sync_success(
             empresa_id=tenant_empresa_id,

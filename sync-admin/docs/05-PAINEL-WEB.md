@@ -1,25 +1,28 @@
-﻿# Painel Web
+# Painel Web
 
-## Rotas
-- `/login`
-- `/dashboard`
-- `/records`
-- `/history`
-- `/settings`
+## Description
+Página legada de navegação para a interface administrativa do `sync-admin`.
 
-## Funcionalidades implementadas
-- Painel com cards de resumo:
-  - total de registros
-  - último recebimento
-  - status da API
-  - quantidade de falhas
-- Gráfico de movimentação diária com Chart.js.
-- Tabela de registros com busca, filtro e paginação.
-- Histórico de sincronizações com status e erro.
-- Exportação CSV em `/records/export.csv`.
+## Structure
+- [`modules/README.md`](./modules/README.md)
+- [`modules/web-ui.md`](./modules/web-ui.md)
+- `app/web/routes/pages.py`
+- `app/templates/`
+- `app/static/`
 
-## UI/UX
-- Layout administrativo responsivo.
-- Sidebar lateral.
-- Estilo limpo com Bootstrap + CSS custom.
+## Integrations
+- Jinja2
+- Session middleware
+- Dashboard service
+- Control service
 
+## Flow
+1. Use o módulo web para detalhes da UI.
+2. Use esta página como ponte documental.
+
+## Critical Points
+- Não repetir a descrição das telas aqui.
+- Preservar a navegação entre painel, registros e configurações.
+
+## Tests
+- Login, dashboard, records, history e settings.

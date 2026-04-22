@@ -9,6 +9,7 @@ from backend.models.tenant_destination_config import TenantDestinationConfig
 from backend.repositories.tenant_config_repository import TenantConfigRepository
 from backend.utils.crypto import decrypt_json
 from backend.utils.metrics import metrics_registry
+from backend.utils.settings_resolver import resolve_runtime_settings
 
 logger = logging.getLogger(__name__)
 
@@ -30,7 +31,7 @@ class TenantDestinationDispatcher:
                 return 0
 
             for config in configs:
-                settings = decrypt_json(config.settings_json)
+                settings = resolve_runtime_settings(decrypt_json(config.settings_json))
                 connector = self.connector_registry.get(config.connector_type)
                 try:
                     result = connector.deliver_records(

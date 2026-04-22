@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src {{STYLE_URI}}; script-src 'nonce-{{NONCE}}';" />
+    <link rel="stylesheet" href="{{STYLE_URI}}" />
+    <title>Pixel Agent Observability</title>
+  </head>
+  <body>
+    <header class="header">
+      <div>
+        <h1>Pixel Agent Observability</h1>
+        <p>Control center for black-box agent monitoring</p>
+      </div>
+      <div id="health" class="health"></div>
+    </header>
+
+    <main class="layout">
+      <section class="panel filters-panel">
+        <h2>Filters</h2>
+        <div class="filters-grid">
+          <label class="filter-field">
+            <span>Search (agent/task/log)</span>
+            <input id="filterText" type="text" placeholder="pixel-agent-1, sync, error..." />
+          </label>
+          <label class="filter-field">
+            <span>Status</span>
+            <select id="filterStatus">
+              <option value="all">all</option>
+              <option value="running">running</option>
+              <option value="idle">idle</option>
+              <option value="error">error</option>
+              <option value="done">done</option>
+              <option value="unknown">unknown</option>
+            </select>
+          </label>
+          <label class="filter-field checkbox-field">
+            <input id="filterErrorsOnly" type="checkbox" />
+            <span>Only errors</span>
+          </label>
+        </div>
+      </section>
+
+      <section class="panel">
+        <h2>Agents Panel</h2>
+        <ul id="agents"></ul>
+      </section>
+
+      <section class="panel">
+        <h2>Logs Panel</h2>
+        <pre id="logs"></pre>
+      </section>
+
+      <section class="panel">
+        <h2>Details Panel</h2>
+        <div id="details"></div>
+        <h3>Execution Trace</h3>
+        <ul id="timeline"></ul>
+      </section>
+    </main>
+
+    <script nonce="{{NONCE}}" src="{{SCRIPT_URI}}"></script>
+  </body>
+</html>

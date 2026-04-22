@@ -1,0 +1,88 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h3 class="mb-0">APIs Conectadas</h3>
+  <small class="text-muted">Painel central para acompanhar e administrar instancias remotas registradas</small>
+</div>
+
+<form method="get" class="card p-3 mb-4">
+  <div class="row g-2 align-items-end">
+    <div class="col-md-3">
+      <label class="form-label">Empresa</label>
+      <input class="form-control" type="text" name="empresa_id" value="{{ empresa_id }}" placeholder="12345678000199" />
+    </div>
+    <div class="col-md-3">
+      <label class="form-label">Status</label>
+      <select class="form-select" name="status_filter">
+        <option value="">Todos</option>
+        <option value="online" {% if status_filter == 'online' %}selected{% endif %}>online</option>
+        <option value="error" {% if status_filter == 'error' %}selected{% endif %}>error</option>
+      </select>
+    </div>
+    <div class="col-md-4">
+      <label class="form-label">Busca</label>
+      <input class="form-control" type="text" name="search" value="{{ search }}" placeholder="hostname, client_id, empresa ou CNPJ" />
+    </div>
+    <div class="col-md-2 d-flex gap-2">
+      <button class="btn btn-primary" type="submit">Filtrar</button>
+      <a class="btn btn-outline-secondary" href="/connected-apis">Limpar</a>
+    </div>
+  </div>
+</form>
+
+<div class="row g-3 mb-4">
+  <div class="col-md-3"><div class="card p-3"><small>Total</small><h4>{{ fleet_summary.total_clients }}</h4></div></div>
+  <div class="col-md-3"><div class="card p-3"><small>Online</small><h4 class="text-success">{{ fleet_summary.online_clients }}</h4></div></div>
+  <div class="col-md-3"><div class="card p-3"><small>Erro</small><h4 class="text-danger">{{ fleet_summary.error_clients }}</h4></div></div>
+  <div class="col-md-3"><div class="card p-3"><small>Empresas</small><h4>{{ fleet_summary.unique_empresas }}</h4></div></div>
+</div>
+
+<div class="card p-3">
+  <div class="table-responsive">
+    <table class="table table-sm table-striped align-middle">
+      <thead>
+        <tr>
+          <th>CNPJ</th>
+          <th>Empresa</th>
+          <th>Hostname</th>
+          <th>Status</th>
+          <th>Endpoint</th>
+          <th>Ultimo sync</th>
+          <th>Ultimo poll</th>
+          <th class="text-end">Acoes</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for client in clients %}
+        <tr>
+          <td><code>{{ client.empresa_id }}</code></td>
+          <td>{{ client.empresa_nome or '-' }}</td>
+          <td>{{ client.hostname }}</td>
+          <td>
+            {% if client.status == 'online' %}
+            <span class="badge text-bg-success">{{ client.status }}</span>
+            {% elif client.status == 'error' %}
+            <span class="badge text-bg-danger">{{ client.status }}</span>
+            {% else %}
+            <span class="badge text-bg-secondary">{{ client.status }}</span>
+            {% endif %}
+          </td>
+          <td>{{ client.endpoint_url or '-' }}</td>
+          <td>{{ client.last_sync_at or '-' }}</td>
+          <td>{{ client.last_command_poll_at or '-' }}</td>
+          <td>
+            <div class="d-flex justify-content-end gap-2">
+              <a class="btn btn-sm btn-outline-secondary" href="/reports?empresa_id={{ client.empresa_id }}">Relatorios</a>
+              <a class="btn btn-sm btn-outline-primary" href="/connected-apis/{{ client.id }}">Abrir</a>
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+        {% if clients|length == 0 %}
+        <tr><td colspan="8" class="text-muted">Nenhuma API conectada encontrada para o filtro atual.</td></tr>
+        {% endif %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

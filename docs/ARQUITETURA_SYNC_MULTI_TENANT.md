@@ -1,4 +1,6 @@
-﻿# Arquitetura Multi-Tenant da Sincronização
+# Arquitetura Multi-Tenant da Sincronização
+
+> Leia este documento junto com [`PROJECT_STRUCTURE_SYNC.md`](./PROJECT_STRUCTURE_SYNC.md), [`CEREBRO_VIVO.md`](../CEREBRO_VIVO.md) e [`PROTOCOLO_ESPECIALISTAS.md`](../PROTOCOLO_ESPECIALISTAS.md).
 
 ## Estrutura
 
@@ -38,3 +40,7 @@
   - `POST /admin/tenants/{empresa_id}/rotate-key`
 
 ## Observabilidade
+
+- Métricas de sync e de entrega por tenant expostas na API.
+- Auditoria administrativa persistida para rastrear alterações de configuração.
+- Jobs do scheduler e do worker registrados por tenant.

@@ -1,22 +1,22 @@
-﻿# Especificação de Sincronização
+# Especificação de Sincronização
 
-> Esta especificação deve ser interpretada junto com [`PROTOCOLO_ESPECIALISTAS.md`](../PROTOCOLO_ESPECIALISTAS.md) quando usada por um agente neste repositório.
+> Leia esta especificação junto com [`CEREBRO_VIVO.md`](../CEREBRO_VIVO.md) e [`PROTOCOLO_ESPECIALISTAS.md`](../PROTOCOLO_ESPECIALISTAS.md).
 
 ## Estratégia
 
-- Incremental sync
-- Based on data_atualizacao
+- Sincronização incremental
+- Baseada em `data_atualizacao`
 
 ## Frequência
 
-- Every 15 minutes
+- A cada 15 minutos
 
 ## Regras
 
-- No duplicate data
-- Use UUID
-- Use UPSERT
+- Não duplicar dados
+- Usar UUID
+- Usar UPSERT
 
 ## Resolução de conflitos
 
-- Latest data wins
+- O dado mais recente prevalece

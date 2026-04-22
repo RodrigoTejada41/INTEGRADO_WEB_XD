@@ -1,57 +1,26 @@
-﻿# Fluxograma Atual
+# Fluxograma Atual
 
-## Fluxo funcional (alto nível)
+## Description
+Página legada de navegação para os fluxos do `sync-admin`.
 
-```mermaid
-flowchart LR
-    A[Sistema Local<br/>Extrai MariaDB] -->|POST /api/sync-data<br/>X-API-Key| B[sync_web<br/>Nginx]
-    B --> C[sync_api<br/>FastAPI]
-    C --> D{Valida API Key<br/>e payload}
-    D -->|Invalido| E[Resposta 401/422]
-    D -->|Valido| F[Grava sync_batches]
-    F --> G[Grava sync_records]
-    G --> H[Resposta 200 OK]
-    C --> I[(sync_db<br/>PostgreSQL)]
-    J[Painel Web] --> B
-    B --> C
-    C --> K[Painel / Registros / Histórico]
-    K --> I
-```
+## Structure
+- [`modules/api.md`](./modules/api.md)
+- [`modules/web-ui.md`](./modules/web-ui.md)
+- [`modules/services.md`](./modules/services.md)
 
-## Fluxo de autenticação do painel
+## Integrations
+- Sync API
+- Painel web
+- Banco de dados
 
-```mermaid
-flowchart TD
-    A[Usuário acessa /login] --> B[Envia usuário/senha]
-    B --> C[AuthService valida hash]
-    C -->|Falha| D[Retorna login com erro]
-    C -->|Sucesso| E[Cria sessão]
-    E --> F[Redireciona /dashboard]
-    F --> G[Rotas protegidas por require_web_user]
-```
+## Flow
+1. O lote entra pela API.
+2. O painel consome o estado agregado.
+3. O usuário navega pelas telas administrativas.
 
-## Fluxo de persistência da sincronização
+## Critical Points
+- O fluxograma detalhado deve ficar em um só ponto.
+- Esta página deve apenas encaminhar para os módulos.
 
-```mermaid
-flowchart TD
-    A[Payload recebido] --> B[Calcula payload_hash]
-    B --> C[Cria SyncBatch]
-    C --> D[Itera records]
-    D --> E[Cria SyncRecord por item]
-    E --> F[Commit]
-    F --> G[Retorna batch_id + records_received]
-```
-
-## Pontos de controle
-- Entrada API: `POST /api/sync-data`
-- Saúde: `GET /health`
-- Painel: `/login`, `/dashboard`, `/records`, `/history`, `/settings`
-- Banco:
-  - `sync_batches` para histórico do envio
-  - `sync_records` para dados detalhados
-
-## Onde paramos
-- Fluxo completo ponta a ponta implementado e validado localmente.
-- Ambiente Docker com 3 serviços operacional.
-- Documentação de operação e diagnóstico finalizada.
-
+## Tests
+- Conferir consistência com API, UI e serviços.

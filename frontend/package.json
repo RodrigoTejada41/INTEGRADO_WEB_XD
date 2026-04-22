@@ -1,0 +1,9 @@
+{
+  "name": "integrado-web-xd-frontend-compat",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Compatibility scaffold that documents the existing sync-admin panel structure.",
+  "scripts": {
+    "docs": "node -e \"console.log('Frontend compatibility scaffold: source of truth is sync-admin/.')\""
+  }
+}

@@ -2,6 +2,8 @@ CREATE TABLE IF NOT EXISTS tenants (
     empresa_id VARCHAR(32) PRIMARY KEY,
     nome VARCHAR(120) NOT NULL,
     api_key_hash VARCHAR(128) NOT NULL,
+    api_key_last_rotated_at TIMESTAMPTZ NULL,
+    api_key_expires_at TIMESTAMPTZ NULL,
     ativo BOOLEAN NOT NULL DEFAULT TRUE,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()

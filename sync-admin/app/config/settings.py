@@ -25,6 +25,16 @@ class Settings(BaseSettings):
     control_empresa_nome: str = Field(default='Empresa XD', alias='CONTROL_EMPRESA_NOME')
     agent_api_key_file: str = Field(default='/shared/agent_api_key.txt', alias='AGENT_API_KEY_FILE')
     agent_audit_file: str = Field(default='/shared/agent_audit.log', alias='AGENT_AUDIT_FILE')
+    local_control_token: str | None = Field(default=None, alias='LOCAL_CONTROL_TOKEN')
+    local_control_token_file: str = Field(default='./output/local_control_token.txt', alias='LOCAL_CONTROL_TOKEN_FILE')
+    local_control_token_expiration_days: int = Field(default=90, alias='LOCAL_CONTROL_TOKEN_EXPIRATION_DAYS')
+    local_endpoint_url: str = Field(default='http://127.0.0.1:8000', alias='LOCAL_ENDPOINT_URL')
+    remote_control_token_header: str = Field(default='X-Local-Token', alias='REMOTE_CONTROL_TOKEN_HEADER')
+    remote_control_allowed_ips: str = Field(default='', alias='REMOTE_CONTROL_ALLOWED_IPS')
+    remote_command_pull_enabled: bool = Field(default=True, alias='REMOTE_COMMAND_PULL_ENABLED')
+    remote_command_pull_interval_seconds: int = Field(default=30, alias='REMOTE_COMMAND_PULL_INTERVAL_SECONDS')
+    remote_registration_interval_seconds: int = Field(default=300, alias='REMOTE_REGISTRATION_INTERVAL_SECONDS')
+    sync_default_interval_minutes: int = Field(default=15, alias='SYNC_DEFAULT_INTERVAL_MINUTES')
 
     log_level: str = 'INFO'
 

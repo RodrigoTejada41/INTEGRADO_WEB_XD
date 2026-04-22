@@ -1,0 +1,65 @@
+name: Deploy Production VPS (Self-Hosted)
+
+on:
+  workflow_dispatch:
+
+# Variante operacional preservada apenas para cenarios em que o deploy
+# precisa sair de um runner local controlado.
+
+jobs:
+  deploy:
+    runs-on: [self-hosted, windows, x64, integrado-web-xd, deploy-local]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure SSH key
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          $sshDir = Join-Path $HOME ".ssh"
+          New-Item -ItemType Directory -Force -Path $sshDir | Out-Null
+          $privateKeyPath = Join-Path $sshDir "id_ed25519"
+          Set-Content -Path $privateKeyPath -Value "${{ secrets.VPS_SSH_KEY_LOCAL }}" -NoNewline
+
+      - name: Trust VPS host key
+        shell: pwsh
+        env:
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+          VPS_PORT: ${{ secrets.VPS_PORT }}
+          VPS_HOST_PUBLIC_KEY: ${{ secrets.VPS_HOST_PUBLIC_KEY }}
+        run: |
+          $ErrorActionPreference = "Stop"
+          if ([string]::IsNullOrWhiteSpace($env:VPS_HOST)) {
+            throw "Secret VPS_HOST nao definido."
+          }
+          $port = if ([string]::IsNullOrWhiteSpace($env:VPS_PORT)) { "22" } else { $env:VPS_PORT }
+          $sshDir = Join-Path $HOME ".ssh"
+          $knownHostsPath = Join-Path $sshDir "known_hosts"
+          if (-not [string]::IsNullOrWhiteSpace($env:VPS_HOST_PUBLIC_KEY)) {
+            $entry = "[$($env:VPS_HOST)]:$port $($env:VPS_HOST_PUBLIC_KEY)"
+            Add-Content -Path $knownHostsPath -Value $entry
+            Write-Host "Host key fixa adicionada a known_hosts."
+          }
+          else {
+            Write-Warning "VPS_HOST_PUBLIC_KEY nao definido. Usando ssh-keyscan como fallback temporario."
+            $scan = & ssh-keyscan -p $port -H $env:VPS_HOST 2>$null
+            if ([string]::IsNullOrWhiteSpace($scan)) {
+              throw "Nao foi possivel obter host key via ssh-keyscan."
+            }
+            Add-Content -Path $knownHostsPath -Value $scan
+          }
+
+      - name: Deploy on VPS
+        shell: pwsh
+        env:
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+          VPS_USER: ${{ secrets.VPS_USER }}
+          VPS_PORT: ${{ secrets.VPS_PORT }}
+          VPS_APP_DIR: ${{ secrets.VPS_APP_DIR }}
+        run: |
+          $ErrorActionPreference = "Stop"
+          $port = if ([string]::IsNullOrWhiteSpace($env:VPS_PORT)) { "22" } else { $env:VPS_PORT }
+          $appDir = if ([string]::IsNullOrWhiteSpace($env:VPS_APP_DIR)) { "/opt/integrado_web_xd" } else { $env:VPS_APP_DIR }
+          ssh -p $port -o StrictHostKeyChecking=yes "$($env:VPS_USER)@$($env:VPS_HOST)" "export APP_DIR='$appDir'; bash '$appDir/infra/scripts/update.sh'"

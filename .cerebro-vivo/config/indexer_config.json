@@ -1,0 +1,240 @@
+{
+  "projects_root": "E:\\Projetos\\INTEGRADO_WEB_XD",
+  "vault_root": "E:\\Projetos\\INTEGRADO_WEB_XD",
+  "brain_folder_name": ".cerebro-vivo",
+  "tenant_id": "",
+  "prefer_local_knowledge": true,
+  "knowledge_priority": [
+    "local",
+    "indice",
+    "projetos",
+    "web"
+  ],
+  "relevant_extensions": [
+    ".py",
+    ".md",
+    ".txt",
+    ".json",
+    ".yaml",
+    ".yml",
+    ".ini",
+    ".cfg",
+    ".xml",
+    ".log"
+  ],
+  "relevant_filenames": [
+    "readme",
+    "readme.md",
+    "requirements.txt",
+    "pyproject.toml",
+    "package.json",
+    "docker-compose.yml",
+    "docker-compose.yaml",
+    "dockerfile",
+    ".env.example",
+    ".gitignore",
+    "claude.md"
+  ],
+  "ignore_dirs": [
+    ".git",
+    ".hg",
+    ".svn",
+    ".obsidian",
+    "__pycache__",
+    ".pytest_cache",
+    ".mypy_cache",
+    ".ruff_cache",
+    ".idea",
+    ".vs",
+    ".vscode",
+    "venv",
+    ".venv",
+    "node_modules",
+    "dist",
+    "build",
+    "obj",
+    "bin",
+    "coverage",
+    "target",
+    "release",
+    "debug",
+    "vendor",
+    "backup",
+    "backups"
+  ],
+  "ignore_extensions": [
+    ".pyc",
+    ".pyo",
+    ".pyd",
+    ".dll",
+    ".exe",
+    ".zip",
+    ".rar",
+    ".7z",
+    ".png",
+    ".jpg",
+    ".jpeg",
+    ".gif",
+    ".bmp",
+    ".ico",
+    ".pdf",
+    ".db",
+    ".db-shm",
+    ".db-wal",
+    ".mp3",
+    ".mp4",
+    ".avi",
+    ".mov",
+    ".woff",
+    ".woff2",
+    ".ttf",
+    ".otf",
+    ".class",
+    ".jar",
+    ".so",
+    ".dylib",
+    ".pak",
+    ".cache",
+    ".map",
+    ".baml",
+    ".vsidx",
+    ".hyb",
+    ".pyz",
+    ".toc"
+  ],
+  "exclude_paths": [
+    "E:\\Projetos\\INTEGRADO_WEB_XD\\.cerebro-vivo"
+  ],
+  "max_file_size_bytes": 1048576,
+  "max_files_per_project": 4000,
+  "max_snippet_lines": 80,
+  "max_snippets_per_project": 8,
+  "max_items_per_section": 20,
+  "web_retention_days": 420,
+  "learning_site_urls": [
+    "https://docs.python.org/3/",
+    "https://developer.mozilla.org/en-US/docs/Web/JavaScript",
+    "https://docs.docker.com/",
+    "https://owasp.org/www-project-top-ten/"
+  ],
+  "learning_github_repos": [
+    "https://github.com/EbookFoundation/free-programming-books",
+    "https://github.com/sindresorhus/awesome"
+  ],
+  "learning_topics": [
+    "python",
+    "javascript",
+    "devops",
+    "seguranca",
+    "arquitetura",
+    "observabilidade",
+    "cloud-native",
+    "release-engineering"
+  ],
+  "learning_source_sets": {
+    "seguranca": {
+      "site_urls": [
+        "https://owasp.org/www-project-top-ten/",
+        "https://cheatsheetseries.owasp.org/",
+        "https://www.cisa.gov/topics/cybersecurity"
+      ],
+      "github_repos": [
+        "https://github.com/OWASP/CheatSheetSeries",
+        "https://github.com/OWASP/Top10",
+        "https://github.com/karanshahare/cybersecurity-awesome"
+      ],
+      "topics": [
+        "seguranca",
+        "appsec",
+        "threat-modeling"
+      ]
+    },
+    "arquitetura": {
+      "site_urls": [
+        "https://learn.microsoft.com/azure/architecture/",
+        "https://martinfowler.com/architecture/"
+      ],
+      "github_repos": [
+        "https://github.com/donnemartin/system-design-primer",
+        "https://github.com/Resonant-C0re/awesome-architecture"
+      ],
+      "topics": [
+        "arquitetura",
+        "system-design",
+        "scalability"
+      ]
+    },
+    "banco_de_dados": {
+      "site_urls": [
+        "https://www.postgresql.org/docs/current/",
+        "https://sqlite.org/docs.html",
+        "https://dev.mysql.com/doc/"
+      ],
+      "github_repos": [
+        "https://github.com/learn-co-curriculum/sql-basics",
+        "https://github.com/microsoft/sql-server-samples"
+      ],
+      "topics": [
+        "sqlite",
+        "postgresql",
+        "mysql",
+        "indexacao",
+        "sql"
+      ]
+    },
+    "observabilidade": {
+      "site_urls": [
+        "https://opentelemetry.io/docs/",
+        "https://prometheus.io/docs/introduction/overview/",
+        "https://grafana.com/docs/"
+      ],
+      "github_repos": [
+        "https://github.com/open-telemetry/opentelemetry-python",
+        "https://github.com/prometheus/prometheus",
+        "https://github.com/grafana/grafana"
+      ],
+      "topics": [
+        "observabilidade",
+        "logging",
+        "metrics",
+        "tracing"
+      ]
+    },
+    "cloud_native": {
+      "site_urls": [
+        "https://kubernetes.io/docs/",
+        "https://helm.sh/docs/",
+        "https://docs.aws.amazon.com/wellarchitected/latest/framework/welcome.html"
+      ],
+      "github_repos": [
+        "https://github.com/kubernetes/kubernetes",
+        "https://github.com/helm/helm",
+        "https://github.com/kubernetes/website"
+      ],
+      "topics": [
+        "cloud-native",
+        "kubernetes",
+        "helm",
+        "containers"
+      ]
+    },
+    "release_engineering": {
+      "site_urls": [
+        "https://docs.github.com/actions",
+        "https://docs.gitlab.com/ci/",
+        "https://docs.bazel.build/"
+      ],
+      "github_repos": [
+        "https://github.com/actions/runner",
+        "https://github.com/gitlabhq/gitlabhq",
+        "https://github.com/bazelbuild/bazel"
+      ],
+      "topics": [
+        "release-engineering",
+        "ci",
+        "cd",
+        "automation"
+      ]
+    }
+  }
+}

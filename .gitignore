@@ -14,6 +14,7 @@ env/
 
 # Local configuration and secrets
 .env
+.env.prod
 
 # Generated databases and runtime artifacts
 output/

@@ -11,6 +11,7 @@ from sqlalchemy import create_engine, text
 from sqlalchemy.orm import Session, sessionmaker
 
 from backend.connectors.discovery import discover_connector_classes
+from backend.utils.settings_resolver import resolve_runtime_settings
 
 
 @dataclass(frozen=True)
@@ -42,6 +43,7 @@ class MariaDBSourceConnector(SourceConnector):
         since: datetime,
         limit: int,
     ) -> SourceFetchResult:
+        settings = resolve_runtime_settings(settings)
         source_url = settings.get("mariadb_url") or settings.get("database_url")
         if not source_url:
             raise RuntimeError("mariadb_url nao informado nas configuracoes da origem")
@@ -106,6 +108,7 @@ class ApiSourceConnector(SourceConnector):
         since: datetime,
         limit: int,
     ) -> SourceFetchResult:
+        settings = resolve_runtime_settings(settings)
         base_url = settings.get("base_url")
         endpoint = settings.get("endpoint", "/records")
         if not base_url:
@@ -147,6 +150,7 @@ class FileSourceConnector(SourceConnector):
         since: datetime,
         limit: int,
     ) -> SourceFetchResult:
+        settings = resolve_runtime_settings(settings)
         file_path = settings.get("path")
         if not file_path:
             raise RuntimeError("path nao informado nas configuracoes da origem")

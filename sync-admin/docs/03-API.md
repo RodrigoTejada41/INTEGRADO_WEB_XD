@@ -1,53 +1,27 @@
-﻿# API REST
+# API REST
 
-## Health
-### `GET /health`
-- Uso: verificacao de disponibilidade.
-- Resposta: `{"status":"online"}`.
+## Description
+Página legada de navegação para os endpoints HTTP do `sync-admin`.
 
-## Recebimento de sincronizacao
-### `POST /api/sync-data`
+## Structure
+- [`modules/README.md`](./modules/README.md)
+- [`modules/api.md`](./modules/api.md)
+- [`modules/schemas.md`](./modules/schemas.md)
+- `app/api/routes/`
 
-#### Headers obrigatorios
-- `Content-Type: application/json`
-- `X-API-Key: <chave_integracao>`
+## Integrations
+- `GET /health`
+- `POST /api/sync-data`
+- `X-API-Key`
+- Pydantic
 
-#### Payload
-```json
-{
-  "external_batch_id": "BATCH-20260415-001",
-  "company_code": "EMP01",
-  "branch_code": "FIL01",
-  "terminal_code": "PDV01",
-  "sent_at": "2026-04-15T20:00:00Z",
-  "records": [
-    {
-      "record_key": "DOC-1",
-      "record_type": "sale",
-      "event_time": "2026-04-15T20:00:00Z",
-      "payload": {"total": 99.9}
-    }
-  ]
-}
-```
+## Flow
+1. Use o módulo de API para a especificação detalhada.
+2. Use esta página para navegação rápida.
 
-#### Regras
-- Valida estrutura com Pydantic (`SyncPayloadIn`).
-- Valida chave de integracao ativa.
-- Registra IP de origem.
-- Persiste lote e registros.
+## Critical Points
+- O contrato verdadeiro vive nos módulos.
+- Esta página não deve carregar exemplos duplicados.
 
-#### Resposta de sucesso
-```json
-{
-  "status": "ok",
-  "batch_id": 123,
-  "records_received": 1,
-  "message": "Data received and stored successfully"
-}
-```
-
-#### Erros comuns
-- `401`: sem `X-API-Key` ou chave invalida.
-- `422`: payload invalido.
-- `500`: erro interno de ingestao.
+## Tests
+- Confirmar health, ingestão e rejeição de payloads inválidos.

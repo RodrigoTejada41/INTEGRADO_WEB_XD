@@ -11,3 +11,96 @@ body { background: var(--bg); }
 .card { border: 0; box-shadow: 0 8px 24px rgba(15, 23, 42, .06); }
 .login-body { background: linear-gradient(160deg, #e2e8f0 0%, #f8fafc 100%); }
 .chart-sm { height: 220px; }
+.report-hero {
+  padding: 1.5rem;
+  border-radius: 1rem;
+  background: linear-gradient(135deg, #ffffff 0%, #eef6ff 55%, #f8fafc 100%);
+  box-shadow: 0 16px 32px rgba(15, 23, 42, 0.08);
+}
+.report-eyebrow {
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #0f766e;
+}
+.report-company-badge {
+  display: inline-flex;
+  align-items: center;
+  min-height: 32px;
+  padding: 0.35rem 0.8rem;
+  border-radius: 999px;
+  background: #0f172a;
+  color: #fff;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+.report-chip {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  padding: 0.55rem 0.8rem;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid rgba(148, 163, 184, 0.25);
+}
+.report-chip-label {
+  font-size: 0.78rem;
+  color: #475569;
+}
+.report-stat small,
+.report-highlight small {
+  display: block;
+  margin-bottom: 0.35rem;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.report-stat h4,
+.report-highlight h5 {
+  margin-bottom: 0.35rem;
+}
+.report-stat span,
+.report-highlight span {
+  font-size: 0.82rem;
+}
+.local-audit-row--critical {
+  background: rgba(127, 29, 29, 0.04);
+}
+.local-audit-row--warning {
+  background: rgba(180, 83, 9, 0.04);
+}
+.local-audit-pill {
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
+  padding: 0.15rem 0.6rem;
+  border-radius: 999px;
+  background: #e2e8f0;
+  color: #334155;
+  font-size: 0.74rem;
+  font-weight: 600;
+}
+.local-audit-pill--critical {
+  background: #fee2e2;
+  color: #991b1b;
+}
+.local-audit-pill--warning {
+  background: #fef3c7;
+  color: #92400e;
+}
+.local-audit-pill--info {
+  background: #dbeafe;
+  color: #1d4ed8;
+}
+.local-audit-change {
+  padding: 0.35rem 0.55rem;
+  border-radius: 0.75rem;
+  background: rgba(226, 232, 240, 0.55);
+}
+.local-audit-change--critical {
+  background: rgba(254, 226, 226, 0.9);
+}
+.local-audit-change--warning {
+  background: rgba(254, 243, 199, 0.9);
+}

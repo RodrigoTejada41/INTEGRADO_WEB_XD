@@ -13,6 +13,22 @@ class SyncRepository:
     def __init__(self, db: Session):
         self.db = db
 
+    @staticmethod
+    def _apply_scope_filters(
+        stmt,
+        *,
+        company_code: str | None = None,
+        branch_code: str | None = None,
+        terminal_code: str | None = None,
+    ):
+        if company_code:
+            stmt = stmt.where(SyncBatch.company_code == company_code)
+        if branch_code:
+            stmt = stmt.where(SyncBatch.branch_code == branch_code)
+        if terminal_code:
+            stmt = stmt.where(SyncBatch.terminal_code == terminal_code)
+        return stmt
+
     def create_batch(
         self,
         *,
@@ -56,8 +72,26 @@ class SyncRepository:
         self.db.add_all(entities)
         self.db.commit()
 
-    def list_records(self, *, page: int, page_size: int, search: str | None, record_type: str | None, sort: str = 'created_at'):
+    def list_records(
+        self,
+        *,
+        page: int,
+        page_size: int,
+        search: str | None,
+        record_type: str | None,
+        sort: str = 'created_at',
+        company_code: str | None = None,
+        branch_code: str | None = None,
+        terminal_code: str | None = None,
+    ):
         stmt = select(SyncRecord)
+        stmt = stmt.join(SyncBatch, SyncRecord.batch_id == SyncBatch.id)
+        stmt = self._apply_scope_filters(
+            stmt,
+            company_code=company_code,
+            branch_code=branch_code,
+            terminal_code=terminal_code,
+        )
         if search:
             like = f'%{search}%'
             stmt = stmt.where((SyncRecord.record_key.like(like)) | (SyncRecord.payload_json.like(like)))
@@ -71,8 +105,23 @@ class SyncRepository:
         rows = self.db.execute(stmt.offset((page - 1) * page_size).limit(page_size)).scalars().all()
         return rows, total
 
-    def list_batches(self, *, page: int, page_size: int, status: str | None):
+    def list_batches(
+        self,
+        *,
+        page: int,
+        page_size: int,
+        status: str | None,
+        company_code: str | None = None,
+        branch_code: str | None = None,
+        terminal_code: str | None = None,
+    ):
         stmt = select(SyncBatch)
+        stmt = self._apply_scope_filters(
+            stmt,
+            company_code=company_code,
+            branch_code=branch_code,
+            terminal_code=terminal_code,
+        )
         if status:
             stmt = stmt.where(SyncBatch.status == status)
         stmt = stmt.order_by(desc(SyncBatch.received_at))
@@ -80,11 +129,47 @@ class SyncRepository:
         rows = self.db.execute(stmt.offset((page - 1) * page_size).limit(page_size)).scalars().all()
         return rows, total
 
-    def dashboard_counts(self) -> dict:
-        total_records = self.db.execute(select(func.count(SyncRecord.id))).scalar_one() or 0
-        total_batches = self.db.execute(select(func.count(SyncBatch.id))).scalar_one() or 0
-        failed_batches = self.db.execute(select(func.count(SyncBatch.id)).where(SyncBatch.status == 'failed')).scalar_one() or 0
-        last_received = self.db.execute(select(func.max(SyncBatch.received_at))).scalar_one()
+    def dashboard_counts(
+        self,
+        *,
+        company_code: str | None = None,
+        branch_code: str | None = None,
+        terminal_code: str | None = None,
+    ) -> dict:
+        batch_stmt = select(SyncBatch.id)
+        batch_stmt = self._apply_scope_filters(
+            batch_stmt,
+            company_code=company_code,
+            branch_code=branch_code,
+            terminal_code=terminal_code,
+        )
+        batch_ids = batch_stmt.subquery()
+        total_records = self.db.execute(
+            select(func.count(SyncRecord.id)).where(SyncRecord.batch_id.in_(select(batch_ids.c.id)))
+        ).scalar_one() or 0
+        total_batches = self.db.execute(select(func.count()).select_from(batch_ids)).scalar_one() or 0
+        failed_batches = self.db.execute(
+            select(func.count()).select_from(SyncBatch).where(
+                SyncBatch.status == 'failed',
+                *[
+                    cond
+                    for cond in [
+                        SyncBatch.company_code == company_code if company_code else None,
+                        SyncBatch.branch_code == branch_code if branch_code else None,
+                        SyncBatch.terminal_code == terminal_code if terminal_code else None,
+                    ]
+                    if cond is not None
+                ],
+            )
+        ).scalar_one() or 0
+        last_received_stmt = select(func.max(SyncBatch.received_at))
+        last_received_stmt = self._apply_scope_filters(
+            last_received_stmt,
+            company_code=company_code,
+            branch_code=branch_code,
+            terminal_code=terminal_code,
+        )
+        last_received = self.db.execute(last_received_stmt).scalar_one()
         return {
             'total_records': total_records,
             'total_batches': total_batches,
@@ -92,7 +177,14 @@ class SyncRepository:
             'last_received': last_received,
         }
 
-    def chart_by_day(self, days: int = 30) -> list[dict]:
+    def chart_by_day(
+        self,
+        days: int = 30,
+        *,
+        company_code: str | None = None,
+        branch_code: str | None = None,
+        terminal_code: str | None = None,
+    ) -> list[dict]:
         cutoff = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
         stmt = (
             select(func.date(SyncBatch.received_at).label('d'), func.sum(SyncBatch.records_received).label('q'))
@@ -100,9 +192,28 @@ class SyncRepository:
             .group_by(func.date(SyncBatch.received_at))
             .order_by(func.date(SyncBatch.received_at))
         )
+        stmt = self._apply_scope_filters(
+            stmt,
+            company_code=company_code,
+            branch_code=branch_code,
+            terminal_code=terminal_code,
+        )
         rows = self.db.execute(stmt).all()
         return [{'label': str(r.d), 'value': int(r.q or 0)} for r in rows]
 
-    def latest_batches(self, limit: int = 10) -> list[SyncBatch]:
+    def latest_batches(
+        self,
+        limit: int = 10,
+        *,
+        company_code: str | None = None,
+        branch_code: str | None = None,
+        terminal_code: str | None = None,
+    ) -> list[SyncBatch]:
         stmt = select(SyncBatch).order_by(desc(SyncBatch.received_at)).limit(limit)
+        stmt = self._apply_scope_filters(
+            stmt,
+            company_code=company_code,
+            branch_code=branch_code,
+            terminal_code=terminal_code,
+        )
         return self.db.execute(stmt).scalars().all()

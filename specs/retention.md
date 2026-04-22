@@ -1,24 +1,24 @@
-﻿# Política de Retenção de Dados
+# Política de Retenção de Dados
 
-> Esta especificação deve ser interpretada junto com [`PROTOCOLO_ESPECIALISTAS.md`](../PROTOCOLO_ESPECIALISTAS.md) quando usada por um agente neste repositório.
+> Leia esta especificação junto com [`CEREBRO_VIVO.md`](../CEREBRO_VIVO.md) e [`PROTOCOLO_ESPECIALISTAS.md`](../PROTOCOLO_ESPECIALISTAS.md).
 
 ## Regra
 
-- Keep only 14 months of data
+- Manter apenas 14 meses de dados
 
 ## Estratégia
 
-- Partition by date
-- Drop old partitions
+- Particionar por data
+- Remover partições antigas
 
 ## Alternativa
 
-- Move to archive tables
+- Mover para tabelas de arquivo
 
 ## Execução
 
-- Daily scheduled job
+- Job agendado diário
 
 ## Restrições
 
-- Never query data older than 14 months
+- Nunca consultar dados com mais de 14 meses nas tabelas principais

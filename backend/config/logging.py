@@ -3,6 +3,8 @@ import logging
 import sys
 from datetime import UTC, datetime
 
+from backend.utils.correlation import get_log_context
+
 
 class JsonFormatter(logging.Formatter):
     def format(self, record: logging.LogRecord) -> str:
@@ -39,6 +41,10 @@ class JsonFormatter(logging.Formatter):
             for key, value in record.__dict__.items()
             if key not in base_fields and not key.startswith("_")
         }
+        correlation_context = get_log_context()
+        if correlation_context:
+            for key, value in correlation_context.items():
+                extra_context.setdefault(key, value)
         if extra_context:
             payload["context"] = extra_context
         if record.exc_info:
