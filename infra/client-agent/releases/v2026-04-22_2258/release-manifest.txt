@@ -1,0 +1,4 @@
+version=v2026-04-22_2258
+created_at=2026-04-22T22:58:19
+source_repo=E:\Projetos\INTEGRADO_WEB_XD
+contents=install-agent-client.ps1,Setup_Instalar_Cliente.bat,README.md,scripts/,agent_local/,backend/,requirements.txt
