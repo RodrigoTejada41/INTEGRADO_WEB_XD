@@ -8,7 +8,7 @@ Workspace local: alterado com memoria executiva atualizada e docs de continuidad
 - Fase de backlog concluida ate `P20`.
 - Ultima entrega funcional consolidada: observabilidade avancada por tenant + correlacao ponta a ponta de logs (`correlation_id`) + endpoint admin de observabilidade.
 - Etapa extra de producao concluida: stack VPS com Docker, Nginx, scripts e GitHub Actions.
-- Ultima validacao tecnica executada: `py -3 -m pytest -q` com `62 passed`.
+- Ultima validacao tecnica executada: `py -3 -m pytest -q` com `64 passed`.
 - Deploy VPS concluido em `https://movisystecnologia.com.br`.
 - `GET /admin/api/health/ready` responde `200`.
 - `GET /MoviRelatorios/` responde `302`.
@@ -107,6 +107,8 @@ bash infra/scripts/deploy-prod.sh
 - O temp root do pytest foi movido para `runtime/pytest-tmp` dentro do workspace para eliminar a dependencia da home do usuario e estabilizar `tmp_path`.
 - Validacao final desta retomada: `py -3 -m pytest -q` com `62 passed`.
 - Ajuste aplicado antes da pausa: `infra/nginx/default.conf` alinhado com `backend_upstream` e `frontend_upstream` para fechar o contrato de readiness.
+- O backend agora usa `ENVIRONMENT=development` como default e ativa `https_only` no `SessionMiddleware` apenas em producao.
+- Validacao final desta retomada: `py -3 -m pytest -q` com `64 passed`.
 - Ajuste de borda desta sessao: `infra/nginx/default.conf` trata `location /admin/api/` separadamente de `location /admin/`, porque o cliente local registra em `/admin/api/api/v1/register`.
 - Validacao local desta correcao: `py -3 -m pytest tests/test_production_operations.py -q` com `5 passed`, seguido de `py -3 -m pytest -q` com `60 passed`.
 - Deploy VPS concluido em `https://movisystecnologia.com.br` com `GET /admin/api/health/ready` em `200`, `GET /MoviRelatorios/` em `302` e containers `backend`, `frontend`, `db` e `nginx` saudaveis.

@@ -30,6 +30,7 @@ services:
       DATABASE_URL: postgresql+psycopg2://${POSTGRES_USER:-sync_user}:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env.prod}@db:5432/${POSTGRES_DB:-sync_central}
       ADMIN_TOKEN: ${ADMIN_TOKEN:?set ADMIN_TOKEN in .env.prod}
       SECRET_KEY: ${BACKEND_SECRET_KEY:?set BACKEND_SECRET_KEY in .env.prod}
+      ENVIRONMENT: ${ENVIRONMENT:-production}
       LOG_LEVEL: ${LOG_LEVEL:-INFO}
       AUTO_CREATE_TABLES: ${AUTO_CREATE_TABLES:-false}
       RETENTION_MODE: ${RETENTION_MODE:-archive}

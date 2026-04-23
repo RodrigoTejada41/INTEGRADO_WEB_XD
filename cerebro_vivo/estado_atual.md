@@ -168,6 +168,7 @@ Na retomada canonica atual, o backlog funcional esta consolidado ate `P20`. `P19
 - Cliente MoviSync consolidado em `v2026-04-23_0137` e reinstalado em `C:\MoviSyncAgent`.
 - O proximo passo operacional continua sendo o reboot local para liberar lock do `.venv` antes de tentar `3) Atualizar` novamente.
 - O temp root do pytest foi movido para `runtime/pytest-tmp` no workspace para eliminar o bloqueio de ACL herdado de `.codex/memories/pytest-tmp`.
+- O backend passou a tratar `ENVIRONMENT=development` como default seguro e ativa `https_only` no `SessionMiddleware` somente em producao.
 
 ## Atualizacao do deploy VPS
 
@@ -188,4 +189,4 @@ Na retomada canonica atual, o backlog funcional esta consolidado ate `P20`. `P19
 ## Atualizacao desta pausa
 
 - Validacao dirigida executada: `py -3 -m pytest tests/test_sync_interval_contract.py tests/test_agent_main_registration.py tests/test_tenant_scheduler.py tests/test_db_migrations.py -q` com 15 testes aprovados.
-- A suite completa desta maquina agora passa com `62 passed` apos mover o temp root do pytest para o workspace.
+- A suite completa desta maquina agora passa com `64 passed` apos o endurecimento de ambiente e sessao.

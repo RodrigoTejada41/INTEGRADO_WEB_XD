@@ -198,3 +198,8 @@ Sempre que houver decisao arquitetural, de seguranca, de dados/logs ou de produt
 - Decisao: fixar o root temporario de teste em `runtime/pytest-tmp` dentro do workspace, configurando `tempfile.tempdir`, `TMPDIR`, `TEMP`, `TMP` e `PYTEST_DEBUG_TEMPROOT`.
 - Motivo: a home do usuario tinha ACL quebrada para o path herdado de `.codex/memories/pytest-tmp`, o que causava PermissionError e instabilidade em `tmp_path`.
 - Impacto: a suite de testes fica reproducivel neste Windows sem depender da permissao da home, e o comportamento de producao nao e alterado.
+
+### D033 - A sessao do backend deve ser segura por ambiente
+- Decisao: usar `ENVIRONMENT=development` como default do backend e habilitar `https_only` no `SessionMiddleware` somente quando `ENVIRONMENT=production`.
+- Motivo: o backend estava assumindo producao por default e mantendo cookie de sessao sem restricao de HTTPS em runtime, o que nao e adequado para producao real.
+- Impacto: o fluxo local e de teste continua funcional por HTTP, enquanto a producao recebe cookie de sessao mais seguro sem exigir ajustes manuais em cada execucao de desenvolvimento.

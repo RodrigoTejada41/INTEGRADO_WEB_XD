@@ -7,7 +7,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 class Settings(BaseSettings):
     app_name: str = "multi-tenant-sync-api"
-    environment: str = "production"
+    environment: str = Field(default="development", alias="ENVIRONMENT")
     log_level: str = "INFO"
 
     database_url: str = Field(..., alias="DATABASE_URL")

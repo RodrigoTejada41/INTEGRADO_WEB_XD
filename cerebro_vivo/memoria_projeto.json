@@ -47,8 +47,9 @@
     "historico_consolidado": "cerebro_vivo/historico_decisoes.md"
   },
   "estado_atual": {
-    "checkpoint_base": "P20 concluido com backlog pos-P20 avancado, console web centralizada entregue, frente de relatorios separada entre admin e cliente, producao estavel no commit 5a06f1d, checkpoint de reboot do cliente MoviSync registrado e suite completa validada com 62 passed",
+    "checkpoint_base": "P20 concluido com backlog pos-P20 avancado, console web centralizada entregue, frente de relatorios separada entre admin e cliente, producao estavel no commit 5a06f1d, checkpoint de reboot do cliente MoviSync registrado e suite completa validada com 64 passed",
     "ultimas_entregas": [
+      "Suite completa validada com 64 passed apos endurecer a sessao do backend por ambiente",
       "Suite completa validada com 62 passed apos mover o temp root do pytest para runtime/pytest-tmp no workspace",
       "Temp root do pytest movido para runtime/pytest-tmp para eliminar ACL quebrada da home do usuario",
       "P15 concluido: migracoes versionadas com rollback por versao/passos",
