@@ -20,10 +20,12 @@ env/
 output/
 logs/
 runtime/
+.pytest-tmp/
 release-artifacts/
 nexus-manifests/
 obsidian-vault/
 input/
+infra/client-agent/releases/
 
 # Build / package artifacts
 dist/
