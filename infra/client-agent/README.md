@@ -4,11 +4,24 @@ Este pacote instala somente o agente local no Windows, com interface de vinculac
 
 ## Execucao rapida
 
-1. Abra `Setup_Instalar_Cliente.bat` como administrador.
+1. Abra `Setup_Gerenciar_Cliente.bat` como administrador.
+2. Escolha no menu:
+   - verificar status
+   - instalar
+   - atualizar
+   - desinstalar
+
+Atalho direto (instalacao):
+- `Setup_Instalar_Cliente.bat`
+
+Depois da instalacao:
+
 2. Apos instalar, execute:
    - `Definir_Senha_Manual.cmd`
    - `Abrir_Vinculacao.cmd`
+   - fallback sem interface grafica: `Abrir_Vinculacao_CLI.cmd`
    - `Iniciar_Agente.cmd`
+   - se falhar: `Iniciar_Agente_Debug.cmd`
 
 ## Gerar pasta versionada do instalador
 
@@ -28,3 +41,11 @@ Isso cria uma pasta em `infra/client-agent/releases/vYYYY-MM-DD_HHMM` com todo o
 - Tela Python para:
   - vinculacao por codigo
   - troca manual de servidor/chave (protegida por senha)
+- Logs de execucao do agente:
+  - `C:\MoviSyncAgent\logs\agent-sync.log`
+  - `C:\MoviSyncAgent\logs\agent-sync-debug.log`
+
+## Observacao de compatibilidade (Windows)
+
+O instalador agora usa `requirements-client.txt` (somente dependencias do agente local),
+evitando falhas de build de `psycopg2-binary` em algumas versoes de Python no Windows.

@@ -30,8 +30,11 @@ New-Item -ItemType Directory -Path $releaseDir -Force | Out-Null
 
 Write-Step "Copiando instalador"
 Copy-Item -Path (Join-Path $clientRoot "install-agent-client.ps1") -Destination $releaseDir -Force
+Copy-Item -Path (Join-Path $clientRoot "manage-agent-client.ps1") -Destination $releaseDir -Force
 Copy-Item -Path (Join-Path $clientRoot "Setup_Instalar_Cliente.bat") -Destination $releaseDir -Force
+Copy-Item -Path (Join-Path $clientRoot "Setup_Gerenciar_Cliente.bat") -Destination $releaseDir -Force
 Copy-Item -Path (Join-Path $clientRoot "README.md") -Destination $releaseDir -Force
+Copy-Item -Path (Join-Path $clientRoot "requirements-client.txt") -Destination $releaseDir -Force
 
 Write-Step "Copiando scripts do pacote"
 Copy-Item -Path (Join-Path $clientRoot "scripts") -Destination $releaseDir -Recurse -Force
@@ -52,7 +55,7 @@ $manifestPath = Join-Path $releaseDir "release-manifest.txt"
     "version=$VersionTag"
     "created_at=$(Get-Date -Format s)"
     "source_repo=$repoRoot"
-    "contents=install-agent-client.ps1,Setup_Instalar_Cliente.bat,README.md,scripts/,agent_local/,backend/,requirements.txt"
+    "contents=install-agent-client.ps1,manage-agent-client.ps1,Setup_Instalar_Cliente.bat,Setup_Gerenciar_Cliente.bat,README.md,requirements-client.txt,scripts/,agent_local/,backend/,requirements.txt"
 ) | Set-Content -Path $manifestPath -Encoding ascii
 
 Write-Step "Release pronta."

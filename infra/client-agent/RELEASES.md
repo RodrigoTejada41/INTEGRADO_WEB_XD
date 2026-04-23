@@ -1,5 +1,17 @@
 # Releases - Cliente Agent
 
+## v2026-04-23_gerenciador
+
+- Adicionado gerenciador completo do instalador:
+  - verificar status
+  - instalar
+  - atualizar (reinstalar pacote atual)
+  - desinstalar
+- Novos arquivos:
+  - `manage-agent-client.ps1`
+  - `Setup_Gerenciar_Cliente.bat`
+- `install-agent-client.ps1` passou a gravar `release-manifest.txt` na instalacao.
+
 ## v2026-04-22_2258
 
 - Primeiro pacote versionado do instalador cliente.
