@@ -78,6 +78,9 @@ Na retomada canonica mais recente, o backlog funcional estava concluido ate `P18
 - Validacao direcionada apos o refinamento visual: `py -3 -m pytest tests/test_sync_admin_settings_client_scope.py -q` com `3 passed`, seguida de regressao curta em portal cliente, relatorios e APIs conectadas com `8 passed`.
 - A auditoria local do `sync-admin` agora tambem expõe severidade visual por evento e chips de sinalizacao para mudancas mais sensiveis, como alteracao de empresa, reducao de filiais e desativacao de usuario.
 - Validacao operacional local do stack produtivo executada nesta maquina: migracao `scripts/db_migrate.py` aplicada antes da subida completa, containers `db`, `backend`, `frontend` e `nginx` saudaveis, e edge validado em `http://127.0.0.1:8088` porque a porta `80` do host estava ocupada.
+- Tentativa de atualizacao do cliente MoviSync em `C:\MoviSyncAgent` falhou por lock de arquivo `.pyd` dentro do `.venv`.
+- Hotfix aplicado no instalador e no gerenciador do cliente para encerrar processos Python ligados ao diretorio antes da limpeza e repetir a remocao com retry.
+- Proximo passo operacional registrado: reiniciar a maquina e repetir a opcao `3) Atualizar` do cliente MoviSync.
 
 ## Registro operacional desta sessao
 
@@ -113,6 +116,9 @@ Na retomada canonica mais recente, o backlog funcional estava concluido ate `P18
 9. Ampliar o painel central para a frota inteira de APIs conectadas
    - Motivo: transformar o `sync-admin` em console SaaS real para descoberta e administracao remota multi-tenant
    - Status: concluido
+10. Retomar o cliente MoviSync apos reboot local
+   - Motivo: liberar lock de arquivo no `.venv` e concluir a reinstalacao do pacote do cliente
+   - Status: pendente
 
 ## Leituras obrigatorias para retomada
 

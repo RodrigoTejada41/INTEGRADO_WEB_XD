@@ -1,14 +1,17 @@
 # Retomada Exata
 
-Ultimo checkpoint: 2026-04-21 00:00:00 -03:00
+Ultimo checkpoint: 2026-04-23 00:00:00 -03:00
 Branch atual: `main`
-Workspace local: alterado e com novos artefatos de producao VPS
+Workspace local: alterado com memoria executiva atualizada e hotfix do cliente em andamento
 
 ## 1) Onde voce parou
 - Fase de backlog concluida ate `P18`.
 - Ultima entrega funcional: observabilidade avancada por tenant + correlacao ponta a ponta de logs (`correlation_id`) + endpoint admin de observabilidade.
 - Etapa extra iniciada e concluida no codigo: estrutura completa para deploy em VPS Linux com Docker/Nginx/GitHub Actions.
 - Ultima validacao executada: `py -3 -m pytest -q` com `28 passed`.
+- Nesta sessao houve tentativa de `Atualizar` o cliente MoviSync em `C:\MoviSyncAgent`, mas a limpeza do `.venv` falhou por arquivo `.pyd` bloqueado em uso por processo Python.
+- Hotfix aplicado no instalador e no gerenciador do cliente para encerrar processos Python relacionados ao diretorio e repetir a remocao com retry.
+- Proximo passo operacional: reiniciar a maquina e repetir a opcao `3) Atualizar` do cliente MoviSync.
 - Validacao operacional local executada nesta sessao: `.env.prod` local criado, migração aplicada via `scripts/db_migrate.py`, stack produtivo subiu com `db`, `backend`, `frontend` e `nginx` saudaveis, e edge validado em `http://127.0.0.1:8088` por conflito na porta `80` do host.
 
 ## 2) O que foi concluido
@@ -85,6 +88,7 @@ bash infra/scripts/deploy-prod.sh
 - `P20`: refinamentos finais de produto e operacao.
 - Etapa operacional pendente: executar deploy real na VPS e validar health via Nginx.
 - Etapa local concluida nesta sessao: repetir validacao do stack local apos qualquer nova mudanca em `docker-compose.prod.yml`, `infra/nginx/default.conf` ou `.env.prod`.
+- Etapa operacional pendente desta sessao: reiniciar a maquina para liberar o lock do `C:\MoviSyncAgent` e retomar o instalador do cliente.
 - Sessao pausada apos registrar o checkpoint; continuar daqui exige reabrir este arquivo e a memoria executiva antes de qualquer nova decisao.
 
 ## 6) Regras para continuidade sem regressao
@@ -94,4 +98,5 @@ bash infra/scripts/deploy-prod.sh
 - Nao reduzir cobertura dos testes existentes.
 - Antes de encerrar qualquer ciclo: rodar `py -3 -m pytest -q`.
 - Nao registrar credenciais sensiveis em arquivo de repositorio.
+- Para a frente do cliente MoviSync, se o instalador travar em lock de arquivo, reiniciar a maquina antes de tentar novo `update`.
 - Esta deve ser a referencia principal de retomada quando a conversa for reaberta.

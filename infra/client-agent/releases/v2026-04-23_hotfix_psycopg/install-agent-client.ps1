@@ -42,13 +42,6 @@ function Remove-DirectoryWithRetry([string]$TargetDir, [int]$RetryCount = 5) {
     }
 }
 
-function Invoke-Checked([scriptblock]$Command, [string]$ErrorMessage) {
-    & $Command
-    if ($LASTEXITCODE -ne 0) {
-        throw $ErrorMessage
-    }
-}
-
 $packageRoot = Split-Path -Parent $MyInvocation.MyCommand.Path
 $sourceAgent = Join-Path $packageRoot "agent_local"
 $sourceBackend = Join-Path $packageRoot "backend"
@@ -96,14 +89,14 @@ if ($null -eq $pythonCmd) {
 
 Write-Step "Criando virtualenv"
 Push-Location $InstallDir
-Invoke-Checked { py -3 -m venv .venv } "Falha ao criar virtualenv."
+py -3 -m venv .venv
 
 Write-Step "Instalando dependencias"
-Invoke-Checked { & "$InstallDir\.venv\Scripts\python.exe" -m pip install --upgrade pip } "Falha ao atualizar pip."
+& "$InstallDir\.venv\Scripts\python.exe" -m pip install --upgrade pip
 if (Test-Path (Join-Path $InstallDir "requirements-client.txt")) {
-    Invoke-Checked { & "$InstallDir\.venv\Scripts\python.exe" -m pip install -r requirements-client.txt } "Falha ao instalar requirements-client.txt."
+    & "$InstallDir\.venv\Scripts\python.exe" -m pip install -r requirements-client.txt
 } else {
-    Invoke-Checked { & "$InstallDir\.venv\Scripts\python.exe" -m pip install -r requirements.txt } "Falha ao instalar requirements.txt."
+    & "$InstallDir\.venv\Scripts\python.exe" -m pip install -r requirements.txt
 }
 
 if (!(Test-Path ".env")) {
@@ -115,33 +108,8 @@ Write-Step "Criando atalhos cmd"
 @'
 @echo off
 cd /d %~dp0
-set "LOG_DIR=%~dp0logs"
-if not exist "%LOG_DIR%" mkdir "%LOG_DIR%"
-set "LOG_FILE=%LOG_DIR%\pairing-ui.log"
-".\.venv\Scripts\python.exe" -m agent_local.pairing_ui 1>> "%LOG_FILE%" 2>&1
-if errorlevel 1 (
-  echo.
-  echo [vinculacao] Falha ao abrir interface grafica.
-  echo [vinculacao] Veja o log: %LOG_FILE%
-  echo [vinculacao] Use fallback em terminal: Abrir_Vinculacao_CLI.cmd
-  pause
-)
+".\.venv\Scripts\python.exe" -m agent_local.pairing_ui
 '@ | Set-Content -Path "Abrir_Vinculacao.cmd" -Encoding ascii
-
-@'
-@echo off
-cd /d %~dp0
-".\.venv\Scripts\python.exe" -m agent_local.pairing_cli
-if errorlevel 1 (
-  echo.
-  echo [vinculacao-cli] Falha na vinculacao.
-  pause
-  exit /b 1
-)
-echo.
-echo [vinculacao-cli] Concluido.
-pause
-'@ | Set-Content -Path "Abrir_Vinculacao_CLI.cmd" -Encoding ascii
 
 @'
 @echo off
@@ -191,7 +159,6 @@ Write-Host ""
 Write-Host "Proximos passos:"
 Write-Host "1) Execute: $InstallDir\Definir_Senha_Manual.cmd"
 Write-Host "2) Execute: $InstallDir\Abrir_Vinculacao.cmd"
-Write-Host "   (fallback terminal: $InstallDir\Abrir_Vinculacao_CLI.cmd)"
 Write-Host "3) Depois execute: $InstallDir\Iniciar_Agente.cmd"
 Write-Host "4) Se falhar, execute: $InstallDir\Iniciar_Agente_Debug.cmd"
 

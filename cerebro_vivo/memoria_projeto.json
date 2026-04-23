@@ -78,6 +78,7 @@
       "Validacao operacional local do stack produtivo executada nesta maquina com migracao aplicada, containers saudaveis e edge validado em 8088 por conflito na porta 80 do host",
       "O compose de producao passou a aceitar NGINX_PUBLIC_PORT para o ambiente local, mantendo 80 como default e usando 8088 apenas nesta maquina",
       ".env.prod local foi criado e mantido fora do Git para destravar o compose sem expor segredos",
+      "Cliente MoviSync recebeu hotfix de reinstall com retry de lock de arquivo no .venv",
       "Memoria cerebro_vivo consolidada e alinhada ao estado atual",
       "Suite recente validada com 10 passed nos testes direcionados de APIs conectadas, relatorios, portal cliente e escopo de acesso"
     ],
@@ -140,6 +141,12 @@
         "item": "Ampliar o painel central para a frota inteira de APIs conectadas",
         "motivo": "Transformar o sync-admin em console SaaS real para descoberta e administracao remota multi-tenant",
         "status": "concluido"
+      },
+      {
+        "ordem": 10,
+        "item": "Retomar o cliente MoviSync apos reboot local",
+        "motivo": "Liberar lock de arquivo no .venv e concluir a reinstalacao do pacote do cliente",
+        "status": "pendente"
       }
     ],
     "riscos_conhecidos": [
@@ -153,5 +160,5 @@
     "pasta_historica": ".cerebro-vivo",
     "regra": "A pasta top-level resume e aponta; a pasta oculta preserva a base operacional detalhada."
   },
-  "atualizado_em": "2026-04-21"
+  "atualizado_em": "2026-04-23"
 }

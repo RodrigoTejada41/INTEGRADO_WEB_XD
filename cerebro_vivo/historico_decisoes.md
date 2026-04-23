@@ -149,3 +149,8 @@ Ele nao substitui a memoria detalhada da `.cerebro-vivo/`; funciona como trilha 
 ## Regra de manutencao
 
 Sempre que houver decisao arquitetural, de seguranca, de dados/logs ou de produto com impacto duradouro, atualizar este arquivo e apontar a fonte detalhada correspondente na `.cerebro-vivo/`.
+
+### D023 - O cliente MoviSync deve recuperar update apos reboot quando houver lock de arquivo no `.venv`
+- Decisao: o hotfix de instalacao e desinstalacao do cliente agora encerra processos Python ligados ao diretorio e tenta novamente a remocao antes de falhar.
+- Motivo: o bloqueio de `pyd` em uso mostrou que a limpeza do ambiente virtual pode travar em runtime ativo e precisa de tratamento operacional previsivel.
+- Impacto: a frente de instalacao do cliente fica menos fragil, mas o procedimento oficial de retomada passa a exigir reboot quando o lock persistir.
