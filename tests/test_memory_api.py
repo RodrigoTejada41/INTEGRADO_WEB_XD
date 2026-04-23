@@ -22,13 +22,10 @@ def _reset_backend_modules() -> None:
             sys.modules.pop(module_name, None)
 
 
-def test_memory_api_upsert_and_read_with_db_json_sync() -> None:
-    integration_db = Path("output/test_memory_api_integration.db")
-    memory_db = Path("output/test_memory_api_cerebro.db")
-    memory_json = Path("output/test_memory_api_memory.json")
-    for path in (integration_db, memory_db, memory_json):
-        if path.exists():
-            path.unlink()
+def test_memory_api_upsert_and_read_with_db_json_sync(tmp_path: Path) -> None:
+    integration_db = tmp_path / "test_memory_api_integration.db"
+    memory_db = tmp_path / "test_memory_api_cerebro.db"
+    memory_json = tmp_path / "test_memory_api_memory.json"
 
     os.environ["DATABASE_URL"] = f"sqlite+pysqlite:///{integration_db.as_posix()}"
     os.environ["MEMORY_DATABASE_URL"] = f"sqlite+pysqlite:///{memory_db.as_posix()}"

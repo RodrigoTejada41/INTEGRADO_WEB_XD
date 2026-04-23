@@ -86,6 +86,7 @@ async def lifespan(app: FastAPI):
     )
     scheduler.start()
     app.state.scheduler_running = True
+    app.state.scheduler = scheduler
     logger.info("tenant_sync_scheduler_started")
 
     yield

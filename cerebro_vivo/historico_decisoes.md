@@ -154,3 +154,47 @@ Sempre que houver decisao arquitetural, de seguranca, de dados/logs ou de produt
 - Decisao: o hotfix de instalacao e desinstalacao do cliente agora encerra processos Python ligados ao diretorio e tenta novamente a remocao antes de falhar.
 - Motivo: o bloqueio de `pyd` em uso mostrou que a limpeza do ambiente virtual pode travar em runtime ativo e precisa de tratamento operacional previsivel.
 - Impacto: a frente de instalacao do cliente fica menos fragil, mas o procedimento oficial de retomada passa a exigir reboot quando o lock persistir.
+
+### D024 - A reinstalacao do MoviSync deve preservar vinculacao, identidade e checkpoints
+- Decisao: o instalador do cliente agora faz backup e restaura `.env`, `agent_api_key.txt`, `local_client_identity.json` e `checkpoints.json` quando `ForceReinstall` e executado.
+- Motivo: a reinstalacao nao pode apagar estado funcional do cliente nem forcar nova configuracao quando o objetivo e apenas atualizar o pacote.
+- Impacto: a atualizacao do cliente fica menos disruptiva, o launcher pode iniciar oculto sem janela preta e a re-vinculacao passa a depender apenas de um novo pairing code valido quando o anterior expirar.
+
+### D025 - O checkpoint de reboot do cliente MoviSync fica registrado como continuidade principal
+- Decisao: consolidar o estado atual de retomada no checkpoint principal, no resumo executivo e no historico antes do reboot, mantendo a suite completa validada e a proxima acao operacional claramente marcada.
+- Motivo: a pausa agora depende de reinicio local e o contexto nao pode ficar apenas na conversa.
+- Impacto: a continuidade fica pronta para retomada sem redescobrir o estado do cliente, do Nginx e da validacao final.
+
+### D026 - O proxy de borda deve preservar o contrato `/admin/api/` do cliente local
+- Decisao: manter `location /admin/api/` separado de `location /admin/` no Nginx de producao, com rewrite proprio para o backend central.
+- Motivo: o cliente local registra em `/admin/api/api/v1/register`; se a borda remover apenas `/admin/`, o path efetivo fica incorreto e o cliente nao aparece no painel de APIs conectadas.
+- Impacto: a administracao da frota fica consistente com o contrato do agente, sem quebrar o painel administrativo nem os endpoints legados sob `/admin/`.
+
+### D027 - O readiness de producao deve considerar o scheduler real e o schema do tenant_source_configs
+- Decisao: o backend de producao passou a considerar o objeto real do scheduler no readiness e o schema da tabela `tenant_source_configs` recebeu `last_scheduled_at` e `next_run_at`.
+- Motivo: o boot do backend falhava em VPS por divergencia de schema e a readiness ficava presa em `starting` sem refletir o scheduler em execucao.
+- Impacto: o deploy em VPS voltou a ficar saudavel e o endpoint `/admin/api/health/ready` passou a expor o estado correto do sistema.
+
+### D028 - A fonte de verdade executiva foi reconciliada em favor de P20 concluido
+- Decisao: considerar `RETOMADA_EXATA.md` e `cerebro_vivo/estado_atual.md` como reconciliados no ponto `P20`, com o deploy VPS validado como estado atual e a divergencia antiga de `P18` encerrada.
+- Motivo: havia um checkpoint executivo antigo ainda referindo `P18`, enquanto a producao real, a validacao local e a documentacao operacional ja estavam em `P20`.
+- Impacto: retomadas futuras passam a partir de `P20` como linha canonica, com deploy VPS, readiness e rotas `/MoviRelatorios` e `/admin/api/health/ready` como verdade atual.
+
+### D029 - A producao estavel passa a ser o commit `5a06f1d` e o risco atual migra para drift local
+- Decisao: registrar `5a06f1d` como linha operacional estavel da VPS e tratar o risco principal atual como drift local de migracoes e testes.
+- Motivo: a producao ja foi validada e estabilizada; o que resta agora e alinhar o baseline local ao contrato efetivamente aplicado em VPS.
+- Impacto: a continuidade deve priorizar reconciliacao de migrações, rollback e testes de schema no workspace local antes de alterar a producao.
+### D030 - A migration `v004` passa a ser a linha base local do contrato de schema
+- Decisao: considerar `v004_tenant_source_last_scheduled_at` como baseline atual do contrato de migracao e ajustar os testes de rollback para a sequencia completa 4 -> 3 -> 2 -> 1 -> 0.
+- Motivo: o drift local vinha de um teste ainda preso ao estado anterior, enquanto a producao estavel ja opera com a quarta migration aplicada.
+- Impacto: o contrato de migracao fica coerente com a linha base atual sem alterar o comportamento de producao nem os segredos do deploy.
+
+### D031 - O intervalo padrao de sincronizacao passa a ser 16 minutos
+- Decisao: padronizar o contrato de sincronizacao em 16 minutos como default em `agent_local`, schemas de criacao e defaults ORM do backend.
+- Motivo: a arquitetura atual apontava divergencia entre 16 minutos como regra esperada e 15 minutos codificados em partes do fluxo.
+- Impacto: a configuracao fica alinhada entre agente local, backend e templates de ambiente, reduzindo drift operacional.
+
+### D032 - O temp root do pytest deve ficar no workspace e nao na home do usuario
+- Decisao: fixar o root temporario de teste em `runtime/pytest-tmp` dentro do workspace, configurando `tempfile.tempdir`, `TMPDIR`, `TEMP`, `TMP` e `PYTEST_DEBUG_TEMPROOT`.
+- Motivo: a home do usuario tinha ACL quebrada para o path herdado de `.codex/memories/pytest-tmp`, o que causava PermissionError e instabilidade em `tmp_path`.
+- Impacto: a suite de testes fica reproducivel neste Windows sem depender da permissao da home, e o comportamento de producao nao e alterado.

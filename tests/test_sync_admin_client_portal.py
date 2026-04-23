@@ -5,8 +5,8 @@ import sys
 from pathlib import Path
 
 
-def _prepare_sync_admin(db_name: str) -> None:
-    db_path = Path(f"output/{db_name}")
+def _prepare_sync_admin(db_path: Path) -> None:
+    db_path.parent.mkdir(parents=True, exist_ok=True)
     if db_path.exists():
         db_path.unlink()
 
@@ -17,15 +17,15 @@ def _prepare_sync_admin(db_name: str) -> None:
     os.environ["INTEGRATION_API_KEY"] = "sync-key-change-me"
     os.environ["REMOTE_COMMAND_PULL_ENABLED"] = "false"
     os.environ["LOCAL_CONTROL_TOKEN"] = "local-token-test"
-    os.environ["LOCAL_CONTROL_TOKEN_FILE"] = f"output/{db_name}.token.txt"
+    os.environ["LOCAL_CONTROL_TOKEN_FILE"] = f"{db_path.as_posix()}.token.txt"
 
     sync_admin_root = Path("sync-admin").resolve()
     if str(sync_admin_root) not in sys.path:
         sys.path.insert(0, str(sync_admin_root))
 
 
-def test_sync_admin_client_user_sees_only_own_portal(monkeypatch) -> None:
-    _prepare_sync_admin("test_sync_admin_client_portal.db")
+def test_sync_admin_client_user_sees_only_own_portal(monkeypatch, tmp_path: Path) -> None:
+    _prepare_sync_admin(tmp_path / "test_sync_admin_client_portal.db")
 
     from fastapi.testclient import TestClient
 
@@ -107,8 +107,8 @@ def test_sync_admin_client_user_sees_only_own_portal(monkeypatch) -> None:
         assert blocked_admin_reports.status_code == 403
 
 
-def test_sync_admin_client_reports_compare_and_export_use_logged_empresa(monkeypatch) -> None:
-    _prepare_sync_admin("test_sync_admin_client_reports_export.db")
+def test_sync_admin_client_reports_compare_and_export_use_logged_empresa(monkeypatch, tmp_path: Path) -> None:
+    _prepare_sync_admin(tmp_path / "test_sync_admin_client_reports_export.db")
 
     from fastapi.testclient import TestClient
 
@@ -219,8 +219,8 @@ def test_sync_admin_client_reports_compare_and_export_use_logged_empresa(monkeyp
     assert all(call.get("empresa_id") == "55555555000155" for call in recent_calls)
 
 
-def test_sync_admin_client_branch_scope_blocks_unauthorized_branch(monkeypatch) -> None:
-    _prepare_sync_admin("test_sync_admin_client_branch_scope.db")
+def test_sync_admin_client_branch_scope_blocks_unauthorized_branch(monkeypatch, tmp_path: Path) -> None:
+    _prepare_sync_admin(tmp_path / "test_sync_admin_client_branch_scope.db")
 
     from fastapi.testclient import TestClient
 

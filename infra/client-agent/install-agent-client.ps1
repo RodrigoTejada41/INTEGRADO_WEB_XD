@@ -42,6 +42,61 @@ function Remove-DirectoryWithRetry([string]$TargetDir, [int]$RetryCount = 5) {
     }
 }
 
+function Backup-PersistedState([string]$TargetDir) {
+    $backupDir = Join-Path $env:TEMP ("MoviSyncAgentBackup_" + (Get-Date -Format "yyyyMMdd_HHmmss"))
+    New-Item -ItemType Directory -Force -Path $backupDir | Out-Null
+
+    $itemsToPreserve = @(
+        ".env",
+        "agent_local\data\agent_api_key.txt",
+        "agent_local\data\local_client_identity.json",
+        "agent_local\data\checkpoints.json"
+    )
+
+    foreach ($relativePath in $itemsToPreserve) {
+        $sourcePath = Join-Path $TargetDir $relativePath
+        if (!(Test-Path $sourcePath)) {
+            continue
+        }
+
+        $destinationPath = Join-Path $backupDir $relativePath
+        $destinationParent = Split-Path -Parent $destinationPath
+        if ($destinationParent) {
+            New-Item -ItemType Directory -Force -Path $destinationParent | Out-Null
+        }
+        Copy-Item -Path $sourcePath -Destination $destinationPath -Force
+    }
+
+    return $backupDir
+}
+
+function Restore-PersistedState([string]$TargetDir, [string]$BackupDir) {
+    if ([string]::IsNullOrWhiteSpace($BackupDir) -or !(Test-Path $BackupDir)) {
+        return
+    }
+
+    $itemsToRestore = @(
+        ".env",
+        "agent_local\data\agent_api_key.txt",
+        "agent_local\data\local_client_identity.json",
+        "agent_local\data\checkpoints.json"
+    )
+
+    foreach ($relativePath in $itemsToRestore) {
+        $sourcePath = Join-Path $BackupDir $relativePath
+        if (!(Test-Path $sourcePath)) {
+            continue
+        }
+
+        $destinationPath = Join-Path $TargetDir $relativePath
+        $destinationParent = Split-Path -Parent $destinationPath
+        if ($destinationParent) {
+            New-Item -ItemType Directory -Force -Path $destinationParent | Out-Null
+        }
+        Copy-Item -Path $sourcePath -Destination $destinationPath -Force
+    }
+}
+
 function Invoke-Checked([scriptblock]$Command, [string]$ErrorMessage) {
     & $Command
     if ($LASTEXITCODE -ne 0) {
@@ -60,8 +115,10 @@ if (!(Test-Path $sourceAgent) -or !(Test-Path $sourceBackend) -or !(Test-Path $s
 }
 
 Write-Step "Preparando pasta de instalacao em $InstallDir"
+$persistedStateBackup = $null
 if ($ForceReinstall -and (Test-Path $InstallDir)) {
     Write-Step "ForceReinstall ativo: limpando instalacao anterior"
+    $persistedStateBackup = Backup-PersistedState -TargetDir $InstallDir
     Remove-DirectoryWithRetry -TargetDir $InstallDir
 }
 New-Item -ItemType Directory -Force -Path $InstallDir | Out-Null
@@ -88,6 +145,8 @@ if (Test-Path $sourceManifest) {
 if (Test-Path (Join-Path $packageRoot "scripts")) {
     Copy-Item -Path (Join-Path $packageRoot "scripts") -Destination $InstallDir -Recurse -Force
 }
+
+Restore-PersistedState -TargetDir $InstallDir -BackupDir $persistedStateBackup
 
 $pythonCmd = Get-Command py -ErrorAction SilentlyContinue
 if ($null -eq $pythonCmd) {
@@ -118,13 +177,42 @@ cd /d %~dp0
 set "LOG_DIR=%~dp0logs"
 if not exist "%LOG_DIR%" mkdir "%LOG_DIR%"
 set "LOG_FILE=%LOG_DIR%\pairing-ui.log"
-".\.venv\Scripts\python.exe" -m agent_local.pairing_ui 1>> "%LOG_FILE%" 2>&1
+set "PYTHON=.\.venv\Scripts\python.exe"
+if not exist "%PYTHON%" (
+  echo.
+  echo [vinculacao] Python local nao encontrado.
+  echo [vinculacao] Execute novamente a instalacao.
+  pause
+  exit /b 1
+)
+"%PYTHON%" -c "import agent_local.pairing_ui" 1>> "%LOG_FILE%" 2>&1
+if errorlevel 1 (
+  echo.
+  echo [vinculacao] Interface grafica indisponivel.
+  echo [vinculacao] Veja o log: %LOG_FILE%
+  echo [vinculacao] Abrindo fallback em terminal.
+  "%PYTHON%" -m agent_local.pairing_cli
+  if errorlevel 1 (
+    echo.
+    echo [vinculacao] Falha no fallback terminal.
+    pause
+    exit /b 1
+  )
+  exit /b 0
+)
+"%PYTHON%" -m agent_local.pairing_ui 1>> "%LOG_FILE%" 2>&1
 if errorlevel 1 (
   echo.
   echo [vinculacao] Falha ao abrir interface grafica.
   echo [vinculacao] Veja o log: %LOG_FILE%
-  echo [vinculacao] Use fallback em terminal: Abrir_Vinculacao_CLI.cmd
-  pause
+  echo [vinculacao] Abrindo fallback em terminal.
+  "%PYTHON%" -m agent_local.pairing_cli
+  if errorlevel 1 (
+    echo.
+    echo [vinculacao] Falha no fallback terminal.
+    pause
+    exit /b 1
+  )
 )
 '@ | Set-Content -Path "Abrir_Vinculacao.cmd" -Encoding ascii
 
@@ -155,13 +243,27 @@ if not exist ".\agent_local\data\agent_api_key.txt" (
 set "LOG_DIR=%~dp0logs"
 if not exist "%LOG_DIR%" mkdir "%LOG_DIR%"
 set "LOG_FILE=%LOG_DIR%\agent-sync.log"
-echo [agente] iniciando... >> "%LOG_FILE%"
-".\.venv\Scripts\python.exe" -m agent_local.main >> "%LOG_FILE%" 2>&1
-echo.
-echo [agente] processo encerrado. Verifique o log:
-echo %LOG_FILE%
-pause
+set "PYTHON=.\.venv\Scripts\python.exe"
+if not exist "%PYTHON%" (
+  echo [agente] Python local nao encontrado em .\.venv\Scripts\python.exe
+  pause
+  exit /b 1
+)
+set "VBS_FILE=%~dp0Iniciar_Agente.vbs"
+if not exist "%VBS_FILE%" (
+  echo [agente] Launcher oculto nao encontrado.
+  pause
+  exit /b 1
+)
+wscript //nologo "%VBS_FILE%"
+exit /b 0
 '@ | Set-Content -Path "Iniciar_Agente.cmd" -Encoding ascii
+
+@"
+Set shell = CreateObject("WScript.Shell")
+shell.CurrentDirectory = "$InstallDir"
+shell.Run "cmd /c ""$InstallDir\.venv\Scripts\python.exe -m agent_local.main >> $InstallDir\logs\agent-sync.log 2>&1""", 0, False
+"@ | Set-Content -Path "Iniciar_Agente.vbs" -Encoding ascii
 
 @'
 @echo off

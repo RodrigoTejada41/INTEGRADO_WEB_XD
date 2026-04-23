@@ -236,3 +236,16 @@ Riscos que este checklist evita:
 - Segredos em `.env.prod` e GitHub Secrets.
 - Base pronta para HTTPS (arquivo `infra/nginx/ssl-example.conf`).
 - Fluxo preparado para usuario dedicado de deploy com chave SSH restrita por comando.
+
+## 9. Handoff para outra IA
+
+Se uma outra IA assumir este repositório, ela deve ler primeiro:
+- [`infra/SSH_ACESSO.md`](infra/SSH_ACESSO.md)
+- [`RETOMADA_EXATA.md`](../RETOMADA_EXATA.md)
+- [`cerebro_vivo/estado_atual.md`](../cerebro_vivo/estado_atual.md)
+
+Regra pratica:
+- nao pedir novamente o que ja esta documentado;
+- nao pedir credencial que deve ficar fora do repositorio;
+- se faltar acesso real, apontar exatamente qual segredo ou permissao esta faltando;
+- seguir o deploy pelo workflow ou pelo runbook, sem reexplicar o processo do zero.

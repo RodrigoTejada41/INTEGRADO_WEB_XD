@@ -47,8 +47,10 @@
     "historico_consolidado": "cerebro_vivo/historico_decisoes.md"
   },
   "estado_atual": {
-    "checkpoint_base": "P20 concluido com backlog pos-P20 avancado, console web centralizada entregue e frente de relatorios separada entre admin e cliente",
+    "checkpoint_base": "P20 concluido com backlog pos-P20 avancado, console web centralizada entregue, frente de relatorios separada entre admin e cliente, producao estavel no commit 5a06f1d, checkpoint de reboot do cliente MoviSync registrado e suite completa validada com 62 passed",
     "ultimas_entregas": [
+      "Suite completa validada com 62 passed apos mover o temp root do pytest para runtime/pytest-tmp no workspace",
+      "Temp root do pytest movido para runtime/pytest-tmp para eliminar ACL quebrada da home do usuario",
       "P15 concluido: migracoes versionadas com rollback por versao/passos",
       "P16 concluido: health/live/ready no backend e sync-admin",
       "P17 concluido: backpressure por tenant e retry por classe de falha",
@@ -79,13 +81,22 @@
       "O compose de producao passou a aceitar NGINX_PUBLIC_PORT para o ambiente local, mantendo 80 como default e usando 8088 apenas nesta maquina",
       ".env.prod local foi criado e mantido fora do Git para destravar o compose sem expor segredos",
       "Cliente MoviSync recebeu hotfix de reinstall com retry de lock de arquivo no .venv",
+      "Release do cliente MoviSync atualizada para v2026-04-23_0137, com reinstalacao concluida em C:\\MoviSyncAgent",
+      "O instalador do cliente passou a preservar .env, agent_api_key.txt, local_client_identity.json e checkpoints.json durante ForceReinstall, e o launcher de inicio passou a operar oculto via Iniciar_Agente.vbs",
+      "O registro inicial do agente agora usa explicitamente a chave persistida em agent_local/data/agent_api_key.txt",
+      "A re-vinculacao ficou bloqueada porque o pairing code anterior expirou e a tentativa de gerar um novo pelo endpoint admin remoto retornou Admin token invalido",
       "Memoria cerebro_vivo consolidada e alinhada ao estado atual",
-      "Suite recente validada com 10 passed nos testes direcionados de APIs conectadas, relatorios, portal cliente e escopo de acesso"
+      "Suite recente validada com 10 passed nos testes direcionados de APIs conectadas, relatorios, portal cliente e escopo de acesso",
+      "O Nginx de producao foi alinhado com backend_upstream e frontend_upstream para fechar a assercao de readiness da suite",
+      "O proxy de borda passou a tratar /admin/api/ separadamente de /admin/ para preservar o contrato do cliente local com /admin/api/api/v1/register",
+      "A suite completa desta retomada foi validada com py -3 -m pytest -q em 60 passed",
+      "Producao estavel consolidada no commit 5a06f1d"
     ],
     "proximos_passos": [
       "Priorizar backlog pos-P20 com foco em risco operacional, seguranca e continuidade do produto",
       "Continuar a frente de relatorios com comparacoes adicionais entre filiais e terminais, preferencialmente sem duplicar contratos entre backend e sync-admin",
-      "Consolidar a UX do painel admin para edicao de usuarios e ampliar, se necessario, o refinamento visual da auditoria local de alteracoes de escopo por empresa ou filial"
+      "Consolidar a UX do painel admin para edicao de usuarios e ampliar, se necessario, o refinamento visual da auditoria local de alteracoes de escopo por empresa ou filial",
+      "Enderecar drift local de migracoes e testes antes de promover novas alteracoes de schema"
     ],
     "backlog_pos_p20": [
       {
@@ -146,13 +157,20 @@
         "ordem": 10,
         "item": "Retomar o cliente MoviSync apos reboot local",
         "motivo": "Liberar lock de arquivo no .venv e concluir a reinstalacao do pacote do cliente",
+        "status": "pendente de novo pairing code valido"
+      },
+      {
+        "ordem": 11,
+        "item": "Enderecar drift local de migracoes e testes",
+        "motivo": "Alinhar baseline local, rollback e contrato de schema/testes com a producao ja estabilizada",
         "status": "pendente"
       }
     ],
     "riscos_conhecidos": [
       "API de memoria primaria indisponivel em http://127.0.0.1:8080/health",
       "Readiness fim a fim da cadeia produtiva ainda pendente de fechamento operacional",
-      "Runbooks recorrentes de deploy, rotacao de chaves e recuperacao ainda nao consolidados"
+      "Runbooks recorrentes de deploy, rotacao de chaves e recuperacao ainda nao consolidados",
+      "Drift local de migracoes e testes em relacao a producao estavel no commit 5a06f1d"
     ]
   },
   "coexistencia": {

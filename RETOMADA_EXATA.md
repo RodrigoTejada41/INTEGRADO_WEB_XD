@@ -1,18 +1,19 @@
 # Retomada Exata
 
-Ultimo checkpoint: 2026-04-23 00:00:00 -03:00
+Ultimo checkpoint: 2026-04-23 -03:00
 Branch atual: `main`
-Workspace local: alterado com memoria executiva atualizada e hotfix do cliente em andamento
+Workspace local: alterado com memoria executiva atualizada e docs de continuidade reconciliados
 
 ## 1) Onde voce parou
-- Fase de backlog concluida ate `P18`.
-- Ultima entrega funcional: observabilidade avancada por tenant + correlacao ponta a ponta de logs (`correlation_id`) + endpoint admin de observabilidade.
-- Etapa extra iniciada e concluida no codigo: estrutura completa para deploy em VPS Linux com Docker/Nginx/GitHub Actions.
-- Ultima validacao executada: `py -3 -m pytest -q` com `28 passed`.
-- Nesta sessao houve tentativa de `Atualizar` o cliente MoviSync em `C:\MoviSyncAgent`, mas a limpeza do `.venv` falhou por arquivo `.pyd` bloqueado em uso por processo Python.
-- Hotfix aplicado no instalador e no gerenciador do cliente para encerrar processos Python relacionados ao diretorio e repetir a remocao com retry.
-- Proximo passo operacional: reiniciar a maquina e repetir a opcao `3) Atualizar` do cliente MoviSync.
-- Validacao operacional local executada nesta sessao: `.env.prod` local criado, migração aplicada via `scripts/db_migrate.py`, stack produtivo subiu com `db`, `backend`, `frontend` e `nginx` saudaveis, e edge validado em `http://127.0.0.1:8088` por conflito na porta `80` do host.
+- Fase de backlog concluida ate `P20`.
+- Ultima entrega funcional consolidada: observabilidade avancada por tenant + correlacao ponta a ponta de logs (`correlation_id`) + endpoint admin de observabilidade.
+- Etapa extra de producao concluida: stack VPS com Docker, Nginx, scripts e GitHub Actions.
+- Ultima validacao tecnica executada: `py -3 -m pytest -q` com `62 passed`.
+- Deploy VPS concluido em `https://movisystecnologia.com.br`.
+- `GET /admin/api/health/ready` responde `200`.
+- `GET /MoviRelatorios/` responde `302`.
+- `integrado_backend`, `integrado_frontend`, `integrado_db` e `integrado_nginx` estao saudaveis.
+- Divergencia antiga entre `P18` e `P20` foi resolvida em favor de `P20` como linha canonica atual.
 
 ## 2) O que foi concluido
 - `P1-P5`: scheduler por tenant, fila persistida, DLQ, criptografia base, RBAC e auditoria.
@@ -20,9 +21,12 @@ Workspace local: alterado com memoria executiva atualizada e hotfix do cliente e
 - `P10-P14`: escopo multiempresa por empresa/filial/terminal, exportacao Excel/PDF, melhorias de painel, snapshot local-first, tuning de escala.
 - `P15`: migracoes reais de schema com versionamento e rollback por versao/passos.
 - `P16`: health/readiness de producao no backend e no `sync-admin`.
-- `P17`: backpressure por tenant + fairness de selecao + retry policy por classe de falha (permanent/auth/transient).
+- `P17`: backpressure por tenant + fairness de selecao + retry policy por classe de falha.
 - `P18`: observabilidade por tenant no backend e no painel + correlacao de logs.
+- `P19`: governanca de segredos e auditoria expandida.
+- `P20`: endurecimento operacional de deploy, readiness e validacao de producao.
 - Etapa extra VPS: `docker-compose.prod.yml`, Nginx reverso, scripts de setup/deploy/update/backup/restore e workflow GitHub Actions por SSH.
+- Estado atual da VPS: commit `5a06f1d`, com producao estavel e contrato de borda validado.
 
 ## 3) Arquivos chave alterados na ultima fase
 - Backend
@@ -54,10 +58,12 @@ Workspace local: alterado com memoria executiva atualizada e hotfix do cliente e
 - `infra/scripts/restore-db.sh`
 - `.github/workflows/deploy-prod.yml`
 - `infra/VPS_DEPLOY.md`
+- `infra/SSH_ACESSO.md`
 
 - Testes atualizados
 - `tests/test_observability.py`
 - `tests/test_backend_audit.py`
+- `tests/test_production_operations.py`
 
 ## 4) Como retomar exatamente
 1. Abrir a base local-first:
@@ -73,7 +79,7 @@ py -3 -m pytest -q
 ```powershell
 git status --short
 ```
-4. Se o objetivo for deploy: abrir guia `infra/VPS_DEPLOY.md`.
+4. Se o objetivo for deploy, abrir `infra/VPS_DEPLOY.md`.
 5. Na VPS, executar:
 ```bash
 bash infra/scripts/setup-vps.sh
@@ -84,12 +90,7 @@ bash infra/scripts/deploy-prod.sh
 `VPS_HOST`, `VPS_USER`, `VPS_SSH_KEY`, `VPS_PORT` (opcional), `VPS_APP_DIR` (opcional).
 
 ## 5) Proximas prioridades abertas
-- `P19`: governanca e seguranca (rotacao/expiracao de segredos e auditoria expandida).
-- `P20`: refinamentos finais de produto e operacao.
-- Etapa operacional pendente: executar deploy real na VPS e validar health via Nginx.
-- Etapa local concluida nesta sessao: repetir validacao do stack local apos qualquer nova mudanca em `docker-compose.prod.yml`, `infra/nginx/default.conf` ou `.env.prod`.
-- Etapa operacional pendente desta sessao: reiniciar a maquina para liberar o lock do `C:\MoviSyncAgent` e retomar o instalador do cliente.
-- Sessao pausada apos registrar o checkpoint; continuar daqui exige reabrir este arquivo e a memoria executiva antes de qualquer nova decisao.
+- Reboot local para liberar o lock do `C:\MoviSyncAgent` e retomar `3) Atualizar` do cliente MoviSync, se esse fluxo ainda for necessario.
 
 ## 6) Regras para continuidade sem regressao
 - Nao remover isolamento por `empresa_id`.
@@ -98,5 +99,17 @@ bash infra/scripts/deploy-prod.sh
 - Nao reduzir cobertura dos testes existentes.
 - Antes de encerrar qualquer ciclo: rodar `py -3 -m pytest -q`.
 - Nao registrar credenciais sensiveis em arquivo de repositorio.
-- Para a frente do cliente MoviSync, se o instalador travar em lock de arquivo, reiniciar a maquina antes de tentar novo `update`.
 - Esta deve ser a referencia principal de retomada quando a conversa for reaberta.
+
+## 7) Atualizacao desta pausa
+
+- Validacao final desta retomada: `py -3 -m pytest -q` com `60 passed`.
+- O temp root do pytest foi movido para `runtime/pytest-tmp` dentro do workspace para eliminar a dependencia da home do usuario e estabilizar `tmp_path`.
+- Validacao final desta retomada: `py -3 -m pytest -q` com `62 passed`.
+- Ajuste aplicado antes da pausa: `infra/nginx/default.conf` alinhado com `backend_upstream` e `frontend_upstream` para fechar o contrato de readiness.
+- Ajuste de borda desta sessao: `infra/nginx/default.conf` trata `location /admin/api/` separadamente de `location /admin/`, porque o cliente local registra em `/admin/api/api/v1/register`.
+- Validacao local desta correcao: `py -3 -m pytest tests/test_production_operations.py -q` com `5 passed`, seguido de `py -3 -m pytest -q` com `60 passed`.
+- Deploy VPS concluido em `https://movisystecnologia.com.br` com `GET /admin/api/health/ready` em `200`, `GET /MoviRelatorios/` em `302` e containers `backend`, `frontend`, `db` e `nginx` saudaveis.
+- Divergencia antiga entre `P18` e `P20` resolvida: a fonte de verdade atual passa a considerar `P20` concluido.
+- Risco atual principal deslocado para o drift local de migracoes e testes, especialmente a divergencia entre baseline local e contrato de rollback/migration.
+- Proxima retomada: abrir primeiro `RETOMADA_EXATA.md`, depois `cerebro_vivo/estado_atual.md`, depois `cerebro_vivo/historico_decisoes.md`.

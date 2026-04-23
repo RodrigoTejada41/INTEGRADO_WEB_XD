@@ -41,6 +41,8 @@ Isso cria uma pasta em `infra/client-agent/releases/vYYYY-MM-DD_HHMM` com todo o
 - Tela Python para:
   - vinculacao por codigo
   - troca manual de servidor/chave (protegida por senha)
+- Se a GUI nao carregar, o atalho cai para o CLI automaticamente e grava o log em:
+  - `C:\MoviSyncAgent\logs\pairing-ui.log`
 - Logs de execucao do agente:
   - `C:\MoviSyncAgent\logs\agent-sync.log`
   - `C:\MoviSyncAgent\logs\agent-sync-debug.log`

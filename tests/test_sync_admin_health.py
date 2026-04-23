@@ -7,10 +7,8 @@ from pathlib import Path
 from fastapi.testclient import TestClient
 
 
-def test_sync_admin_health_and_readiness() -> None:
-    db_path = Path("output/test_sync_admin_health.db")
-    if db_path.exists():
-        db_path.unlink()
+def test_sync_admin_health_and_readiness(tmp_path: Path) -> None:
+    db_path = tmp_path / "test_sync_admin_health.db"
 
     os.environ["DATABASE_URL"] = f"sqlite+pysqlite:///{db_path.as_posix()}"
     os.environ["SECRET_KEY"] = "test-secret-key"
@@ -20,7 +18,7 @@ def test_sync_admin_health_and_readiness() -> None:
     os.environ["CONTROL_API_BASE_URL"] = "http://127.0.0.1:59999"
     os.environ["REMOTE_COMMAND_PULL_ENABLED"] = "false"
     os.environ["LOCAL_CONTROL_TOKEN"] = "local-token-test"
-    os.environ["LOCAL_CONTROL_TOKEN_FILE"] = "output/test_sync_admin_health_token.txt"
+    os.environ["LOCAL_CONTROL_TOKEN_FILE"] = f"{(tmp_path / 'test_sync_admin_health_token.txt').as_posix()}"
 
     sync_admin_root = Path("sync-admin").resolve()
     if str(sync_admin_root) not in sys.path:

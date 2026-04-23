@@ -31,3 +31,35 @@ class SyncApiClient:
             )
         response.raise_for_status()
         return response.json()
+
+    def register_local_client(self, payload: dict, api_key: str | None = None) -> dict:
+        current_api_key = api_key or self.default_api_key
+        headers = {
+            "Content-Type": "application/json",
+            "X-Empresa-Id": self.empresa_id,
+            "X-API-Key": current_api_key,
+        }
+        with httpx.Client(timeout=self.timeout_seconds, verify=self.verify_ssl) as client:
+            response = client.post(
+                f"{self.base_url}/api/v1/register",
+                headers=headers,
+                json=payload,
+            )
+        response.raise_for_status()
+        return response.json()
+
+    def send_heartbeat(self, client_id: str, client_token: str, payload: dict) -> dict:
+        headers = {
+            "Content-Type": "application/json",
+            "X-Empresa-Id": self.empresa_id,
+            "X-Client-Id": client_id,
+            "X-Client-Token": client_token,
+        }
+        with httpx.Client(timeout=self.timeout_seconds, verify=self.verify_ssl) as client:
+            response = client.post(
+                f"{self.base_url}/api/v1/clients/me/heartbeat",
+                headers=headers,
+                json=payload,
+            )
+        response.raise_for_status()
+        return response.json()

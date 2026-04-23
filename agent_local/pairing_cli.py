@@ -5,6 +5,7 @@ from agent_local.pairing.service import PairingRequest, PairingService
 
 def main() -> None:
     print("=== MoviSync Vinculacao (CLI) ===")
+    print("Informe a URL da API, nao o codigo de vinculacao.")
     api_base_url = input("URL da API [https://movisystecnologia.com.br/admin/api]: ").strip() or (
         "https://movisystecnologia.com.br/admin/api"
     )
@@ -18,16 +19,20 @@ def main() -> None:
     )
     env_file = input("Arquivo .env [.env]: ").strip() or ".env"
 
-    result = PairingService().activate(
-        PairingRequest(
-            api_base_url=api_base_url,
-            pairing_code=pairing_code,
-            device_label=device_label,
-            empresa_id=empresa_id,
-            api_key_file=api_key_file,
-            env_file=env_file,
+    try:
+        result = PairingService().activate(
+            PairingRequest(
+                api_base_url=api_base_url,
+                pairing_code=pairing_code,
+                device_label=device_label,
+                empresa_id=empresa_id,
+                api_key_file=api_key_file,
+                env_file=env_file,
+            )
         )
-    )
+    except Exception as exc:  # noqa: BLE001
+        raise SystemExit(f"Falha na vinculacao: {exc}") from exc
+
     print("")
     print("Vinculacao concluida.")
     print(f"empresa_id={result.empresa_id}")
@@ -37,4 +42,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-

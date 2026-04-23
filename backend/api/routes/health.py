@@ -53,7 +53,10 @@ def readiness(
     except Exception:
         details["memory_database"] = "error"
 
-    scheduler_running = bool(getattr(request.app.state, "scheduler_running", False))
+    scheduler = getattr(request.app.state, "scheduler", None)
+    scheduler_running = bool(
+        getattr(request.app.state, "scheduler_running", False) or getattr(scheduler, "running", False)
+    )
     details["scheduler"] = "ready" if scheduler_running else "starting"
 
     if any(value in {"error", "starting"} for value in details.values()):

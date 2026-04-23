@@ -7,6 +7,56 @@ param(
 $ErrorActionPreference = "Stop"
 $packageRoot = Split-Path -Parent $MyInvocation.MyCommand.Path
 
+function Get-ReleaseSearchRoot {
+    $embeddedReleases = Join-Path $packageRoot "releases"
+    if (Test-Path $embeddedReleases) {
+        return $embeddedReleases
+    }
+
+    $parent = Split-Path -Parent $packageRoot
+    $parentReleases = Join-Path $parent "releases"
+    if (Test-Path $parentReleases) {
+        return $parentReleases
+    }
+
+    return $null
+}
+
+function Get-LatestReleaseDir {
+    $searchRoot = Get-ReleaseSearchRoot
+    if ($null -eq $searchRoot) {
+        return $null
+    }
+
+    $releaseDir = Get-ChildItem -Path $searchRoot -Directory -ErrorAction SilentlyContinue |
+        Where-Object { $_.Name -match '^v\d{4}-\d{2}-\d{2}_\d{4}$' } |
+        Sort-Object Name -Descending |
+        Select-Object -First 1
+
+    if ($null -ne $releaseDir) {
+        return $releaseDir.FullName
+    }
+
+    return Get-ChildItem -Path $searchRoot -Directory -ErrorAction SilentlyContinue |
+        Sort-Object LastWriteTime -Descending |
+        Select-Object -First 1 |
+        ForEach-Object { $_.FullName }
+}
+
+function Get-ActiveInstallerPath {
+    $latestReleaseDir = Get-LatestReleaseDir
+    if ($null -eq $latestReleaseDir) {
+        return $null
+    }
+
+    $installer = Join-Path $latestReleaseDir "install-agent-client.ps1"
+    if (Test-Path $installer) {
+        return $installer
+    }
+
+    return $null
+}
+
 function Read-ManifestValue([string]$manifestPath, [string]$key) {
     if (!(Test-Path $manifestPath)) { return $null }
     $line = Select-String -Path $manifestPath -Pattern "^$key=" -SimpleMatch:$false | Select-Object -First 1
@@ -48,6 +98,14 @@ function Remove-DirectoryWithRetry([string]$TargetDir, [int]$RetryCount = 5) {
 }
 
 function Get-PackageVersion {
+    $latestReleaseDir = Get-LatestReleaseDir
+    if ($null -ne $latestReleaseDir) {
+        $manifest = Join-Path $latestReleaseDir "release-manifest.txt"
+        $version = Read-ManifestValue -manifestPath $manifest -key "version"
+        if (-not [string]::IsNullOrWhiteSpace($version)) { return $version }
+        return Split-Path -Leaf $latestReleaseDir
+    }
+
     $manifest = Join-Path $packageRoot "release-manifest.txt"
     $version = Read-ManifestValue -manifestPath $manifest -key "version"
     if ([string]::IsNullOrWhiteSpace($version)) { return "dev-local" }
@@ -82,9 +140,9 @@ function Show-Status {
 }
 
 function Run-Install([bool]$forceReinstall) {
-    $installer = Join-Path $packageRoot "install-agent-client.ps1"
-    if (!(Test-Path $installer)) {
-        throw "install-agent-client.ps1 nao encontrado em $packageRoot"
+    $installer = Get-ActiveInstallerPath
+    if ($null -eq $installer) {
+        throw "Nenhuma release instalada foi encontrada em $packageRoot."
     }
     if ($forceReinstall) {
         powershell -ExecutionPolicy Bypass -File $installer -InstallDir $InstallDir -ForceReinstall

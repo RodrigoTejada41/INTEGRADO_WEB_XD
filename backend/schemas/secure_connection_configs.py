@@ -9,7 +9,7 @@ class SecureConnectionConfigCreateRequest(BaseModel):
     scope: str = Field(pattern="^(source|destination)$")
     nome: str = Field(min_length=1, max_length=120)
     connector_type: str = Field(min_length=2, max_length=32)
-    sync_interval_minutes: int = Field(default=15, ge=1, le=1440)
+    sync_interval_minutes: int = Field(default=16, ge=1, le=1440)
     settings: dict[str, str] = Field(default_factory=dict)
     secret_settings: dict[str, str] = Field(default_factory=dict)
     generate_access_key: bool = Field(default=False)

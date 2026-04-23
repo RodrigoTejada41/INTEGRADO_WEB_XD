@@ -6,7 +6,7 @@ O projeto e uma plataforma de sincronizacao de dados multi-tenant com memoria lo
 
 Na governanca oficial atual, `backend/`, `agent_local/`, `sync-admin/` e `infra/` sao as fontes canonicas operacionais. `backend/src`, `frontend`, `database`, `devops` e `docker-compose.yml` na raiz permanecem como camadas de compatibilidade e onboarding.
 
-Na retomada canonica mais recente, o backlog funcional estava concluido ate `P18`. Considerando o estado corrente desta sessao, `P19` foi concluido com governanca conservadora de segredos e auditoria expandida nas rotas administrativas do backend, `P20` foi concluido com endurecimento operacional do deploy de producao, o backlog pos-`P20` ja teve a regra critica de retencao de 14 meses convertida em evidencia automatizada, e agora existe uma trilha funcional inicial de controle bidirecional entre `sync-admin` e `receiver-api`, acompanhada da nova camada de escopo de acesso do portal cliente.
+Na retomada canonica atual, o backlog funcional esta consolidado ate `P20`. `P19` foi concluido com governanca conservadora de segredos e auditoria expandida nas rotas administrativas do backend, `P20` foi concluido com endurecimento operacional do deploy de producao, a divergencia antiga entre `P18` e `P20` foi resolvida em favor de `P20`, e o deploy VPS ja foi validado em producao real no commit `5a06f1d`.
 
 ## Base canonica consultada
 
@@ -17,11 +17,13 @@ Na retomada canonica mais recente, o backlog funcional estava concluido ate `P18
 
 ## Estado consolidado encontrado
 
-- Checkpoint canonico de retomada: backlog concluido ate P18
+- Checkpoint canonico de retomada: backlog concluido ate P20
 - Estado corrente desta sessao: P20 concluido + backlog pos-P20 em execucao
 - Ultima entrega funcional consolidada: registro de instancias locais, fila de comandos remotos pull, endpoints protegidos de configuracao/status no `sync-admin`, controle central no `receiver-api` e portal cliente com escopo formal por empresa ou conjunto de filiais
 - Ultima validacao registrada nesta camada executiva: `py -3 -m pytest tests/test_sync_admin_connected_apis.py tests/test_sync_admin_client_portal.py tests/test_sync_admin_reports.py tests/test_sync_admin_client_scope.py tests/test_sync_admin_settings_client_scope.py -q` com 10 testes aprovados
 - Etapa adicional ja concluida no codigo: estrutura completa para deploy em VPS Linux com Docker, Nginx e GitHub Actions
+- Estado de producao atual validado: `GET /admin/api/health/ready` em `200`, `GET /MoviRelatorios/` em `302`, backend/frontend/db/nginx saudaveis.
+- Estado de producao atualmente estavel no commit `5a06f1d`.
 
 ## Entregas recentes registradas
 
@@ -81,6 +83,13 @@ Na retomada canonica mais recente, o backlog funcional estava concluido ate `P18
 - Tentativa de atualizacao do cliente MoviSync em `C:\MoviSyncAgent` falhou por lock de arquivo `.pyd` dentro do `.venv`.
 - Hotfix aplicado no instalador e no gerenciador do cliente para encerrar processos Python ligados ao diretorio antes da limpeza e repetir a remocao com retry.
 - Proximo passo operacional registrado: reiniciar a maquina e repetir a opcao `3) Atualizar` do cliente MoviSync.
+- Release do cliente MoviSync atualizada para `v2026-04-23_0137`, com reinstalacao concluida em `C:\MoviSyncAgent`.
+- O instalador do cliente passou a preservar `.env`, `agent_api_key.txt`, `local_client_identity.json` e `checkpoints.json` durante `ForceReinstall`, e o launcher de inicio passou a operar oculto via `Iniciar_Agente.vbs`.
+- O registro inicial do agente agora usa explicitamente a chave persistida em `agent_local/data/agent_api_key.txt`.
+- A re-vinculacao ficou bloqueada porque o pairing code anterior expirou e a tentativa de gerar um novo pelo endpoint admin remoto retornou `Admin token invalido`.
+- O proxy da borda agora trata `/admin/api/` separadamente de `/admin/` para preservar o contrato do cliente local com `/admin/api/api/v1/register` e evitar que o registro suma do painel de APIs conectadas.
+- Validacao desta correcao de borda: `py -3 -m pytest tests/test_production_operations.py -q` com `5 passed`, seguida de regressao completa com `60 passed`.
+- Foi criado `infra/SSH_ACESSO.md` para que outra IA continue o acesso/deploy sem pedir novamente o que ja esta documentado e sem gravar credenciais no repositorio.
 
 ## Registro operacional desta sessao
 
@@ -118,6 +127,9 @@ Na retomada canonica mais recente, o backlog funcional estava concluido ate `P18
    - Status: concluido
 10. Retomar o cliente MoviSync apos reboot local
    - Motivo: liberar lock de arquivo no `.venv` e concluir a reinstalacao do pacote do cliente
+   - Status: pendente de novo pairing code valido
+11. Enderecar drift local de migracoes e testes
+   - Motivo: o risco atual nao e a producao; e a divergencia entre baseline local, rollback e contrato de schema/testes
    - Status: pendente
 
 ## Leituras obrigatorias para retomada
@@ -148,3 +160,32 @@ Na retomada canonica mais recente, o backlog funcional estava concluido ate `P18
 - Referencia principal para reinicio: `RETOMADA_EXATA.md`.
 - Referencia executiva para contexto resumido: este arquivo.
 - A sessao foi pausada apos solicitar registro integral do estado para continuidade posterior.
+
+## Atualizacao desta pausa
+
+- Validacao final da retomada: `py -3 -m pytest -q` com `62 passed`.
+- Ajuste tecnico final: `infra/nginx/default.conf` agora usa `backend_upstream` e `frontend_upstream` no readiness.
+- Cliente MoviSync consolidado em `v2026-04-23_0137` e reinstalado em `C:\MoviSyncAgent`.
+- O proximo passo operacional continua sendo o reboot local para liberar lock do `.venv` antes de tentar `3) Atualizar` novamente.
+- O temp root do pytest foi movido para `runtime/pytest-tmp` no workspace para eliminar o bloqueio de ACL herdado de `.codex/memories/pytest-tmp`.
+
+## Atualizacao do deploy VPS
+
+- Deploy em VPS concluido em `https://movisystecnologia.com.br`.
+- `GET /admin/api/health/ready` responde `200` com `database`, `memory_database` e `scheduler` em `ready`.
+- `GET /MoviRelatorios/` responde `302` para login, mantendo a raiz livre para o site futuro.
+- `integrado_backend`, `integrado_frontend`, `integrado_db` e `integrado_nginx` permanecem saudaveis.
+- Schema do PostgreSQL recebeu `last_scheduled_at` e `next_run_at` em `tenant_source_configs`.
+- A divergencia antiga entre `P18` e `P20` foi encerrada; a linha executiva canonica atual e `P20` concluido.
+- A VPS consolidou o commit `5a06f1d` como linha de producao estavel.
+- O principal risco agora e local: drift entre migracoes, rollback e testes de schema.
+
+### D031 - O intervalo padrao de sincronizacao passa a ser 16 minutos
+- Decisao: normalizar o default de sincronizacao para 16 minutos em `agent_local`, schemas de criacao de config e defaults ORM do backend.
+- Motivo: havia divergencia entre a arquitetura atual e os defaults codificados em 15 minutos.
+- Impacto: o contrato de sincronizacao fica coerente entre agente local, backend e documentos de ambiente.
+
+## Atualizacao desta pausa
+
+- Validacao dirigida executada: `py -3 -m pytest tests/test_sync_interval_contract.py tests/test_agent_main_registration.py tests/test_tenant_scheduler.py tests/test_db_migrations.py -q` com 15 testes aprovados.
+- A suite completa desta maquina agora passa com `62 passed` apos mover o temp root do pytest para o workspace.
