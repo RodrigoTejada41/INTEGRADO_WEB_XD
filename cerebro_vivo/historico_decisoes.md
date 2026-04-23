@@ -203,3 +203,8 @@ Sempre que houver decisao arquitetural, de seguranca, de dados/logs ou de produt
 - Decisao: usar `ENVIRONMENT=development` como default do backend e habilitar `https_only` no `SessionMiddleware` somente quando `ENVIRONMENT=production`.
 - Motivo: o backend estava assumindo producao por default e mantendo cookie de sessao sem restricao de HTTPS em runtime, o que nao e adequado para producao real.
 - Impacto: o fluxo local e de teste continua funcional por HTTP, enquanto a producao recebe cookie de sessao mais seguro sem exigir ajustes manuais em cada execucao de desenvolvimento.
+
+### D034 - O ambiente de teste deve ser restaurado apos cada caso
+- Decisao: adicionar um fixture autouse em `conftest.py` para restaurar `os.environ` apos cada teste.
+- Motivo: a suite estava vazando `ENVIRONMENT=production`, `RATE_LIMIT_*` e segredos entre casos, fazendo testes de desenvolvimento falharem por herdar estado de um teste anterior.
+- Impacto: o isolamento da suite fica previsivel, os testes deixam de depender da ordem de execucao e a validacao de producao continua coberta pelos testes dedicados.

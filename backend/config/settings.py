@@ -1,6 +1,7 @@
 from functools import lru_cache
 from typing import Literal
 
+from pydantic import model_validator
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -87,6 +88,20 @@ class Settings(BaseSettings):
         extra="ignore",
         populate_by_name=True,
     )
+
+    @model_validator(mode="after")
+    def _validate_production_secrets(self) -> "Settings":
+        if self.environment.lower() != "production":
+            return self
+        forbidden = {
+            "secret_key": {"change-me"},
+            "admin_token": {"change-this-admin-token"},
+        }
+        for field_name, invalid_values in forbidden.items():
+            value = getattr(self, field_name)
+            if value in invalid_values:
+                raise ValueError(f"{field_name} must be set to a non-placeholder value in production")
+        return self
 
 
 @lru_cache

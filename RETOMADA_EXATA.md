@@ -108,9 +108,11 @@ bash infra/scripts/deploy-prod.sh
 - Validacao final desta retomada: `py -3 -m pytest -q` com `62 passed`.
 - Ajuste aplicado antes da pausa: `infra/nginx/default.conf` alinhado com `backend_upstream` e `frontend_upstream` para fechar o contrato de readiness.
 - O backend agora usa `ENVIRONMENT=development` como default e ativa `https_only` no `SessionMiddleware` apenas em producao.
-- Validacao final desta retomada: `py -3 -m pytest -q` com `64 passed`.
+- Validacao final desta retomada: `py -3 -m pytest -q` com `67 passed`.
 - Ajuste de borda desta sessao: `infra/nginx/default.conf` trata `location /admin/api/` separadamente de `location /admin/`, porque o cliente local registra em `/admin/api/api/v1/register`.
 - Validacao local desta correcao: `py -3 -m pytest tests/test_production_operations.py -q` com `5 passed`, seguido de `py -3 -m pytest -q` com `60 passed`.
+- Ajuste de isolamento de teste desta sessao: `conftest.py` passou a restaurar `os.environ` apos cada teste para impedir vazamento de ambiente entre casos.
+- Validacao final desta sessao: `py -3 -m pytest -q` com `67 passed`.
 - Deploy VPS concluido em `https://movisystecnologia.com.br` com `GET /admin/api/health/ready` em `200`, `GET /MoviRelatorios/` em `302` e containers `backend`, `frontend`, `db` e `nginx` saudaveis.
 - Divergencia antiga entre `P18` e `P20` resolvida: a fonte de verdade atual passa a considerar `P20` concluido.
 - Risco atual principal deslocado para o drift local de migracoes e testes, especialmente a divergencia entre baseline local e contrato de rollback/migration.

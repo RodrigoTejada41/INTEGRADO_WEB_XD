@@ -1,6 +1,6 @@
 ﻿from __future__ import annotations
 
-from pydantic import Field
+from pydantic import Field, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -37,6 +37,22 @@ class Settings(BaseSettings):
     sync_default_interval_minutes: int = Field(default=15, alias='SYNC_DEFAULT_INTERVAL_MINUTES')
 
     log_level: str = 'INFO'
+
+    @model_validator(mode='after')
+    def _validate_production_secrets(self) -> 'Settings':
+        if self.app_env.lower() != 'production':
+            return self
+        forbidden = {
+            'secret_key': {'change-me', 'change-me-super-secret'},
+            'integration_api_key': {'sync-key-change-me'},
+            'control_admin_token': {'change-this-admin-token'},
+            'initial_admin_password': {'admin123'},
+        }
+        for field_name, invalid_values in forbidden.items():
+            value = getattr(self, field_name)
+            if value in invalid_values:
+                raise ValueError(f'{field_name} must be set to a non-placeholder value in production')
+        return self
 
 
 settings = Settings()

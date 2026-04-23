@@ -5,6 +5,8 @@ import os
 import sys
 from pathlib import Path
 
+import pytest
+
 
 def _reset_backend_modules() -> None:
     prefixes = (
@@ -55,3 +57,23 @@ def test_backend_enables_secure_sessions_in_production(tmp_path: Path) -> None:
     app = _load_backend_app(tmp_path, "production")
     session_middleware = next(m for m in app.user_middleware if m.cls.__name__ == "SessionMiddleware")
     assert session_middleware.kwargs["https_only"] is True
+
+
+def test_backend_rejects_placeholder_secrets_in_production(tmp_path: Path) -> None:
+    db_path = tmp_path / "backend_security_placeholder.db"
+    os.environ["DATABASE_URL"] = f"sqlite+pysqlite:///{db_path.as_posix()}"
+    os.environ["ADMIN_TOKEN"] = "change-this-admin-token"
+    os.environ["SECRET_KEY"] = "change-me"
+    os.environ["ENVIRONMENT"] = "production"
+    os.environ["AUTO_CREATE_TABLES"] = "false"
+    os.environ["RETENTION_JOB_ENABLED"] = "false"
+
+    _reset_backend_modules()
+
+    import backend.config.settings as settings_module
+
+    settings_module.get_settings.cache_clear()
+    importlib.invalidate_caches()
+
+    with pytest.raises(ValueError, match="must be set to a non-placeholder value in production"):
+        __import__("backend.main")

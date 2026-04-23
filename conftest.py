@@ -17,6 +17,14 @@ for env_var in ("TMPDIR", "TEMP", "TMP"):
 
 
 @pytest.fixture(autouse=True)
+def restore_environment() -> None:
+    original_environ = dict(os.environ)
+    yield
+    os.environ.clear()
+    os.environ.update(original_environ)
+
+
+@pytest.fixture(autouse=True)
 def dispose_backend_database_engine() -> None:
     yield
 
