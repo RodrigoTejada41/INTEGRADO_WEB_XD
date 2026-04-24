@@ -253,3 +253,8 @@ Sempre que houver decisao arquitetural, de seguranca, de dados/logs ou de produt
 - Decisao: adicionar assercoes de `correlation_id` em auditoria administrativa de provisionamento, rotacao de chave e sync, alem do log do cliente local no registro.
 - Motivo: o contrato precisava provar nao apenas resultado funcional, mas tambem rastreabilidade operacional entre admin, sync e cliente.
 - Impacto: o gate de release passa a validar observabilidade fim a fim sem depender de inspecao manual em logs ou auditoria.
+
+### D044 - A revogacao web do sync-admin recebe cobertura operacional explicita
+- Decisao: validar a rota `/settings/rotate-tenant-key` com login, redirecionamento, flash e aplicacao da nova chave no arquivo do agente.
+- Motivo: a revogacao nao podia ficar blindada apenas na API interna; o operador precisa de prova de que a trilha web executa o fluxo completo.
+- Impacto: o painel administrativo passa a ter um contrato verificavel de revogacao efetiva, reduzindo risco de rotacao quebrada em producao.

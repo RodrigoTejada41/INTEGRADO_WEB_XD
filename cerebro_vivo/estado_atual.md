@@ -178,7 +178,7 @@ Na retomada canonica atual, o backlog funcional esta consolidado ate `P20`. `P19
 - O compose de producao passou a manter exposicao publica exclusiva no `nginx`.
 - O `remote_agent` do `sync-admin` passou a respeitar `remote_command_pull_enabled` e a expor snapshot de estado de comandos no status.
 - A fumaça de readiness agora valida backend, sync-admin e o snapshot do `remote_agent` em um unico contrato.
-- Checkpoint atual fechado no commit `e10e880`, com `82 passed` e worktree limpo.
+- Checkpoint atual fechado no commit `46f6b78`, com `83 passed` e worktree limpo.
 
 ## Atualizacao do deploy VPS
 
@@ -210,3 +210,4 @@ Na retomada canonica atual, o backlog funcional esta consolidado ate `P20`. `P19
 - O comando remoto `force_sync` passou a ter cobertura funcional de efeito real, com log local e estado de sincronizacao atualizados.
 - O contrato E2E da API central agora cobre provisionamento, registro, sync, revogacao por rotacao de chave e bloqueio da chave antiga.
 - O contrato E2E da API central tambem valida rastreio por `correlation_id` em auditoria e log de cliente.
+- A revogacao web do `sync-admin` em `/settings/rotate-tenant-key` agora tem cobertura dedicada, com redirecionamento e aplicacao da chave no arquivo do agente.
