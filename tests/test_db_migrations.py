@@ -62,6 +62,33 @@ def test_upgrade_is_idempotent_and_tracks_current_version() -> None:
     engine.dispose()
 
 
+def test_upgrade_to_target_version_stops_before_latest_migration() -> None:
+    db_file = Path("output/test_db_migrations_target_version.db")
+    engine = _make_engine(db_file)
+    _, get_current_version, upgrade = _migration_runner()
+
+    partial_run = upgrade(engine, target_version=3)
+    assert [migration.version for migration in partial_run] == [1, 2, 3]
+    assert get_current_version(engine) == 3
+
+    with engine.connect() as connection:
+        migrations_count_after_partial = connection.execute(
+            text("SELECT COUNT(*) FROM sync_schema_migrations")
+        ).scalar_one()
+
+    assert migrations_count_after_partial == 3
+
+    final_run = upgrade(engine)
+    assert [migration.version for migration in final_run] == [4]
+    assert get_current_version(engine) == 4
+    with engine.connect() as connection:
+        migrations_count_after_full = connection.execute(
+            text("SELECT COUNT(*) FROM sync_schema_migrations")
+        ).scalar_one()
+    assert migrations_count_after_full == 4
+    engine.dispose()
+
+
 def test_downgrade_by_steps_reverts_schema_version() -> None:
     db_file = Path("output/test_db_migrations_rollback.db")
     engine = _make_engine(db_file)

@@ -1,6 +1,6 @@
 # Snapshot local do sync-admin
 
-- Gerado em: 2026-04-24T09:04:36-03:00
+- Gerado em: -
 - Total de lotes: 0
 - Total de registros: 0
 - Falhas: 0
@@ -12,7 +12,7 @@
 
 # Erros recentes
 
-- Gerado em: 2026-04-24T09:04:36-03:00
+- Gerado em: 2026-04-24T12:15:21.470584+00:00
 - Total de registros: 0
 
 ## Amostra

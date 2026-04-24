@@ -258,3 +258,8 @@ Sempre que houver decisao arquitetural, de seguranca, de dados/logs ou de produt
 - Decisao: validar a rota `/settings/rotate-tenant-key` com login, redirecionamento, flash e aplicacao da nova chave no arquivo do agente.
 - Motivo: a revogacao nao podia ficar blindada apenas na API interna; o operador precisa de prova de que a trilha web executa o fluxo completo.
 - Impacto: o painel administrativo passa a ter um contrato verificavel de revogacao efetiva, reduzindo risco de rotacao quebrada em producao.
+
+### D045 - O contrato de migrations passa a medir target_version e estado da tabela de migracoes
+- Decisao: validar que `upgrade(engine, target_version=3)` para exatamente em 3, grava 3 registros na tabela de migracoes e aplica a quarta migration somente em uma segunda subida.
+- Motivo: o drift de schema precisava de um contrato objetivo do runner, nao apenas rollback por steps.
+- Impacto: o baseline local fica mais previsivel e a linha de migrations deixa de depender de interpretacao manual do schema criado pela base ORM.
