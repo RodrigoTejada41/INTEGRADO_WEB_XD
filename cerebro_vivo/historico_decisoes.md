@@ -243,3 +243,8 @@ Sempre que houver decisao arquitetural, de seguranca, de dados/logs ou de produt
 - Decisao: validar em teste que o comando remoto `force_sync` atualiza o estado local, registra log operacional e retorna `completed` com sucesso.
 - Motivo: o fluxo bidirecional nao estava coberto no efeito pratico mais importante, que e sincronizar por comando remoto e registrar rastreabilidade local.
 - Impacto: o `sync-admin` ganha uma prova objetiva de que o caminho remoto nao apenas conecta, mas produz efeito verificavel e auditavel no cliente local.
+
+### D042 - A API central recebe um contrato E2E de release
+- Decisao: validar em teste o ciclo completo de `provision_tenant`, `register`, `sync`, `rotate_tenant_key` e bloqueio da chave antiga.
+- Motivo: a API central precisava de uma prova unica de autenticacao, isolamento por `empresa_id`, ingestao, revogacao e reautorizacao.
+- Impacto: o fluxo comercial principal passa a ter um gate de regressao que separa funcionamento parcial de contrato realmente blindado.

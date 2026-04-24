@@ -8,7 +8,7 @@ Workspace local: alterado com memoria executiva atualizada e docs de continuidad
 - Fase de backlog concluida ate `P20`.
 - Ultima entrega funcional consolidada: observabilidade avancada por tenant + correlacao ponta a ponta de logs (`correlation_id`) + endpoint admin de observabilidade.
 - Etapa extra de producao concluida: stack VPS com Docker, Nginx, scripts e GitHub Actions.
-- Ultima validacao tecnica executada: `py -3 -m pytest -q` com `80 passed`.
+- Ultima validacao tecnica executada: `py -3 -m pytest -q` com `82 passed`.
 - Deploy VPS concluido em `https://movisystecnologia.com.br`.
 - `GET /admin/api/health/ready` responde `200`.
 - `GET /MoviRelatorios/` responde `302`.
@@ -119,8 +119,9 @@ bash infra/scripts/deploy-prod.sh
 - O compose de producao passou a ter contrato explicito de exposicao publica apenas para o `nginx`.
 - O `remote_agent` do `sync-admin` passou a ter contrato de ciclo desabilitado por `remote_command_pull_enabled` e snapshot de status com estado de comandos.
 - A fumaça de readiness agora valida backend, sync-admin e snapshot do `remote_agent` em um unico contrato.
-- Checkpoint atual consolidado no commit `232713d`, com suite completa em `80 passed` e worktree limpo.
+- Checkpoint atual consolidado no commit `e10e880`, com suite completa em `82 passed` e worktree limpo.
 - O comando remoto `force_sync` agora tem cobertura funcional de efeito real, com estado local e log operacional validados.
+- O contrato E2E da API central agora cobre provisionamento, registro, sync, revogacao por rotacao de chave e bloqueio da chave antiga.
 - Divergencia antiga entre `P18` e `P20` resolvida: a fonte de verdade atual passa a considerar `P20` concluido.
 - Risco atual principal deslocado para o drift local de migracoes e testes, especialmente a divergencia entre baseline local e contrato de rollback/migration.
 - Proxima retomada: abrir primeiro `RETOMADA_EXATA.md`, depois `cerebro_vivo/estado_atual.md`, depois `cerebro_vivo/historico_decisoes.md`.
