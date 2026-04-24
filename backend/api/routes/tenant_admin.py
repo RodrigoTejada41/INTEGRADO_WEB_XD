@@ -873,6 +873,20 @@ def get_sync_jobs_summary(
 
 
 @router.get(
+    "/tenants/{empresa_id}/sync-jobs",
+    response_model=list[TenantJobResponse],
+    dependencies=[Depends(require_admin_token)],
+)
+def list_sync_jobs(
+    empresa_id: str,
+    limit: int = 20,
+    session: Session = Depends(get_session),
+) -> list[TenantJobResponse]:
+    service = TenantJobService(TenantSyncJobRepository(session))
+    return service.list_jobs(empresa_id, limit=limit)
+
+
+@router.get(
     "/tenants/{empresa_id}/observability",
     response_model=TenantObservabilityResponse,
     dependencies=[Depends(require_admin_token)],

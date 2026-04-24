@@ -118,6 +118,78 @@ def test_sync_admin_dashboard_exposes_source_cycle_cockpit(monkeypatch) -> None:
     def fake_fetch_source_configs(self):
         return source_configs
 
+    def fake_fetch_sync_jobs(self, limit: int = 20):
+        return [
+            {
+                "id": "job-1",
+                "empresa_id": "12345678000199",
+                "source_config_id": "src-1",
+                "status": "queued",
+                "attempts": 0,
+                "scheduled_at": "2026-04-24T10:15:00+00:00",
+                "next_run_at": "2026-04-24T10:32:00+00:00",
+                "started_at": None,
+                "finished_at": None,
+                "dead_letter_at": None,
+                "dead_letter_reason": None,
+                "last_error": None,
+                "created_at": "2026-04-24T10:15:00+00:00",
+                "updated_at": "2026-04-24T10:15:00+00:00",
+            },
+            {
+                "id": "job-2",
+                "empresa_id": "12345678000199",
+                "source_config_id": "src-2",
+                "status": "done",
+                "attempts": 1,
+                "scheduled_at": "2026-04-24T10:10:00+00:00",
+                "next_run_at": "2026-04-24T10:26:00+00:00",
+                "started_at": "2026-04-24T10:11:00+00:00",
+                "finished_at": "2026-04-24T10:12:00+00:00",
+                "dead_letter_at": None,
+                "dead_letter_reason": None,
+                "last_error": None,
+                "created_at": "2026-04-24T10:10:00+00:00",
+                "updated_at": "2026-04-24T10:12:00+00:00",
+            },
+        ]
+
+    def fake_fetch_sync_jobs(self, limit: int = 20):
+        return [
+            {
+                "id": "job-1",
+                "empresa_id": "12345678000199",
+                "source_config_id": "src-1",
+                "status": "processing",
+                "attempts": 1,
+                "scheduled_at": "2026-04-24T10:15:00+00:00",
+                "next_run_at": "2026-04-24T10:32:00+00:00",
+                "started_at": "2026-04-24T10:16:00+00:00",
+                "finished_at": None,
+                "dead_letter_at": None,
+                "dead_letter_reason": None,
+                "last_error": None,
+                "created_at": "2026-04-24T10:15:00+00:00",
+                "updated_at": "2026-04-24T10:16:00+00:00",
+            },
+            {
+                "id": "job-2",
+                "empresa_id": "12345678000199",
+                "source_config_id": "src-2",
+                "status": "done",
+                "attempts": 1,
+                "scheduled_at": "2026-04-24T10:10:00+00:00",
+                "next_run_at": "2026-04-24T10:26:00+00:00",
+                "started_at": "2026-04-24T10:11:00+00:00",
+                "finished_at": "2026-04-24T10:12:00+00:00",
+                "dead_letter_at": None,
+                "dead_letter_reason": None,
+                "last_error": None,
+                "created_at": "2026-04-24T10:10:00+00:00",
+                "updated_at": "2026-04-24T10:12:00+00:00",
+            },
+        ]
+
     def fake_fetch_source_cycle_summary(self, payload=None):
         cycle_calls.append(list(payload or []))
         return SourceCycleSummary(
@@ -135,6 +207,7 @@ def test_sync_admin_dashboard_exposes_source_cycle_cockpit(monkeypatch) -> None:
     monkeypatch.setattr(ControlService, "fetch_sync_jobs_summary", fake_fetch_sync_jobs_summary)
     monkeypatch.setattr(ControlService, "fetch_tenant_observability", fake_fetch_tenant_observability)
     monkeypatch.setattr(ControlService, "fetch_source_configs", fake_fetch_source_configs)
+    monkeypatch.setattr(ControlService, "fetch_sync_jobs", fake_fetch_sync_jobs)
     monkeypatch.setattr(ControlService, "fetch_source_cycle_summary", fake_fetch_source_cycle_summary)
     monkeypatch.setattr(ControlService, "fetch_destination_configs", lambda self: [])
     monkeypatch.setattr(ControlService, "recent_agent_errors", lambda self, limit=20: [])
@@ -167,6 +240,9 @@ def test_sync_admin_dashboard_exposes_source_cycle_cockpit(monkeypatch) -> None:
         assert "Fontes ativas" in dashboard_page.text
         assert "Sincronizar todas as fontes" in dashboard_page.text
         assert "/dashboard/source-configs/sync-all" in dashboard_page.text
+        assert "running" in dashboard_page.text
+        assert "done" in dashboard_page.text
+        assert "source-live-status-src-1" in dashboard_page.text
 
         dashboard_data = client.get("/dashboard/data")
         assert dashboard_data.status_code == 200
@@ -174,6 +250,8 @@ def test_sync_admin_dashboard_exposes_source_cycle_cockpit(monkeypatch) -> None:
         assert payload["source_cycle"]["active_count"] == 2
         assert payload["source_cycle"]["due_count"] == 1
         assert payload["source_configs"][0]["last_scheduled_at"] == "2026-04-24T10:16:00+00:00"
+        assert payload["sync_jobs"][0]["status"] == "processing"
+        assert payload["source_status_snapshot"]["src-1"]["live_status"] == "running"
 
     assert cycle_calls
     assert len(cycle_calls[0]) == 2
@@ -254,6 +332,42 @@ def test_sync_admin_dashboard_triggers_source_sync_action(monkeypatch) -> None:
     def fake_fetch_source_configs(self):
         return source_configs
 
+    def fake_fetch_sync_jobs(self, limit: int = 20):
+        return [
+            {
+                "id": "job-1",
+                "empresa_id": "12345678000199",
+                "source_config_id": "src-1",
+                "status": "queued",
+                "attempts": 0,
+                "scheduled_at": "2026-04-24T10:15:00+00:00",
+                "next_run_at": "2026-04-24T10:32:00+00:00",
+                "started_at": None,
+                "finished_at": None,
+                "dead_letter_at": None,
+                "dead_letter_reason": None,
+                "last_error": None,
+                "created_at": "2026-04-24T10:15:00+00:00",
+                "updated_at": "2026-04-24T10:15:00+00:00",
+            },
+            {
+                "id": "job-2",
+                "empresa_id": "12345678000199",
+                "source_config_id": "src-2",
+                "status": "done",
+                "attempts": 1,
+                "scheduled_at": "2026-04-24T10:10:00+00:00",
+                "next_run_at": "2026-04-24T10:26:00+00:00",
+                "started_at": "2026-04-24T10:11:00+00:00",
+                "finished_at": "2026-04-24T10:12:00+00:00",
+                "dead_letter_at": None,
+                "dead_letter_reason": None,
+                "last_error": None,
+                "created_at": "2026-04-24T10:10:00+00:00",
+                "updated_at": "2026-04-24T10:12:00+00:00",
+            },
+        ]
+
     def fake_fetch_source_cycle_summary(self, payload=None):
         return SourceCycleSummary(
             empresa_id="12345678000199",
@@ -288,6 +402,7 @@ def test_sync_admin_dashboard_triggers_source_sync_action(monkeypatch) -> None:
     monkeypatch.setattr(ControlService, "fetch_sync_jobs_summary", fake_fetch_sync_jobs_summary)
     monkeypatch.setattr(ControlService, "fetch_tenant_observability", fake_fetch_tenant_observability)
     monkeypatch.setattr(ControlService, "fetch_source_configs", fake_fetch_source_configs)
+    monkeypatch.setattr(ControlService, "fetch_sync_jobs", fake_fetch_sync_jobs)
     monkeypatch.setattr(ControlService, "fetch_source_cycle_summary", fake_fetch_source_cycle_summary)
     monkeypatch.setattr(ControlService, "fetch_destination_configs", lambda self: [])
     monkeypatch.setattr(ControlService, "recent_agent_errors", lambda self, limit=20: [])
@@ -425,6 +540,42 @@ def test_sync_admin_dashboard_triggers_all_source_sync_action(monkeypatch) -> No
     def fake_fetch_source_configs(self):
         return source_configs
 
+    def fake_fetch_sync_jobs(self, limit: int = 20):
+        return [
+            {
+                "id": "job-1",
+                "empresa_id": "12345678000199",
+                "source_config_id": "src-1",
+                "status": "queued",
+                "attempts": 0,
+                "scheduled_at": "2026-04-24T10:15:00+00:00",
+                "next_run_at": "2026-04-24T10:32:00+00:00",
+                "started_at": None,
+                "finished_at": None,
+                "dead_letter_at": None,
+                "dead_letter_reason": None,
+                "last_error": None,
+                "created_at": "2026-04-24T10:15:00+00:00",
+                "updated_at": "2026-04-24T10:15:00+00:00",
+            },
+            {
+                "id": "job-2",
+                "empresa_id": "12345678000199",
+                "source_config_id": "src-2",
+                "status": "done",
+                "attempts": 1,
+                "scheduled_at": "2026-04-24T10:10:00+00:00",
+                "next_run_at": "2026-04-24T10:26:00+00:00",
+                "started_at": "2026-04-24T10:11:00+00:00",
+                "finished_at": "2026-04-24T10:12:00+00:00",
+                "dead_letter_at": None,
+                "dead_letter_reason": None,
+                "last_error": None,
+                "created_at": "2026-04-24T10:10:00+00:00",
+                "updated_at": "2026-04-24T10:12:00+00:00",
+            },
+        ]
+
     def fake_fetch_source_cycle_summary(self, payload=None):
         return SourceCycleSummary(
             empresa_id="12345678000199",
@@ -459,6 +610,7 @@ def test_sync_admin_dashboard_triggers_all_source_sync_action(monkeypatch) -> No
     monkeypatch.setattr(ControlService, "fetch_sync_jobs_summary", fake_fetch_sync_jobs_summary)
     monkeypatch.setattr(ControlService, "fetch_tenant_observability", fake_fetch_tenant_observability)
     monkeypatch.setattr(ControlService, "fetch_source_configs", fake_fetch_source_configs)
+    monkeypatch.setattr(ControlService, "fetch_sync_jobs", fake_fetch_sync_jobs)
     monkeypatch.setattr(ControlService, "fetch_source_cycle_summary", fake_fetch_source_cycle_summary)
     monkeypatch.setattr(ControlService, "fetch_destination_configs", lambda self: [])
     monkeypatch.setattr(ControlService, "recent_agent_errors", lambda self, limit=20: [])
@@ -487,6 +639,9 @@ def test_sync_admin_dashboard_triggers_all_source_sync_action(monkeypatch) -> No
         assert dashboard_page.status_code == 200
         assert "Sincronizar todas as fontes" in dashboard_page.text
         assert "/dashboard/source-configs/sync-all" in dashboard_page.text
+        assert "queued" in dashboard_page.text
+        assert "done" in dashboard_page.text
+        assert "source-live-status-src-1" in dashboard_page.text
 
         sync_resp = client.post(
             "/dashboard/source-configs/sync-all",

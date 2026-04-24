@@ -189,6 +189,12 @@
         "item": "Enderecar drift local de migracoes e testes",
         "motivo": "Alinhar baseline local, rollback e contrato de schema/testes com a producao ja estabilizada",
         "status": "pendente"
+      },
+      {
+        "ordem": 12,
+        "item": "Consolidar status vivo do cockpit de fontes",
+        "motivo": "Exibir ultimo estado por fonte, ultima acao e ultimo disparo com refresh automatico no dashboard operacional",
+        "status": "concluido"
       }
     ],
     "riscos_conhecidos": [

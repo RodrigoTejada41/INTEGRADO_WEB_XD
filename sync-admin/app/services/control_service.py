@@ -74,6 +74,24 @@ class SourceCycleSummary:
 
 
 @dataclass
+class SourceJobSummary:
+    id: str
+    empresa_id: str
+    source_config_id: str
+    status: str
+    attempts: int
+    scheduled_at: str
+    next_run_at: str
+    started_at: str
+    finished_at: str
+    dead_letter_at: str
+    dead_letter_reason: str
+    last_error: str
+    created_at: str
+    updated_at: str
+
+
+@dataclass
 class RemoteClientFleetSummary:
     total_clients: int
     online_clients: int
@@ -417,6 +435,40 @@ class ControlService:
                     'last_status': item.get('last_status', '-'),
                     'last_error': item.get('last_error', '-'),
                     'settings': item.get('settings', {}),
+                }
+            )
+        return rows
+
+    def fetch_sync_jobs(self, limit: int = 20) -> list[dict]:
+        try:
+            with httpx.Client(timeout=10.0) as client:
+                response = client.get(
+                    f'{self.base_url}/admin/tenants/{settings.control_empresa_id}/sync-jobs',
+                    headers=self.admin_headers,
+                    params={'limit': limit},
+                )
+                response.raise_for_status()
+                data = response.json()
+        except Exception:
+            return []
+        rows: list[dict] = []
+        for item in data:
+            rows.append(
+                {
+                    'id': item.get('id', '-'),
+                    'empresa_id': item.get('empresa_id', '-'),
+                    'source_config_id': item.get('source_config_id', '-'),
+                    'status': item.get('status', '-'),
+                    'attempts': int(item.get('attempts', 0)),
+                    'scheduled_at': item.get('scheduled_at', '-'),
+                    'next_run_at': item.get('next_run_at', '-'),
+                    'started_at': item.get('started_at', '-'),
+                    'finished_at': item.get('finished_at', '-'),
+                    'dead_letter_at': item.get('dead_letter_at', '-'),
+                    'dead_letter_reason': item.get('dead_letter_reason', '-'),
+                    'last_error': item.get('last_error', '-'),
+                    'created_at': item.get('created_at', '-'),
+                    'updated_at': item.get('updated_at', '-'),
                 }
             )
         return rows

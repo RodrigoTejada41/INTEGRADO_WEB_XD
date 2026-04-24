@@ -299,3 +299,8 @@ Sempre que houver decisao arquitetural, de seguranca, de dados/logs ou de produt
 - Decisao: exibir mensagens de sucesso e erro em um bloco visual padrao no `base.html`, reaproveitado pelas telas que fazem redirect apos acao administrativa.
 - Motivo: o cockpit e outras telas operacionais precisam de retorno claro apos comandos mutantes, sem depender apenas da URL ou de leitura manual do response.
 - Impacto: a experiencia de operacao fica mais previsivel e a semantica de sucesso/erro fica padronizada sem espalhar componentes duplicados pelas paginas.
+
+### D052 - O cockpit de fontes passa a mostrar status vivo e refresh automatico
+- Decisao: consolidar no `sync-admin` o estado ao vivo por fonte com `live_status`, ultima acao, ultimo disparo e refresh automatico do dashboard via `dashboard/data`.
+- Motivo: a operacao precisava sair do modo apenas disparo e entrar no modo acompanhar-disparo, reduzindo ambiguidade depois de acionar uma sincronizacao manual ou em lote.
+- Impacto: o painel operacional ganha visibilidade pratica do ciclo por fonte sem depender de reload manual ou consulta separada de jobs.

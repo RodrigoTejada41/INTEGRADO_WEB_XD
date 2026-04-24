@@ -213,6 +213,65 @@ def _format_decimal(value: float, decimals: int = 2) -> str:
     return f'{value:.{decimals}f}'
 
 
+def _source_status_snapshot(source_configs: list[dict], sync_jobs: list[dict]) -> dict[str, dict[str, str]]:
+    latest_by_source: dict[str, dict[str, str]] = {}
+    ordered_jobs = sorted(
+        sync_jobs,
+        key=lambda item: str(
+            item.get('updated_at')
+            or item.get('finished_at')
+            or item.get('started_at')
+            or item.get('scheduled_at')
+            or item.get('created_at')
+            or ''
+        ),
+        reverse=True,
+    )
+
+    for job in ordered_jobs:
+        source_config_id = str(job.get('source_config_id') or '')
+        if not source_config_id or source_config_id in latest_by_source:
+            continue
+        status = str(job.get('status') or 'pending').lower()
+        if status == 'processing':
+            live_status = 'running'
+        elif status == 'pending':
+            live_status = 'queued'
+        elif status == 'done':
+            live_status = 'done'
+        elif status in {'failed', 'dead_letter'}:
+            live_status = 'failed'
+        else:
+            live_status = status
+        last_action_at = (
+            job.get('finished_at')
+            or job.get('started_at')
+            or job.get('scheduled_at')
+            or job.get('created_at')
+            or '-'
+        )
+        latest_by_source[source_config_id] = {
+            'live_status': live_status,
+            'last_action': status,
+            'last_action_at': str(last_action_at),
+            'job_id': str(job.get('id') or '-'),
+        }
+
+    for source in source_configs:
+        source_id = str(source.get('id') or '')
+        if not source_id or source_id in latest_by_source:
+            continue
+        fallback_action_at = source.get('last_run_at') or source.get('last_scheduled_at') or '-'
+        latest_by_source[source_id] = {
+            'live_status': str(source.get('last_status') or 'pending'),
+            'last_action': str(source.get('last_status') or 'pending'),
+            'last_action_at': str(fallback_action_at),
+            'job_id': '-',
+        }
+
+    return latest_by_source
+
+
 def _build_filter_chips(
     *,
     start_date: str | None,
@@ -488,6 +547,8 @@ def dashboard(
         job_summary = control.fetch_sync_jobs_summary()
         tenant_observability = control.fetch_tenant_observability()
         source_configs = control.fetch_source_configs()
+        sync_jobs = control.fetch_sync_jobs(limit=50)
+        source_status_snapshot = _source_status_snapshot(source_configs, sync_jobs)
         source_cycle_summary = control.fetch_source_cycle_summary(source_configs)
         destination_configs = control.fetch_destination_configs()
     else:
@@ -517,6 +578,8 @@ def dashboard(
             tenant_destination_last_event_lag_seconds=0.0,
         )
         source_configs = []
+        sync_jobs = []
+        source_status_snapshot = {}
         source_cycle_summary = SourceCycleSummary(
             empresa_id=empresa_id,
             total_count=0,
@@ -564,6 +627,8 @@ def dashboard(
             'job_summary': job_summary,
             'tenant_observability': tenant_observability,
             'source_configs': source_configs,
+            'sync_jobs': sync_jobs,
+            'source_status_snapshot': source_status_snapshot,
             'source_cycle_summary': source_cycle_summary,
             'destination_configs': destination_configs,
             'recent_errors': recent_errors,
@@ -598,6 +663,8 @@ def dashboard_data(
         job_summary = control_service.fetch_sync_jobs_summary()
         tenant_observability = control_service.fetch_tenant_observability()
         source_configs = control_service.fetch_source_configs()
+        sync_jobs = control_service.fetch_sync_jobs(limit=50)
+        source_status_snapshot = _source_status_snapshot(source_configs, sync_jobs)
         source_cycle_summary = control_service.fetch_source_cycle_summary(source_configs)
         destination_configs = control_service.fetch_destination_configs()
     else:
@@ -627,6 +694,8 @@ def dashboard_data(
             tenant_destination_last_event_lag_seconds=0.0,
         )
         source_configs = []
+        sync_jobs = []
+        source_status_snapshot = {}
         source_cycle_summary = SourceCycleSummary(
             empresa_id=empresa_id,
             total_count=0,
@@ -689,6 +758,8 @@ def dashboard_data(
             },
             'destinations': destination_configs,
             'source_configs': source_configs,
+            'sync_jobs': sync_jobs,
+            'source_status_snapshot': source_status_snapshot,
         }
     )
 

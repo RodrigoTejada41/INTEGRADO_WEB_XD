@@ -135,6 +135,7 @@ bash infra/scripts/deploy-prod.sh
 - O contrato de migrations agora valida `target_version` e contagem da tabela `sync_schema_migrations`, reduzindo o drift entre baseline local e rollback.
 - O projeto ganhou um teste local que simula simultaneamente o painel local e a API central/VPS, sem depender de rede externa.
 - O deploy agora tem um smoke de release que valida `healthz`, `readyz/backend`, `readyz/sync-admin`, `admin/api/health/ready`, `admin/` e `MoviRelatorios/`.
+- O cockpit de fontes agora consolida status vivo por fonte, ultima acao, ultimo disparo e refresh automatico no dashboard.
 - Divergencia antiga entre `P18` e `P20` resolvida: a fonte de verdade atual passa a considerar `P20` concluido.
 - Risco atual principal deslocado para o drift local de migracoes e testes, especialmente a divergencia entre baseline local e contrato de rollback/migration.
 - Proxima retomada: abrir primeiro `RETOMADA_EXATA.md`, depois `cerebro_vivo/estado_atual.md`, depois `cerebro_vivo/historico_decisoes.md`.

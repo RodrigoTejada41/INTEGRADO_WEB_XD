@@ -153,16 +153,20 @@
           <th>Tipo</th>
           <th>Intervalo</th>
           <th>Status</th>
+          <th>Status vivo</th>
           <th>Ultimo agendamento</th>
+          <th>Ultima acao</th>
           <th>Proxima execucao</th>
           <th>Ultimo sucesso</th>
+          <th>Ultimo disparo</th>
           <th>Erro</th>
           <th>Acoes</th>
         </tr>
       </thead>
       <tbody>
         {% for source in source_configs %}
-        <tr>
+        {% set source_state = source_status_snapshot.get(source.id, {}) %}
+        <tr data-source-id="{{ source.id }}">
           <td>{{ source.nome }}</td>
           <td><code>{{ source.connector_type }}</code></td>
           <td>{{ source.sync_interval_minutes }} min</td>
@@ -177,9 +181,14 @@
             <span class="badge text-bg-secondary">{{ source.last_status }}</span>
             {% endif %}
           </td>
+          <td class="source-live-status">
+            <span id="source-live-status-{{ source.id }}" class="badge text-bg-secondary" data-status="{{ source_state.live_status or source.last_status }}">{{ source_state.live_status or source.last_status }}</span>
+          </td>
           <td>{{ source.last_scheduled_at or '-' }}</td>
+          <td id="source-last-action-{{ source.id }}">{{ source_state.last_action or source.last_status or '-' }}</td>
           <td>{{ source.next_run_at or '-' }}</td>
           <td>{{ source.last_run_at or '-' }}</td>
+          <td id="source-last-action-at-{{ source.id }}">{{ source_state.last_action_at or source.last_run_at or '-' }}</td>
           <td><code>{{ source.last_error or '-' }}</code></td>
           <td>
             {% if current_user.role == 'admin' %}
@@ -195,7 +204,7 @@
         </tr>
         {% endfor %}
         {% if source_configs|length == 0 %}
-        <tr><td colspan="9" class="text-muted">Sem fontes de sincronizacao cadastradas.</td></tr>
+        <tr><td colspan="12" class="text-muted">Sem fontes de sincronizacao cadastradas.</td></tr>
         {% endif %}
       </tbody>
     </table>

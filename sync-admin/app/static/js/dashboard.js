@@ -29,6 +29,39 @@
     el.textContent = String(value);
   }
 
+  function setBadge(el, status) {
+    if (!el) return;
+    const normalized = String(status || 'pending').toLowerCase();
+    el.dataset.status = normalized;
+    el.textContent = normalized;
+    el.classList.remove('text-bg-success', 'text-bg-danger', 'text-bg-warning', 'text-bg-secondary', 'text-bg-primary');
+    if (normalized === 'done' || normalized === 'ok') {
+      el.classList.add('text-bg-success');
+    } else if (normalized === 'failed' || normalized === 'dead_letter') {
+      el.classList.add('text-bg-danger');
+    } else if (normalized === 'queued' || normalized === 'running' || normalized === 'processing' || normalized === 'retrying') {
+      el.classList.add('text-bg-warning');
+    } else if (normalized === 'pending') {
+      el.classList.add('text-bg-secondary');
+    } else {
+      el.classList.add('text-bg-primary');
+    }
+  }
+
+  function refreshSourceRows(sourceConfigs, sourceStatusSnapshot) {
+    const rows = document.querySelectorAll('tr[data-source-id]');
+    rows.forEach((row) => {
+      const sourceId = row.dataset.sourceId;
+      const source = (sourceConfigs || []).find((item) => String(item.id) === String(sourceId));
+      if (!source) return;
+      const snapshot = (sourceStatusSnapshot || {})[sourceId] || {};
+      const liveStatus = snapshot.live_status || source.last_status || 'pending';
+      setBadge(document.getElementById(`source-live-status-${sourceId}`), liveStatus);
+      setText(`source-last-action-${sourceId}`, snapshot.last_action || source.last_status || '-');
+      setText(`source-last-action-at-${sourceId}`, snapshot.last_action_at || source.last_run_at || source.last_scheduled_at || '-');
+    });
+  }
+
   async function refreshDashboard() {
     try {
       const resp = await fetch('/dashboard/data', { headers: { 'Accept': 'application/json' } });
@@ -55,6 +88,7 @@
       setText('kpi-source-due', data.source_cycle.due_count);
       setText('kpi-source-overdue', data.source_cycle.overdue_count);
       setText('kpi-source-next-cycle', data.source_cycle.next_run_at);
+      refreshSourceRows(data.source_configs || [], data.source_status_snapshot || {});
     } catch (_err) {
     }
   }
