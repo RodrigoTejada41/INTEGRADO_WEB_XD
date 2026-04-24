@@ -215,6 +215,7 @@ def _format_decimal(value: float, decimals: int = 2) -> str:
 
 def _source_status_snapshot(source_configs: list[dict], sync_jobs: list[dict]) -> dict[str, dict[str, str]]:
     latest_by_source: dict[str, dict[str, str]] = {}
+    counts_by_source: dict[str, dict[str, int]] = {}
     ordered_jobs = sorted(
         sync_jobs,
         key=lambda item: str(
@@ -227,6 +228,24 @@ def _source_status_snapshot(source_configs: list[dict], sync_jobs: list[dict]) -
         ),
         reverse=True,
     )
+
+    for job in sync_jobs:
+        source_config_id = str(job.get('source_config_id') or '')
+        if not source_config_id:
+            continue
+        status = str(job.get('status') or 'pending').lower()
+        counters = counts_by_source.setdefault(
+            source_config_id,
+            {'queued_count': 0, 'running_count': 0, 'done_count': 0, 'failed_count': 0},
+        )
+        if status in {'pending', 'queued'}:
+            counters['queued_count'] += 1
+        elif status in {'processing', 'running'}:
+            counters['running_count'] += 1
+        elif status == 'done':
+            counters['done_count'] += 1
+        elif status in {'failed', 'dead_letter'}:
+            counters['failed_count'] += 1
 
     for job in ordered_jobs:
         source_config_id = str(job.get('source_config_id') or '')
@@ -268,6 +287,36 @@ def _source_status_snapshot(source_configs: list[dict], sync_jobs: list[dict]) -
             'last_action_at': str(fallback_action_at),
             'job_id': '-',
         }
+
+    for source_id, counters in counts_by_source.items():
+        snapshot = latest_by_source.setdefault(
+            source_id,
+            {
+                'live_status': 'pending',
+                'last_action': 'pending',
+                'last_action_at': '-',
+                'job_id': '-',
+            },
+        )
+        snapshot.update({key: str(value) for key, value in counters.items()})
+
+    for source in source_configs:
+        source_id = str(source.get('id') or '')
+        if not source_id:
+            continue
+        snapshot = latest_by_source.setdefault(
+            source_id,
+            {
+                'live_status': str(source.get('last_status') or 'pending'),
+                'last_action': str(source.get('last_status') or 'pending'),
+                'last_action_at': str(source.get('last_run_at') or source.get('last_scheduled_at') or '-'),
+                'job_id': '-',
+            },
+        )
+        snapshot.setdefault('queued_count', '0')
+        snapshot.setdefault('running_count', '0')
+        snapshot.setdefault('done_count', '0')
+        snapshot.setdefault('failed_count', '0')
 
     return latest_by_source
 

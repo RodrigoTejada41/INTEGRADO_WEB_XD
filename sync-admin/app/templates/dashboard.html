@@ -154,6 +154,9 @@
           <th>Intervalo</th>
           <th>Status</th>
           <th>Status vivo</th>
+          <th>Fila</th>
+          <th>Execucao</th>
+          <th>Falhas</th>
           <th>Ultimo agendamento</th>
           <th>Ultima acao</th>
           <th>Proxima execucao</th>
@@ -184,6 +187,9 @@
           <td class="source-live-status">
             <span id="source-live-status-{{ source.id }}" class="badge text-bg-secondary" data-status="{{ source_state.live_status or source.last_status }}">{{ source_state.live_status or source.last_status }}</span>
           </td>
+          <td id="source-queued-count-{{ source.id }}">{{ source_state.queued_count or '0' }}</td>
+          <td id="source-running-count-{{ source.id }}">{{ source_state.running_count or '0' }}</td>
+          <td id="source-failed-count-{{ source.id }}">{{ source_state.failed_count or '0' }}</td>
           <td>{{ source.last_scheduled_at or '-' }}</td>
           <td id="source-last-action-{{ source.id }}">{{ source_state.last_action or source.last_status or '-' }}</td>
           <td>{{ source.next_run_at or '-' }}</td>
@@ -204,7 +210,7 @@
         </tr>
         {% endfor %}
         {% if source_configs|length == 0 %}
-        <tr><td colspan="12" class="text-muted">Sem fontes de sincronizacao cadastradas.</td></tr>
+        <tr><td colspan="15" class="text-muted">Sem fontes de sincronizacao cadastradas.</td></tr>
         {% endif %}
       </tbody>
     </table>

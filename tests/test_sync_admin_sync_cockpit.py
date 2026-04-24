@@ -242,6 +242,9 @@ def test_sync_admin_dashboard_exposes_source_cycle_cockpit(monkeypatch) -> None:
         assert "/dashboard/source-configs/sync-all" in dashboard_page.text
         assert "running" in dashboard_page.text
         assert "done" in dashboard_page.text
+        assert "source-queued-count-src-1" in dashboard_page.text
+        assert "source-running-count-src-1" in dashboard_page.text
+        assert "source-failed-count-src-1" in dashboard_page.text
         assert "source-live-status-src-1" in dashboard_page.text
 
         dashboard_data = client.get("/dashboard/data")
@@ -252,6 +255,8 @@ def test_sync_admin_dashboard_exposes_source_cycle_cockpit(monkeypatch) -> None:
         assert payload["source_configs"][0]["last_scheduled_at"] == "2026-04-24T10:16:00+00:00"
         assert payload["sync_jobs"][0]["status"] == "processing"
         assert payload["source_status_snapshot"]["src-1"]["live_status"] == "running"
+        assert payload["source_status_snapshot"]["src-1"]["running_count"] == "1"
+        assert payload["source_status_snapshot"]["src-2"]["done_count"] == "1"
 
     assert cycle_calls
     assert len(cycle_calls[0]) == 2
@@ -641,6 +646,9 @@ def test_sync_admin_dashboard_triggers_all_source_sync_action(monkeypatch) -> No
         assert "/dashboard/source-configs/sync-all" in dashboard_page.text
         assert "queued" in dashboard_page.text
         assert "done" in dashboard_page.text
+        assert "source-queued-count-src-1" in dashboard_page.text
+        assert "source-running-count-src-1" in dashboard_page.text
+        assert "source-failed-count-src-1" in dashboard_page.text
         assert "source-live-status-src-1" in dashboard_page.text
 
         sync_resp = client.post(

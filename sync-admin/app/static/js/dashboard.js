@@ -59,6 +59,9 @@
       setBadge(document.getElementById(`source-live-status-${sourceId}`), liveStatus);
       setText(`source-last-action-${sourceId}`, snapshot.last_action || source.last_status || '-');
       setText(`source-last-action-at-${sourceId}`, snapshot.last_action_at || source.last_run_at || source.last_scheduled_at || '-');
+      setText(`source-queued-count-${sourceId}`, snapshot.queued_count || '0');
+      setText(`source-running-count-${sourceId}`, snapshot.running_count || '0');
+      setText(`source-failed-count-${sourceId}`, snapshot.failed_count || '0');
     });
   }
 
