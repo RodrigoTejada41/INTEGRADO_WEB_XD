@@ -174,6 +174,7 @@ Na retomada canonica atual, o backlog funcional esta consolidado ate `P20`. `P19
 - Runbook operacional consolidado em `infra/RUNBOOK_PRODUCAO.md` para deploy, update, backup, restore, rollback e health checks.
 - Guardrails multi-tenant reforcados com contrato explicito de validacao de `empresa_id` e formato de API key.
 - Controle remoto do `sync-admin` reforcado com cobertura para allowlist de IP no token local.
+- O compose de producao passou a manter exposicao publica exclusiva no `nginx`.
 
 ## Atualizacao do deploy VPS
 
@@ -198,3 +199,4 @@ Na retomada canonica atual, o backlog funcional esta consolidado ate `P20`. `P19
 - O runbook operacional foi consolidado em `infra/RUNBOOK_PRODUCAO.md` e passou a ser a referencia principal para deploy, update, backup, restore, rollback e health checks.
 - Os guardrails multi-tenant ganharam cobertura dedicada para `validate_empresa_id` e `validate_api_key_format`.
 - O fluxo bidirecional ganhou cobertura de allowlist por IP no controle remoto local do `sync-admin`.
+- A composicao de producao ficou com contrato explicito de porta publica unica no `nginx`.

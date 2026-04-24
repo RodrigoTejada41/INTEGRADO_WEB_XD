@@ -74,3 +74,17 @@ def test_production_runbook_documents_the_operational_flow() -> None:
     assert "curl -f http://127.0.0.1/healthz" in runbook
     assert "curl -f http://127.0.0.1/api/health/ready" in runbook
     assert "curl -f http://127.0.0.1/readyz/sync-admin" in runbook
+
+
+def test_production_compose_exposes_only_nginx_publicly() -> None:
+    compose_content = (ROOT / "docker-compose.prod.yml").read_text(encoding="utf-8")
+
+    assert 'container_name: integrado-db' in compose_content
+    assert 'container_name: integrado-backend' in compose_content
+    assert 'container_name: integrado-frontend' in compose_content
+    assert 'container_name: integrado-nginx' in compose_content
+    assert compose_content.count("ports:") == 1
+    assert '${NGINX_PUBLIC_PORT:-80}:80' in compose_content
+    assert 'backend:\n    build:' in compose_content
+    assert 'frontend:\n    build:' in compose_content
+    assert 'db:\n    image: postgres:16-alpine' in compose_content

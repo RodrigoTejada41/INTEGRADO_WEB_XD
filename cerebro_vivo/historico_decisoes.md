@@ -223,3 +223,8 @@ Sempre que houver decisao arquitetural, de seguranca, de dados/logs ou de produt
 - Decisao: validar em teste o comportamento de allowlist de IP do `sync-admin` no endpoint de controle local.
 - Motivo: o fluxo bidirecional depende de token local e de origem confiavel; sem contrato automatizado, a politica de IP podia regredir silenciosamente.
 - Impacto: o pull de comandos e a atualizacao local ficam mais previsiveis em producao, com bloqueio claro quando a origem nao estiver autorizada.
+
+### D038 - A composicao de producao passa a expor apenas o Nginx publicamente
+- Decisao: criar contrato de teste para garantir que `backend`, `frontend` e `db` nao tenham porta publica e que apenas o `nginx` publique porta no host.
+- Motivo: a VPS deve manter a superficie exposta minimizada, com toda a entrada passando pela borda reversa.
+- Impacto: reduz risco de exposicao acidental de servicos internos e torna o contrato de producao verificavel por regressao automatizada.
