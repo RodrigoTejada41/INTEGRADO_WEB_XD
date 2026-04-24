@@ -74,6 +74,7 @@ Este workspace agora mantem duas camadas complementares de memoria:
 
 - [`.cerebro-vivo/README.md`](.cerebro-vivo/README.md): base operacional local-first, historica e detalhada
 - [`cerebro_vivo/estado_atual.md`](cerebro_vivo/estado_atual.md): resumo executivo visivel para retomada rapida
+- [`cerebro_vivo/resumo_executivo.md`](cerebro_vivo/resumo_executivo.md): visao curta do que o projeto e e como ele deve ser
 - [`cerebro_vivo/historico_decisoes.md`](cerebro_vivo/historico_decisoes.md): decisoes consolidadas com ponte para a base detalhada
 - [`cerebro_vivo/memoria_projeto.json`](cerebro_vivo/memoria_projeto.json): espelho leve do contexto atual
 
