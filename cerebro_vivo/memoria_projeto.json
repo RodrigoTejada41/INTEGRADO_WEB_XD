@@ -56,6 +56,7 @@
       "Composicao de producao reforcada com contrato de porta publica unica no nginx",
       "remote_agent do sync-admin reforcado com contrato de ciclo desabilitado por remote_command_pull_enabled e snapshot de status com estado de comandos",
       "Smoke de readiness consolidado para backend, sync-admin e snapshot do remote_agent em um unico contrato",
+      "Checkpoint atual fechado no commit 232713d com suite completa em 80 passed e worktree limpo",
       "Suite completa validada com 62 passed apos mover o temp root do pytest para runtime/pytest-tmp no workspace",
       "Temp root do pytest movido para runtime/pytest-tmp para eliminar ACL quebrada da home do usuario",
       "P15 concluido: migracoes versionadas com rollback por versao/passos",
@@ -185,5 +186,5 @@
     "pasta_historica": ".cerebro-vivo",
     "regra": "A pasta top-level resume e aponta; a pasta oculta preserva a base operacional detalhada."
   },
-  "atualizado_em": "2026-04-23"
+  "atualizado_em": "2026-04-24"
 }
