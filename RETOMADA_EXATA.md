@@ -120,6 +120,7 @@ bash infra/scripts/deploy-prod.sh
 - O `remote_agent` do `sync-admin` passou a ter contrato de ciclo desabilitado por `remote_command_pull_enabled` e snapshot de status com estado de comandos.
 - A fumaça de readiness agora valida backend, sync-admin e snapshot do `remote_agent` em um unico contrato.
 - Checkpoint atual consolidado no commit `232713d`, com suite completa em `80 passed` e worktree limpo.
+- O comando remoto `force_sync` agora tem cobertura funcional de efeito real, com estado local e log operacional validados.
 - Divergencia antiga entre `P18` e `P20` resolvida: a fonte de verdade atual passa a considerar `P20` concluido.
 - Risco atual principal deslocado para o drift local de migracoes e testes, especialmente a divergencia entre baseline local e contrato de rollback/migration.
 - Proxima retomada: abrir primeiro `RETOMADA_EXATA.md`, depois `cerebro_vivo/estado_atual.md`, depois `cerebro_vivo/historico_decisoes.md`.

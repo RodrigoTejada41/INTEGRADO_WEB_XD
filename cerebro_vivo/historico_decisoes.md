@@ -238,3 +238,8 @@ Sempre que houver decisao arquitetural, de seguranca, de dados/logs ou de produt
 - Decisao: consolidar o smoke de readiness em um teste que valida backend, sync-admin e o snapshot operacional do `remote_agent`, mantendo o contrato de ciclo desligado no teste dedicado.
 - Motivo: a cadeia produtiva precisa de um ponto unico de verificacao para a operacao principal sem misturar responsabilidade de health com comportamento de polling remoto.
 - Impacto: o fechamento operacional fica mais simples de auditar e a regressao da cadeia inteira pode ser detectada por um unico teste de fumaça, sem remover a cobertura especializada existente.
+
+### D041 - O comando remoto `force_sync` passa a ter cobertura funcional de efeito real
+- Decisao: validar em teste que o comando remoto `force_sync` atualiza o estado local, registra log operacional e retorna `completed` com sucesso.
+- Motivo: o fluxo bidirecional nao estava coberto no efeito pratico mais importante, que e sincronizar por comando remoto e registrar rastreabilidade local.
+- Impacto: o `sync-admin` ganha uma prova objetiva de que o caminho remoto nao apenas conecta, mas produz efeito verificavel e auditavel no cliente local.

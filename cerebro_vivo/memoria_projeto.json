@@ -57,6 +57,7 @@
       "remote_agent do sync-admin reforcado com contrato de ciclo desabilitado por remote_command_pull_enabled e snapshot de status com estado de comandos",
       "Smoke de readiness consolidado para backend, sync-admin e snapshot do remote_agent em um unico contrato",
       "Checkpoint atual fechado no commit 232713d com suite completa em 80 passed e worktree limpo",
+      "Comando remoto force_sync recebeu cobertura funcional de efeito real no remote_agent",
       "Suite completa validada com 62 passed apos mover o temp root do pytest para runtime/pytest-tmp no workspace",
       "Temp root do pytest movido para runtime/pytest-tmp para eliminar ACL quebrada da home do usuario",
       "P15 concluido: migracoes versionadas com rollback por versao/passos",

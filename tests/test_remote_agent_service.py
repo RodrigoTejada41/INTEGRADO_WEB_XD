@@ -11,6 +11,7 @@ if str(SYNC_ADMIN_ROOT) not in sys.path:
     sys.path.insert(0, str(SYNC_ADMIN_ROOT))
 
 from app.core.db import Base
+from app.models.remote_command_log import RemoteCommandLog
 from app.services import remote_agent_service as remote_agent_module
 from app.services.remote_agent_service import RemoteAgentService
 
@@ -60,3 +61,32 @@ def test_remote_agent_status_snapshot_includes_command_state() -> None:
     assert "last_registration_at" in snapshot
     assert "pending_local_batches" in snapshot
     assert "total_local_records" in snapshot
+
+
+def test_remote_agent_force_sync_command_records_state_and_log() -> None:
+    session = _session()
+    service = RemoteAgentService(session)
+
+    import asyncio
+
+    status, payload = asyncio.run(
+        service._execute_command(
+            {
+                "id": "cmd-force-sync-1",
+                "command_type": "force_sync",
+                "payload": {},
+            }
+        )
+    )
+
+    assert status == "completed"
+    assert payload["status"] == "success"
+    assert service.config_service.repository.get_value("last_sync_status") == "success"
+    assert service.config_service.repository.get_value("last_sync_reason") == "remote_command"
+    assert service.config_service.repository.get_value("last_sync_at") is not None
+
+    logs = session.query(RemoteCommandLog).all()
+    assert len(logs) == 1
+    assert logs[0].command_type == "force_sync"
+    assert logs[0].origin == "remote_command"
+    assert logs[0].status == "success"
