@@ -218,3 +218,8 @@ Sempre que houver decisao arquitetural, de seguranca, de dados/logs ou de produt
 - Decisao: adicionar cobertura de teste para `validate_empresa_id`, `validate_api_key_format` e `generate_api_key`.
 - Motivo: o isolamento por tenant nao deve depender apenas de uso correto nas rotas; a validacao base precisa ter contrato verificavel e reutilizavel.
 - Impacto: a seguranca de entrada ganha uma camada objetiva de regressao, reduzindo o risco de IDs ou chaves malformadas atravessarem a borda do sistema.
+
+### D037 - O controle remoto local passa a ter allowlist de IP coberta por teste
+- Decisao: validar em teste o comportamento de allowlist de IP do `sync-admin` no endpoint de controle local.
+- Motivo: o fluxo bidirecional depende de token local e de origem confiavel; sem contrato automatizado, a politica de IP podia regredir silenciosamente.
+- Impacto: o pull de comandos e a atualizacao local ficam mais previsiveis em producao, com bloqueio claro quando a origem nao estiver autorizada.

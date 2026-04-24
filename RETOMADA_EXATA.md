@@ -115,6 +115,7 @@ bash infra/scripts/deploy-prod.sh
 - Validacao final desta sessao: `py -3 -m pytest -q` com `67 passed`.
 - Deploy VPS concluido em `https://movisystecnologia.com.br` com `GET /admin/api/health/ready` em `200`, `GET /MoviRelatorios/` em `302` e containers `backend`, `frontend`, `db` e `nginx` saudaveis.
 - Runbook operacional consolidado em `infra/RUNBOOK_PRODUCAO.md`, cobrindo deploy manual, update, backup, restore, rollback e health checks.
+- Controle remoto local do `sync-admin` passou a ter cobertura de allowlist por IP no token local.
 - Divergencia antiga entre `P18` e `P20` resolvida: a fonte de verdade atual passa a considerar `P20` concluido.
 - Risco atual principal deslocado para o drift local de migracoes e testes, especialmente a divergencia entre baseline local e contrato de rollback/migration.
 - Proxima retomada: abrir primeiro `RETOMADA_EXATA.md`, depois `cerebro_vivo/estado_atual.md`, depois `cerebro_vivo/historico_decisoes.md`.

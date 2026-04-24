@@ -7,8 +7,8 @@ from pathlib import Path
 from fastapi.testclient import TestClient
 
 
-def _prepare_sync_admin() -> None:
-    db_path = Path("output/test_sync_admin_remote_control.db")
+def _prepare_sync_admin(db_name: str, allowed_ips: str = "") -> None:
+    db_path = Path(f"output/{db_name}")
     if db_path.exists():
         db_path.unlink()
 
@@ -18,8 +18,9 @@ def _prepare_sync_admin() -> None:
     os.environ["INITIAL_ADMIN_PASSWORD"] = "admin123"
     os.environ["INTEGRATION_API_KEY"] = "sync-key-change-me"
     os.environ["REMOTE_COMMAND_PULL_ENABLED"] = "false"
+    os.environ["REMOTE_CONTROL_ALLOWED_IPS"] = allowed_ips
     os.environ["LOCAL_CONTROL_TOKEN"] = "local-token-test"
-    os.environ["LOCAL_CONTROL_TOKEN_FILE"] = "output/test_sync_admin_remote_control_token.txt"
+    os.environ["LOCAL_CONTROL_TOKEN_FILE"] = f"output/{db_name}.token.txt"
 
     sync_admin_root = Path("sync-admin").resolve()
     if str(sync_admin_root) not in sys.path:
@@ -31,7 +32,7 @@ def _prepare_sync_admin() -> None:
 
 
 def test_remote_control_endpoints_require_token_and_update_state() -> None:
-    _prepare_sync_admin()
+    _prepare_sync_admin("test_sync_admin_remote_control.db")
 
     from app.main import app
 
@@ -77,3 +78,25 @@ def test_remote_control_endpoints_require_token_and_update_state() -> None:
         assert status_resp.json()["last_sync_status"] == "success"
         assert status_resp.json()["installation_id"]
         assert status_resp.json()["uptime_seconds"] >= 0
+
+
+def test_remote_control_token_allowlist_blocks_unlisted_ip() -> None:
+    _prepare_sync_admin("test_sync_admin_remote_control_blocked.db", allowed_ips="127.0.0.1")
+
+    from app.main import app
+
+    with TestClient(app) as client:
+        blocked = client.get("/api/v1/config", headers={"X-Local-Token": "local-token-test"})
+        assert blocked.status_code == 403
+        assert blocked.json()["detail"] == "Source IP not allowed."
+
+
+def test_remote_control_token_allowlist_accepts_listed_ip() -> None:
+    _prepare_sync_admin("test_sync_admin_remote_control_allowed.db", allowed_ips="testclient")
+
+    from app.main import app
+
+    with TestClient(app) as client:
+        allowed = client.get("/api/v1/config", headers={"X-Local-Token": "local-token-test"})
+        assert allowed.status_code == 200, allowed.text
+        assert allowed.json()["empresa_id"] == "12345678000199"
