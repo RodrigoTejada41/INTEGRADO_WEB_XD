@@ -68,6 +68,8 @@ def test_production_runbook_documents_the_operational_flow() -> None:
 
     assert "Deploy manual" in runbook
     assert "Atualizacao rotineira" in runbook
+    assert "Smoke de release" in runbook
+    assert "RELEASE_SMOKE_BASE_URL=https://movisystecnologia.com.br" in runbook
     assert "Backup do banco" in runbook
     assert "Restore do banco" in runbook
     assert "Rollback operacional" in runbook

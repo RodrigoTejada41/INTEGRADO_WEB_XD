@@ -273,3 +273,8 @@ Sempre que houver decisao arquitetural, de seguranca, de dados/logs ou de produt
 - Decisao: expandir o contrato local/VPS para enfileirar `force_sync` pelo painel, puxar o comando na API central, registrar o resultado do cliente local e comprovar o ciclo completo sem rede externa.
 - Motivo: a prova anterior cobria cadastro e rotacao de chave, mas ainda deixava o caminho bidirecional sem uma validacao integrada no mesmo teste.
 - Impacto: o contrato de integracao passa a cobrir nao apenas onboarding e revogacao, mas tambem a operacao remota efetiva da frota conectada.
+
+### D048 - O deploy passa a ter smoke de release executavel e documentado
+- Decisao: criar um smoke de release que roda contra a VPS publicada via `RELEASE_SMOKE_BASE_URL`, validando `healthz`, `readyz/backend`, `readyz/sync-admin`, `admin/api/health/ready`, `admin/` e `MoviRelatorios/`.
+- Motivo: a simulacao local cobria o contrato funcional, mas faltava um gate especifico para a publicacao real depois do deploy.
+- Impacto: o deploy ganha uma prova objetiva de release, a nova feature so avanca se a publicacao continuar saudavel e a operacao manual fica menos subjetiva.

@@ -11,6 +11,7 @@ Workspace local: alterado com memoria executiva atualizada e docs de continuidad
 - Ultima validacao tecnica executada: `py -3 -m pytest -q` com `85 passed`.
 - Novo contrato adicionando simulacao local/VPS em um unico teste end-to-end, cobrindo provisionamento via painel, registro do cliente local, rotacao de chave e validacao do bloqueio da credencial antiga.
 - O mesmo contrato agora cobre tambem o ciclo bidirecional de `force_sync`, com enfileiramento pelo painel, pull de comandos e resultado aplicado pelo cliente local.
+- Smoke de release documentado e executavel via `RELEASE_SMOKE_BASE_URL` para validar a VPS publicada apos cada deploy.
 - Deploy VPS concluido em `https://movisystecnologia.com.br`.
 - `GET /admin/api/health/ready` responde `200`.
 - `GET /MoviRelatorios/` responde `302`.
@@ -129,6 +130,7 @@ bash infra/scripts/deploy-prod.sh
 - A revogacao web do `sync-admin` em `/settings/rotate-tenant-key` agora tem cobertura dedicada, com redirecionamento, flash e aplicacao da chave no arquivo do agente.
 - O contrato de migrations agora valida `target_version` e contagem da tabela `sync_schema_migrations`, reduzindo o drift entre baseline local e rollback.
 - O projeto ganhou um teste local que simula simultaneamente o painel local e a API central/VPS, sem depender de rede externa.
+- O deploy agora tem um smoke de release que valida `healthz`, `readyz/backend`, `readyz/sync-admin`, `admin/api/health/ready`, `admin/` e `MoviRelatorios/`.
 - Divergencia antiga entre `P18` e `P20` resolvida: a fonte de verdade atual passa a considerar `P20` concluido.
 - Risco atual principal deslocado para o drift local de migracoes e testes, especialmente a divergencia entre baseline local e contrato de rollback/migration.
 - Proxima retomada: abrir primeiro `RETOMADA_EXATA.md`, depois `cerebro_vivo/estado_atual.md`, depois `cerebro_vivo/historico_decisoes.md`.

@@ -65,6 +65,29 @@ Use quando:
 - for preciso rebuild/restart completo;
 - o deploy automatico falhar por acesso remoto.
 
+## Smoke de release
+
+Depois de cada publicacao, valide o edge real com o smoke abaixo:
+
+```bash
+RELEASE_SMOKE_BASE_URL=https://movisystecnologia.com.br py -3 -m pytest tests/test_release_smoke_contract.py -q
+```
+
+Se a VPS usar certificado confiavel no dominio:
+
+- manter `RELEASE_SMOKE_VERIFY_SSL=true`.
+
+Se a validacao precisar apontar para outro host temporariamente:
+
+- alterar apenas `RELEASE_SMOKE_BASE_URL`;
+- nao desativar SSL em producao real sem motivo justificado.
+
+Gate recomendado:
+
+- smoke deve passar antes de abrir nova feature;
+- smoke deve passar depois de qualquer deploy manual ou automatico;
+- falha no smoke significa bloqueio da proxima entrega funcional.
+
 ## Backup do banco
 
 ```bash

@@ -51,6 +51,7 @@
     "ultimas_entregas": [
       "Teste end-to-end de simulacao local/VPS adicionado para validar painel local, cadastro central, registro do cliente e rotacao de chave sem depender de rede externa",
       "O mesmo contrato local/VPS agora cobre o ciclo bidirecional de force_sync, com enfileiramento pelo painel, pull de comandos e resultado aplicado pelo cliente local",
+      "Smoke de release documentado e executavel via RELEASE_SMOKE_BASE_URL para validar a VPS publicada apos cada deploy",
       "Suite completa validada com 67 passed apos endurecer a sessao do backend por ambiente e isolar variaveis de ambiente entre testes",
       "Runbook operacional consolidado em infra/RUNBOOK_PRODUCAO.md como referencia unica para deploy, update, backup, restore, rollback e health checks",
       "Guardrails multi-tenant reforcados com testes para validate_empresa_id e validate_api_key_format",
@@ -65,6 +66,7 @@
       "Revogacao web do sync-admin recebeu cobertura operacional explicita em settings.rotate_tenant_key",
       "Contrato de migrations agora valida target_version e contagem da tabela sync_schema_migrations",
       "O teste local de simulacao local/VPS ganhou o ciclo bidirecional force_sync entre painel, API central e cliente local",
+      "Smoke de release passou a validar a VPS publicada apos cada deploy com healthz, readyz/backend, readyz/sync-admin, admin/api/health/ready, admin e MoviRelatorios",
       "Suite completa validada com 62 passed apos mover o temp root do pytest para runtime/pytest-tmp no workspace",
       "Temp root do pytest movido para runtime/pytest-tmp para eliminar ACL quebrada da home do usuario",
       "P15 concluido: migracoes versionadas com rollback por versao/passos",

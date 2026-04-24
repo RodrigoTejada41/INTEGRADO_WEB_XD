@@ -28,6 +28,7 @@ Na retomada canonica atual, o backlog funcional esta consolidado ate `P20`. `P19
 - Estado de producao atualmente estavel no commit `5a06f1d`.
 - O projeto ganhou um contrato de simulacao local/VPS que exercita o painel local e a API central em um unico teste end-to-end.
 - O mesmo contrato agora cobre o ciclo bidirecional `force_sync`, incluindo pull de comandos e resultado do cliente local.
+- O deploy agora tem smoke de release documentado e executavel via `RELEASE_SMOKE_BASE_URL`.
 
 ## Entregas recentes registradas
 
@@ -59,6 +60,7 @@ Na retomada canonica atual, o backlog funcional esta consolidado ate `P20`. `P19
 26. Auditoria local com severidade visual: a tela `settings` agora classifica eventos de acesso como `critico`, `atencao` ou `informativo` e destaca sinais como troca de empresa, troca de perfil, desativacao de usuario, mudanca de escopo e reducao de filiais autorizadas
 27. Teste end-to-end de simulacao local/VPS adicionado, provando o fluxo entre painel local, cadastro central, registro do cliente e rotacao de chave sem depender de rede externa
 28. O contrato local/VPS agora tambem cobre o ciclo de comando remoto `force_sync`, validando enfileiramento, pull e resultado do cliente local
+29. Smoke de release adicionado para validar a VPS publicada apos o deploy, usando `RELEASE_SMOKE_BASE_URL` como gate antes de nova feature
 
 ## Proximos passos mapeados
 
