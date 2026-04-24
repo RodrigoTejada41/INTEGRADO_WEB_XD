@@ -213,3 +213,8 @@ Sempre que houver decisao arquitetural, de seguranca, de dados/logs ou de produt
 - Decisao: consolidar as operacoes recorrentes em `infra/RUNBOOK_PRODUCAO.md` e referenciar esse arquivo no guia de VPS e no README.
 - Motivo: o projeto ja tinha scripts e verificacoes, mas faltava um caminho unico e coerente para deploy, update, backup, restore, rollback e health checks.
 - Impacto: reduz-se a dispersao de instrucoes, melhora-se a continuidade entre sessoes e a operacao fica mais segura para humanos e outras IAs.
+
+### D036 - O guardrail multi-tenant recebe contrato explicito de validacao
+- Decisao: adicionar cobertura de teste para `validate_empresa_id`, `validate_api_key_format` e `generate_api_key`.
+- Motivo: o isolamento por tenant nao deve depender apenas de uso correto nas rotas; a validacao base precisa ter contrato verificavel e reutilizavel.
+- Impacto: a seguranca de entrada ganha uma camada objetiva de regressao, reduzindo o risco de IDs ou chaves malformadas atravessarem a borda do sistema.
