@@ -27,6 +27,7 @@ Na retomada canonica atual, o backlog funcional esta consolidado ate `P20`. `P19
 - Estado de producao atual validado: `GET /admin/api/health/ready` em `200`, `GET /MoviRelatorios/` em `302`, backend/frontend/db/nginx saudaveis.
 - Estado de producao atualmente estavel no commit `5a06f1d`.
 - O projeto ganhou um contrato de simulacao local/VPS que exercita o painel local e a API central em um unico teste end-to-end.
+- O mesmo contrato agora cobre o ciclo bidirecional `force_sync`, incluindo pull de comandos e resultado do cliente local.
 
 ## Entregas recentes registradas
 
@@ -57,6 +58,7 @@ Na retomada canonica atual, o backlog funcional esta consolidado ate `P20`. `P19
 25. Legibilidade da auditoria local melhorada: a tela `settings` do `sync-admin` agora resume alteracoes de usuario por campo (`antes -> depois`) para empresa, escopo, filiais, perfil, nome e status, com fallback para JSON bruto apenas quando necessario
 26. Auditoria local com severidade visual: a tela `settings` agora classifica eventos de acesso como `critico`, `atencao` ou `informativo` e destaca sinais como troca de empresa, troca de perfil, desativacao de usuario, mudanca de escopo e reducao de filiais autorizadas
 27. Teste end-to-end de simulacao local/VPS adicionado, provando o fluxo entre painel local, cadastro central, registro do cliente e rotacao de chave sem depender de rede externa
+28. O contrato local/VPS agora tambem cobre o ciclo de comando remoto `force_sync`, validando enfileiramento, pull e resultado do cliente local
 
 ## Proximos passos mapeados
 

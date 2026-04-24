@@ -268,3 +268,8 @@ Sempre que houver decisao arquitetural, de seguranca, de dados/logs ou de produt
 - Decisao: validar em teste unico o fluxo em que o painel local provisiona o tenant na API central simulada, registra o cliente local, roda a visao de APIs conectadas e rotaciona a chave, confirmando o bloqueio da credencial antiga.
 - Motivo: faltava uma prova executavel que simulasse os dois pontos da operacao real sem depender de rede externa ou de uma VPS ativa.
 - Impacto: a retomada fica mais segura, a integracao local/VPS passa a ter contrato automatico e a regressao entre painel, cadastro central e cliente local fica detectavel em uma unica suite.
+
+### D047 - A simulacao local/VPS tambem valida o ciclo bidirecional de comandos remotos
+- Decisao: expandir o contrato local/VPS para enfileirar `force_sync` pelo painel, puxar o comando na API central, registrar o resultado do cliente local e comprovar o ciclo completo sem rede externa.
+- Motivo: a prova anterior cobria cadastro e rotacao de chave, mas ainda deixava o caminho bidirecional sem uma validacao integrada no mesmo teste.
+- Impacto: o contrato de integracao passa a cobrir nao apenas onboarding e revogacao, mas tambem a operacao remota efetiva da frota conectada.

@@ -199,6 +199,12 @@ def test_local_admin_panel_can_simulate_vps_control_flow(monkeypatch) -> None:
         assert "Forcar sincronizacao" in detail_page.text
         assert "Empresa VPS" in detail_page.text
 
+        force_sync_resp = sync_client.post(
+            f"/connected-apis/{client_id}/sync",
+            follow_redirects=False,
+        )
+        assert force_sync_resp.status_code in (302, 303), force_sync_resp.text
+
         sync_insert_resp = backend_client.post(
             "/sync",
             headers={
@@ -222,6 +228,37 @@ def test_local_admin_panel_can_simulate_vps_control_flow(monkeypatch) -> None:
         assert sync_insert_resp.status_code == 200, sync_insert_resp.text
         assert sync_insert_resp.json()["inserted_count"] == 1
         assert sync_insert_resp.json()["updated_count"] == 0
+
+        pull_resp = backend_client.get(
+            "/api/v1/commands",
+            headers={
+                "X-Client-Id": client_id,
+                "X-Client-Token": "local-control-token-vps-abcdefghijklmnopqrstuvwxyz",
+                "X-Empresa-Id": empresa_id,
+            },
+        )
+        assert pull_resp.status_code == 200, pull_resp.text
+        commands = pull_resp.json()
+        assert len(commands) == 1
+        assert commands[0]["command_type"] == "force_sync"
+
+        result_resp = backend_client.post(
+            f"/api/v1/commands/{commands[0]['id']}/result",
+            headers={
+                "X-Client-Id": client_id,
+                "X-Client-Token": "local-control-token-vps-abcdefghijklmnopqrstuvwxyz",
+                "X-Empresa-Id": empresa_id,
+                "X-Correlation-Id": "corr-local-vps-command-result",
+            },
+            json={
+                "status": "completed",
+                "result": {"status": "done"},
+                "config_snapshot": {"sync_interval_minutes": 16},
+                "status_snapshot": {"last_sync_at": "2026-04-24T08:15:00+00:00"},
+            },
+        )
+        assert result_resp.status_code == 200, result_resp.text
+        assert result_resp.json()["status"] == "completed"
 
         rotate_resp = sync_client.post(
             "/settings/rotate-tenant-key",
@@ -318,7 +355,10 @@ def test_local_admin_panel_can_simulate_vps_control_flow(monkeypatch) -> None:
         .all()
     )
     assert any(log.event_type == "client.register" for log in local_client_logs)
+    assert any(log.event_type == "commands.pull" for log in local_client_logs)
+    assert any(log.event_type == "command.force_sync" for log in local_client_logs)
     assert any("corr-local-vps-register" in log.detail_json for log in local_client_logs)
+    assert any("corr-local-vps-command-result" in log.detail_json for log in local_client_logs)
 
     _reset_sync_admin_modules()
     _reset_backend_modules()

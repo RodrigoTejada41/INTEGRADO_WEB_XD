@@ -10,6 +10,7 @@ Workspace local: alterado com memoria executiva atualizada e docs de continuidad
 - Etapa extra de producao concluida: stack VPS com Docker, Nginx, scripts e GitHub Actions.
 - Ultima validacao tecnica executada: `py -3 -m pytest -q` com `85 passed`.
 - Novo contrato adicionando simulacao local/VPS em um unico teste end-to-end, cobrindo provisionamento via painel, registro do cliente local, rotacao de chave e validacao do bloqueio da credencial antiga.
+- O mesmo contrato agora cobre tambem o ciclo bidirecional de `force_sync`, com enfileiramento pelo painel, pull de comandos e resultado aplicado pelo cliente local.
 - Deploy VPS concluido em `https://movisystecnologia.com.br`.
 - `GET /admin/api/health/ready` responde `200`.
 - `GET /MoviRelatorios/` responde `302`.
