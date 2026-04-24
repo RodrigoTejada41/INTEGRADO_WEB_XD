@@ -314,3 +314,8 @@ Sempre que houver decisao arquitetural, de seguranca, de dados/logs ou de produt
 - Decisao: replicar no `settings` o mesmo resumo compacto da execucao por fonte, usando a mesma base calculada para manter consistencia visual e semantica.
 - Motivo: o console administrativo e a entrada mais natural para operacao humana, entao ele precisa mostrar a saude resumida antes de qualquer acao mutante.
 - Impacto: o administrador ganha leitura rapida da frota no topo da tela principal sem depender de abrir o dashboard operacional detalhado.
+
+### D055 - A pagina de APIs Conectadas tambem recebe um resumo compacto da frota remota
+- Decisao: mostrar no topo de `/connected-apis` os contadores totais, online, offline e com erro calculados a partir do summary remoto.
+- Motivo: a pagina de frota precisava de leitura imediata antes da lista detalhada, sem exigir que o operador inferisse o estado operacional apenas pela tabela.
+- Impacto: o console ganha visao executiva da frota remota e facilita triagem rapida de saude operacional.

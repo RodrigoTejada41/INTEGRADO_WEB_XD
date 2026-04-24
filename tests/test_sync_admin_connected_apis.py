@@ -113,6 +113,11 @@ def test_sync_admin_web_lists_and_controls_connected_apis(monkeypatch) -> None:
         fleet_page = client.get("/connected-apis")
         assert fleet_page.status_code == 200
         assert "APIs Conectadas" in fleet_page.text
+        assert "Total" in fleet_page.text
+        assert "Online" in fleet_page.text
+        assert "Offline" in fleet_page.text
+        assert "Erro" in fleet_page.text
+        assert "Empresas distintas: 2" in fleet_page.text
         assert "host-a" in fleet_page.text
         assert "host-b" in fleet_page.text
         assert "Empresa Alpha" in fleet_page.text

@@ -201,6 +201,12 @@
         "item": "Adicionar resumo compacto do estado de execucao por fonte no topo do dashboard",
         "motivo": "Dar leitura imediata de fila, em execucao, concluidas e falhas antes da tabela detalhada",
         "status": "concluido"
+      },
+      {
+        "ordem": 14,
+        "item": "Replicar o resumo compacto na pagina de APIs Conectadas",
+        "motivo": "Dar visao imediata da frota remota com total, online, offline e erro antes da lista detalhada",
+        "status": "concluido"
       }
     ],
     "riscos_conhecidos": [

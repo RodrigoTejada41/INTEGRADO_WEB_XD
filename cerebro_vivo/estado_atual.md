@@ -227,3 +227,4 @@ Na retomada canonica atual, o backlog funcional esta consolidado ate `P20`. `P19
 - O cockpit de fontes passou a exibir status vivo por fonte, ultima acao, ultimo disparo e refresh automatico no dashboard.
 - O topo do dashboard agora exibe um resumo compacto da execucao por fonte com fila, em execucao, concluidas e falhas.
 - O topo do `settings` passou a replicar o mesmo resumo compacto para o console administrativo principal.
+- A pagina de APIs Conectadas passou a replicar um resumo compacto da frota remota com total, online, offline e erro.

@@ -31,10 +31,14 @@
 </form>
 
 <div class="row g-3 mb-4">
-  <div class="col-md-3"><div class="card p-3"><small>Total</small><h4>{{ fleet_summary.total_clients }}</h4></div></div>
-  <div class="col-md-3"><div class="card p-3"><small>Online</small><h4 class="text-success">{{ fleet_summary.online_clients }}</h4></div></div>
-  <div class="col-md-3"><div class="card p-3"><small>Erro</small><h4 class="text-danger">{{ fleet_summary.error_clients }}</h4></div></div>
-  <div class="col-md-3"><div class="card p-3"><small>Empresas</small><h4>{{ fleet_summary.unique_empresas }}</h4></div></div>
+  <div class="col-md-3"><div class="card p-3"><small>Total</small><h4>{{ fleet_overview.total_clients }}</h4></div></div>
+  <div class="col-md-3"><div class="card p-3"><small>Online</small><h4 class="text-success">{{ fleet_overview.online_clients }}</h4></div></div>
+  <div class="col-md-3"><div class="card p-3"><small>Offline</small><h4 class="text-warning">{{ fleet_overview.offline_clients }}</h4></div></div>
+  <div class="col-md-3"><div class="card p-3"><small>Erro</small><h4 class="text-danger">{{ fleet_overview.error_clients }}</h4></div></div>
+</div>
+
+<div class="mb-4 text-muted">
+  <small>Empresas distintas: {{ fleet_summary.unique_empresas }}</small>
 </div>
 
 <div class="card p-3">

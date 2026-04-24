@@ -337,6 +337,19 @@ def _source_execution_overview(source_status_snapshot: dict[str, dict[str, str]]
     return overview
 
 
+def _remote_client_fleet_overview(fleet_summary) -> dict[str, int]:
+    total_clients = int(getattr(fleet_summary, 'total_clients', 0) or 0)
+    online_clients = int(getattr(fleet_summary, 'online_clients', 0) or 0)
+    error_clients = int(getattr(fleet_summary, 'error_clients', 0) or 0)
+    offline_clients = max(0, total_clients - online_clients - error_clients)
+    return {
+        'total_clients': total_clients,
+        'online_clients': online_clients,
+        'error_clients': error_clients,
+        'offline_clients': offline_clients,
+    }
+
+
 def _build_filter_chips(
     *,
     start_date: str | None,
@@ -1413,6 +1426,7 @@ def connected_apis_page(
         status=status_filter,
         search=search,
     )
+    fleet_overview = _remote_client_fleet_overview(fleet_summary)
     clients = control.fetch_remote_clients(
         empresa_id=empresa_id,
         status=status_filter,
@@ -1425,6 +1439,7 @@ def connected_apis_page(
             'request': request,
             'current_user': current_user,
             'fleet_summary': fleet_summary,
+            'fleet_overview': fleet_overview,
             'clients': clients,
             'empresa_id': empresa_id or '',
             'status_filter': status_filter or '',
