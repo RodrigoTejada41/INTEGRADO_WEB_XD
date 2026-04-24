@@ -538,6 +538,51 @@ def create_source_config(
     return result
 
 
+@router.post(
+    "/tenants/{empresa_id}/source-configs/sync-all",
+    response_model=TenantConfigSummaryResponse,
+    dependencies=[Depends(require_admin_token)],
+)
+def trigger_all_source_configs_sync(
+    empresa_id: str,
+    request: Request,
+    session: Session = Depends(get_session),
+) -> TenantConfigSummaryResponse:
+    service = _tenant_config_service(session)
+    scheduler = TenantSyncScheduler(SessionLocal, AsyncIOScheduler(timezone="UTC"))
+    try:
+        scheduler.sync_all_jobs()
+        result = service.get_source_summary(empresa_id)
+    except Exception as exc:
+        session.rollback()
+        _record_admin_failure(
+            session=session,
+            request=request,
+            empresa_id=empresa_id,
+            action="source_config.sync_all",
+            resource_type="source_config",
+            resource_id=empresa_id,
+            exc=exc,
+        )
+        session.commit()
+        raise
+    _record_admin_audit(
+        session=session,
+        request=request,
+        empresa_id=empresa_id,
+        action="source_config.sync_all",
+        resource_type="source_config",
+        resource_id=empresa_id,
+        detail={
+            "total_count": str(result.total_count),
+            "active_count": str(result.active_count),
+            "pending_count": str(result.pending_count),
+        },
+    )
+    session.commit()
+    return result
+
+
 @router.put(
     "/tenants/{empresa_id}/source-configs/{config_id}",
     response_model=TenantConfigResponse,

@@ -188,6 +188,32 @@ class ControlService:
             'last_error': data.get('last_error'),
         }
 
+    def trigger_all_source_sync(self, empresa_id: str | None = None, actor: str | None = None) -> dict:
+        target_empresa = empresa_id or settings.control_empresa_id
+        headers = dict(self.admin_headers)
+        if actor:
+            headers['X-Audit-Actor'] = actor
+        with httpx.Client(timeout=15.0) as client:
+            response = client.post(
+                f'{self.base_url}/admin/tenants/{target_empresa}/source-configs/sync-all',
+                headers=headers,
+            )
+            response.raise_for_status()
+            data = response.json()
+        return {
+            'empresa_id': data.get('empresa_id', target_empresa),
+            'scope': data.get('scope', 'source'),
+            'total_count': int(data.get('total_count', 0)),
+            'active_count': int(data.get('active_count', 0)),
+            'inactive_count': int(data.get('inactive_count', 0)),
+            'pending_count': int(data.get('pending_count', 0)),
+            'ok_count': int(data.get('ok_count', 0)),
+            'failed_count': int(data.get('failed_count', 0)),
+            'retrying_count': int(data.get('retrying_count', 0)),
+            'dead_letter_count': int(data.get('dead_letter_count', 0)),
+            'connector_types': list(data.get('connector_types', [])),
+        }
+
     def update_agent_key_file(self, api_key: str) -> str:
         file_path = Path(settings.agent_api_key_file)
         file_path.parent.mkdir(parents=True, exist_ok=True)

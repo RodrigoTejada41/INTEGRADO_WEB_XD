@@ -22,7 +22,7 @@ Na retomada canonica atual, o backlog funcional esta consolidado ate `P20`. `P19
 - Estado corrente desta sessao: P20 concluido + backlog pos-P20 em execucao
 - Ultima entrega funcional consolidada: registro de instancias locais, fila de comandos remotos pull, endpoints protegidos de configuracao/status no `sync-admin`, controle central no `receiver-api` e portal cliente com escopo formal por empresa ou conjunto de filiais
 - Ultima validacao registrada nesta camada executiva: `py -3 -m pytest tests/test_sync_admin_connected_apis.py tests/test_sync_admin_client_portal.py tests/test_sync_admin_reports.py tests/test_sync_admin_client_scope.py tests/test_sync_admin_settings_client_scope.py -q` com 10 testes aprovados
-- Ultima validacao global registrada nesta camada executiva: `py -3 -m pytest -q` com `87 passed, 1 skipped`
+- Ultima validacao global registrada nesta camada executiva: `py -3 -m pytest -q` com `88 passed, 1 skipped`
 - Etapa adicional ja concluida no codigo: estrutura completa para deploy em VPS Linux com Docker, Nginx e GitHub Actions
 - Estado de producao atual validado: `GET /admin/api/health/ready` em `200`, `GET /MoviRelatorios/` em `302`, backend/frontend/db/nginx saudaveis.
 - Estado de producao atualmente estavel no commit `5a06f1d`.
@@ -30,7 +30,7 @@ Na retomada canonica atual, o backlog funcional esta consolidado ate `P20`. `P19
 - O mesmo contrato agora cobre o ciclo bidirecional `force_sync`, incluindo pull de comandos e resultado do cliente local.
 - O deploy agora tem smoke de release documentado e executavel via `RELEASE_SMOKE_BASE_URL`.
 - O `sync-admin` ganhou um cockpit operacional de ciclo de sincronizacao por fonte, com `last_scheduled_at`, `next_run_at` e fallback offline rapido para a API de controle.
-- O cockpit de fontes do `sync-admin` ganhou a acao manual `Sincronizar agora`, com contrato de backend e web cobertos por teste.
+- O cockpit de fontes do `sync-admin` ganhou as acoes manuais `Sincronizar agora` e `Sincronizar todas as fontes`, com contrato de backend e web cobertos por teste.
 
 ## Entregas recentes registradas
 
@@ -65,6 +65,7 @@ Na retomada canonica atual, o backlog funcional esta consolidado ate `P20`. `P19
  29. Smoke de release adicionado para validar a VPS publicada apos o deploy, usando `RELEASE_SMOKE_BASE_URL` como gate antes de nova feature
  30. Dashboard operacional do `sync-admin` passou a expor o ciclo de sincronizacao por fonte, com proximo agendamento, ultimo sucesso e fallback offline rapido para a API de controle
  31. O cockpit de fontes do `sync-admin` ganhou a acao manual `Sincronizar agora`, com contrato de backend e web cobertos por teste
+ 32. O cockpit de fontes do `sync-admin` ganhou a acao manual `Sincronizar todas as fontes`, com contrato de backend e web cobertos por teste
 
 ## Proximos passos mapeados
 

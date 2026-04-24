@@ -289,3 +289,8 @@ Sempre que houver decisao arquitetural, de seguranca, de dados/logs ou de produt
 - Decisao: expor no `sync-admin` uma acao manual de sincronizacao por fonte, com rota web dedicada, contrato de backend para enfileirar a execucao e cobertura automatizada da UI e da API.
 - Motivo: o cockpit ja mostrava o ciclo por fonte, mas ainda faltava o acionamento operacional direto para o caso em que o operador precisa forcar um ciclo sem esperar o scheduler.
 - Impacto: o produto evolui do estado apenas observacional para uma operacao mais ativa, preservando o fluxo automatico existente e sem quebrar o contrato de sincronizacao periodica.
+
+### D050 - O cockpit de fontes tambem recebe sincronizacao em lote
+- Decisao: expor uma acao administrativa para enfileirar a sincronizacao de todas as fontes ativas a partir do cockpit, reutilizando o contrato do scheduler e retornando o resumo do tenant apos o disparo.
+- Motivo: a operacao por fonte e util, mas o operador tambem precisa de um atalho para reconciliar a frota inteira sem abrir varias acoes individuais.
+- Impacto: o `sync-admin` fica mais pratico para operacao diaria, sem alterar a cadencia automatica nem o isolamento por `empresa_id`.

@@ -47,7 +47,7 @@
     "historico_consolidado": "cerebro_vivo/historico_decisoes.md"
   },
   "estado_atual": {
-    "checkpoint_base": "P20 concluido com backlog pos-P20 avancado, console web centralizada entregue, frente de relatorios separada entre admin e cliente, producao estavel no commit 5a06f1d, checkpoint de reboot do cliente MoviSync registrado, runbook operacional consolidado, guardrails multi-tenant reforcados, allowlist de IP do controle remoto coberta, exposicao publica exclusiva no nginx, remote_agent coberto por teste de ciclo desabilitado e snapshot de comando, smoke de readiness consolidado na cadeia inteira e suite completa validada com 87 passed, 1 skipped",
+    "checkpoint_base": "P20 concluido com backlog pos-P20 avancado, console web centralizada entregue, frente de relatorios separada entre admin e cliente, producao estavel no commit 5a06f1d, checkpoint de reboot do cliente MoviSync registrado, runbook operacional consolidado, guardrails multi-tenant reforcados, allowlist de IP do controle remoto coberta, exposicao publica exclusiva no nginx, remote_agent coberto por teste de ciclo desabilitado e snapshot de comando, smoke de readiness consolidado na cadeia inteira e suite completa validada com 88 passed, 1 skipped",
     "ultimas_entregas": [
       "Teste end-to-end de simulacao local/VPS adicionado para validar painel local, cadastro central, registro do cliente e rotacao de chave sem depender de rede externa",
       "O mesmo contrato local/VPS agora cobre o ciclo bidirecional de force_sync, com enfileiramento pelo painel, pull de comandos e resultado aplicado pelo cliente local",
@@ -69,6 +69,7 @@
       "Smoke de release passou a validar a VPS publicada apos cada deploy com healthz, readyz/backend, readyz/sync-admin, admin/api/health/ready, admin e MoviRelatorios",
       "Dashboard operacional do sync-admin passou a expor o ciclo de sincronizacao por fonte com fallback offline rapido para a API de controle",
       "O cockpit de fontes do sync-admin ganhou a acao manual Sincronizar agora, com contrato de backend e web cobertos por teste",
+      "O cockpit de fontes do sync-admin ganhou a acao manual Sincronizar todas as fontes, com contrato de backend e web cobertos por teste",
       "Suite completa validada com 62 passed apos mover o temp root do pytest para runtime/pytest-tmp no workspace",
       "Temp root do pytest movido para runtime/pytest-tmp para eliminar ACL quebrada da home do usuario",
       "P15 concluido: migracoes versionadas com rollback por versao/passos",
@@ -116,6 +117,7 @@
       "Priorizar backlog pos-P20 com foco em risco operacional, seguranca e continuidade do produto",
       "Continuar a frente de relatorios com comparacoes adicionais entre filiais e terminais, preferencialmente sem duplicar contratos entre backend e sync-admin",
       "Evoluir a operacao manual do cockpit de fontes com acoes mais claras de sincronizacao, sem quebrar o contrato automatico existente",
+      "Evoluir o cockpit de fontes para suportar a sincronizacao em lote de todas as fontes ativas sem quebrar o contrato automatico",
       "Consolidar a UX do painel admin para edicao de usuarios e ampliar, se necessario, o refinamento visual da auditoria local de alteracoes de escopo por empresa ou filial",
       "Enderecar drift local de migracoes e testes antes de promover novas alteracoes de schema"
     ],

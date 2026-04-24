@@ -169,6 +169,22 @@ def test_full_flow_sync_and_tenant_isolation(monkeypatch) -> None:
         assert source_sync_now.json()["id"] == source_config_id
         assert sync_calls == [source_config_id]
 
+        sync_all_calls: list[str] = []
+
+        def fake_sync_all_jobs(self) -> None:
+            sync_all_calls.append("sync-all")
+
+        monkeypatch.setattr(TenantSyncScheduler, "sync_all_jobs", fake_sync_all_jobs)
+
+        source_sync_all = client.post(
+            "/admin/tenants/12345678000199/source-configs/sync-all",
+            headers=audit_headers,
+        )
+        assert source_sync_all.status_code == 200, source_sync_all.text
+        assert source_sync_all.json()["empresa_id"] == "12345678000199"
+        assert source_sync_all.json()["scope"] == "source"
+        assert sync_all_calls == ["sync-all"]
+
         destination_delete = client.delete(
             f"/admin/tenants/12345678000199/destination-configs/{destination_config_id}",
             headers=audit_headers,

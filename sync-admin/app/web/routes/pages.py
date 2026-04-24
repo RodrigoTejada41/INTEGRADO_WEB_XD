@@ -1513,6 +1513,27 @@ def dashboard_trigger_source_sync(
         )
 
 
+@router.post('/dashboard/source-configs/sync-all')
+def dashboard_trigger_all_source_sync(
+    current_user: User = Depends(require_web_permission('settings.manage')),
+):
+    control = ControlService()
+    try:
+        result = control.trigger_all_source_sync(
+            empresa_id=settings.control_empresa_id,
+            actor=current_user.username,
+        )
+        return RedirectResponse(
+            f"/dashboard?flash=Sincronizacao+de+{result['active_count']}+fontes+ativa+enfileirada",
+            status_code=status.HTTP_302_FOUND,
+        )
+    except Exception as exc:
+        return RedirectResponse(
+            f'/dashboard?error=Falha+ao+enfileirar+sincronizacao+em+lote:+{quote_plus(str(exc))}',
+            status_code=status.HTTP_302_FOUND,
+        )
+
+
 @router.post('/settings/server-settings')
 def settings_server_settings(
     request: Request,
