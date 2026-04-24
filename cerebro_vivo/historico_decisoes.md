@@ -263,3 +263,8 @@ Sempre que houver decisao arquitetural, de seguranca, de dados/logs ou de produt
 - Decisao: validar que `upgrade(engine, target_version=3)` para exatamente em 3, grava 3 registros na tabela de migracoes e aplica a quarta migration somente em uma segunda subida.
 - Motivo: o drift de schema precisava de um contrato objetivo do runner, nao apenas rollback por steps.
 - Impacto: o baseline local fica mais previsivel e a linha de migrations deixa de depender de interpretacao manual do schema criado pela base ORM.
+
+### D046 - A integracao local/VPS ganha contrato E2E simulado em um unico teste
+- Decisao: validar em teste unico o fluxo em que o painel local provisiona o tenant na API central simulada, registra o cliente local, roda a visao de APIs conectadas e rotaciona a chave, confirmando o bloqueio da credencial antiga.
+- Motivo: faltava uma prova executavel que simulasse os dois pontos da operacao real sem depender de rede externa ou de uma VPS ativa.
+- Impacto: a retomada fica mais segura, a integracao local/VPS passa a ter contrato automatico e a regressao entre painel, cadastro central e cliente local fica detectavel em uma unica suite.

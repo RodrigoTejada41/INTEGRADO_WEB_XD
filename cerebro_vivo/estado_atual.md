@@ -22,10 +22,11 @@ Na retomada canonica atual, o backlog funcional esta consolidado ate `P20`. `P19
 - Estado corrente desta sessao: P20 concluido + backlog pos-P20 em execucao
 - Ultima entrega funcional consolidada: registro de instancias locais, fila de comandos remotos pull, endpoints protegidos de configuracao/status no `sync-admin`, controle central no `receiver-api` e portal cliente com escopo formal por empresa ou conjunto de filiais
 - Ultima validacao registrada nesta camada executiva: `py -3 -m pytest tests/test_sync_admin_connected_apis.py tests/test_sync_admin_client_portal.py tests/test_sync_admin_reports.py tests/test_sync_admin_client_scope.py tests/test_sync_admin_settings_client_scope.py -q` com 10 testes aprovados
-- Ultima validacao global registrada nesta camada executiva: `py -3 -m pytest -q` com `80 passed`
+- Ultima validacao global registrada nesta camada executiva: `py -3 -m pytest -q` com `85 passed`
 - Etapa adicional ja concluida no codigo: estrutura completa para deploy em VPS Linux com Docker, Nginx e GitHub Actions
 - Estado de producao atual validado: `GET /admin/api/health/ready` em `200`, `GET /MoviRelatorios/` em `302`, backend/frontend/db/nginx saudaveis.
 - Estado de producao atualmente estavel no commit `5a06f1d`.
+- O projeto ganhou um contrato de simulacao local/VPS que exercita o painel local e a API central em um unico teste end-to-end.
 
 ## Entregas recentes registradas
 
@@ -55,6 +56,7 @@ Na retomada canonica atual, o backlog funcional esta consolidado ate `P20`. `P19
 24. Auditoria local de identidade adicionada ao `sync-admin`: alteracoes de usuarios e de escopo agora geram eventos proprios em tabela local, separados da auditoria central de tenant/configuracoes
 25. Legibilidade da auditoria local melhorada: a tela `settings` do `sync-admin` agora resume alteracoes de usuario por campo (`antes -> depois`) para empresa, escopo, filiais, perfil, nome e status, com fallback para JSON bruto apenas quando necessario
 26. Auditoria local com severidade visual: a tela `settings` agora classifica eventos de acesso como `critico`, `atencao` ou `informativo` e destaca sinais como troca de empresa, troca de perfil, desativacao de usuario, mudanca de escopo e reducao de filiais autorizadas
+27. Teste end-to-end de simulacao local/VPS adicionado, provando o fluxo entre painel local, cadastro central, registro do cliente e rotacao de chave sem depender de rede externa
 
 ## Proximos passos mapeados
 

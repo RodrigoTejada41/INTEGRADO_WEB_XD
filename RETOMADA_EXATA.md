@@ -1,6 +1,6 @@
 # Retomada Exata
 
-Ultimo checkpoint: 2026-04-23 -03:00
+Ultimo checkpoint: 2026-04-24 -03:00
 Branch atual: `main`
 Workspace local: alterado com memoria executiva atualizada e docs de continuidade reconciliados
 
@@ -8,7 +8,8 @@ Workspace local: alterado com memoria executiva atualizada e docs de continuidad
 - Fase de backlog concluida ate `P20`.
 - Ultima entrega funcional consolidada: observabilidade avancada por tenant + correlacao ponta a ponta de logs (`correlation_id`) + endpoint admin de observabilidade.
 - Etapa extra de producao concluida: stack VPS com Docker, Nginx, scripts e GitHub Actions.
-- Ultima validacao tecnica executada: `py -3 -m pytest -q` com `84 passed`.
+- Ultima validacao tecnica executada: `py -3 -m pytest -q` com `85 passed`.
+- Novo contrato adicionando simulacao local/VPS em um unico teste end-to-end, cobrindo provisionamento via painel, registro do cliente local, rotacao de chave e validacao do bloqueio da credencial antiga.
 - Deploy VPS concluido em `https://movisystecnologia.com.br`.
 - `GET /admin/api/health/ready` responde `200`.
 - `GET /MoviRelatorios/` responde `302`.
@@ -64,6 +65,7 @@ Workspace local: alterado com memoria executiva atualizada e docs de continuidad
 - `tests/test_observability.py`
 - `tests/test_backend_audit.py`
 - `tests/test_production_operations.py`
+- `tests/test_local_vps_dual_simulation.py`
 
 ## 4) Como retomar exatamente
 1. Abrir a base local-first:
@@ -125,6 +127,7 @@ bash infra/scripts/deploy-prod.sh
 - O contrato E2E da API central agora tambem valida rastreio por `correlation_id` em auditoria e log de cliente.
 - A revogacao web do `sync-admin` em `/settings/rotate-tenant-key` agora tem cobertura dedicada, com redirecionamento, flash e aplicacao da chave no arquivo do agente.
 - O contrato de migrations agora valida `target_version` e contagem da tabela `sync_schema_migrations`, reduzindo o drift entre baseline local e rollback.
+- O projeto ganhou um teste local que simula simultaneamente o painel local e a API central/VPS, sem depender de rede externa.
 - Divergencia antiga entre `P18` e `P20` resolvida: a fonte de verdade atual passa a considerar `P20` concluido.
 - Risco atual principal deslocado para o drift local de migracoes e testes, especialmente a divergencia entre baseline local e contrato de rollback/migration.
 - Proxima retomada: abrir primeiro `RETOMADA_EXATA.md`, depois `cerebro_vivo/estado_atual.md`, depois `cerebro_vivo/historico_decisoes.md`.
