@@ -148,6 +148,7 @@
           <th>Proxima execucao</th>
           <th>Ultimo sucesso</th>
           <th>Erro</th>
+          <th>Acoes</th>
         </tr>
       </thead>
       <tbody>
@@ -171,10 +172,21 @@
           <td>{{ source.next_run_at or '-' }}</td>
           <td>{{ source.last_run_at or '-' }}</td>
           <td><code>{{ source.last_error or '-' }}</code></td>
+          <td>
+            {% if current_user.role == 'admin' %}
+            <form method="post" action="/dashboard/source-configs/{{ source.id }}/sync" class="d-inline">
+              <button type="submit" class="btn btn-sm btn-outline-primary" {% if not source.ativo %}disabled{% endif %}>
+                Sincronizar agora
+              </button>
+            </form>
+            {% else %}
+            <span class="text-muted">Sem acesso</span>
+            {% endif %}
+          </td>
         </tr>
         {% endfor %}
         {% if source_configs|length == 0 %}
-        <tr><td colspan="8" class="text-muted">Sem fontes de sincronizacao cadastradas.</td></tr>
+        <tr><td colspan="9" class="text-muted">Sem fontes de sincronizacao cadastradas.</td></tr>
         {% endif %}
       </tbody>
     </table>

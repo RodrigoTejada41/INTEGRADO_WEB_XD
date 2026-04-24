@@ -156,6 +156,38 @@ class ControlService:
             'api_key_expires_at': data.get('api_key_expires_at'),
         }
 
+    def trigger_source_sync(
+        self,
+        config_id: str,
+        *,
+        empresa_id: str | None = None,
+        actor: str | None = None,
+    ) -> dict:
+        target_empresa = empresa_id or settings.control_empresa_id
+        headers = dict(self.admin_headers)
+        if actor:
+            headers['X-Audit-Actor'] = actor
+        with httpx.Client(timeout=15.0) as client:
+            response = client.post(
+                f'{self.base_url}/admin/tenants/{target_empresa}/source-configs/{config_id}/sync',
+                headers=headers,
+            )
+            response.raise_for_status()
+            data = response.json()
+        return {
+            'id': data.get('id'),
+            'empresa_id': data.get('empresa_id'),
+            'nome': data.get('nome'),
+            'connector_type': data.get('connector_type'),
+            'sync_interval_minutes': data.get('sync_interval_minutes'),
+            'ativo': data.get('ativo'),
+            'last_run_at': data.get('last_run_at'),
+            'last_scheduled_at': data.get('last_scheduled_at'),
+            'next_run_at': data.get('next_run_at'),
+            'last_status': data.get('last_status'),
+            'last_error': data.get('last_error'),
+        }
+
     def update_agent_key_file(self, api_key: str) -> str:
         file_path = Path(settings.agent_api_key_file)
         file_path.parent.mkdir(parents=True, exist_ok=True)

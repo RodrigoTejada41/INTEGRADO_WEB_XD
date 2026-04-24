@@ -20,7 +20,7 @@ def _reset_backend_modules() -> None:
             sys.modules.pop(module_name, None)
 
 
-def test_full_flow_sync_and_tenant_isolation() -> None:
+def test_full_flow_sync_and_tenant_isolation(monkeypatch) -> None:
     db_path = Path("output/test_integration_sync.db")
     if db_path.exists():
         db_path.unlink()
@@ -151,6 +151,23 @@ def test_full_flow_sync_and_tenant_isolation() -> None:
         assert source_update.json()["nome"] == "MariaDB origem principal"
         assert source_update.json()["settings"]["schema"] == "public"
         assert source_update.json()["settings"]["api_key"] != "api-key-123456"
+
+        from backend.services.tenant_sync_scheduler import TenantSyncScheduler
+
+        sync_calls: list[str] = []
+
+        def fake_run_source_sync(self, config_id: str) -> None:
+            sync_calls.append(config_id)
+
+        monkeypatch.setattr(TenantSyncScheduler, "run_source_sync", fake_run_source_sync)
+
+        source_sync_now = client.post(
+            f"/admin/tenants/12345678000199/source-configs/{source_config_id}/sync",
+            headers=audit_headers,
+        )
+        assert source_sync_now.status_code == 200, source_sync_now.text
+        assert source_sync_now.json()["id"] == source_config_id
+        assert sync_calls == [source_config_id]
 
         destination_delete = client.delete(
             f"/admin/tenants/12345678000199/destination-configs/{destination_config_id}",

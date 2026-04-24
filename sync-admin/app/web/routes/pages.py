@@ -1490,6 +1490,29 @@ def settings_rotate_tenant_key(
         )
 
 
+@router.post('/dashboard/source-configs/{config_id}/sync')
+def dashboard_trigger_source_sync(
+    config_id: str,
+    current_user: User = Depends(require_web_permission('settings.manage')),
+):
+    control = ControlService()
+    try:
+        control.trigger_source_sync(
+            config_id,
+            empresa_id=settings.control_empresa_id,
+            actor=current_user.username,
+        )
+        return RedirectResponse(
+            '/dashboard?flash=Sincronizacao+da+fonte+enfileirada',
+            status_code=status.HTTP_302_FOUND,
+        )
+    except Exception as exc:
+        return RedirectResponse(
+            f'/dashboard?error=Falha+ao+enfileirar+sincronizacao:+{quote_plus(str(exc))}',
+            status_code=status.HTTP_302_FOUND,
+        )
+
+
 @router.post('/settings/server-settings')
 def settings_server_settings(
     request: Request,

@@ -284,3 +284,8 @@ Sempre que houver decisao arquitetural, de seguranca, de dados/logs ou de produt
 - Decisao: criar um smoke de release que roda contra a VPS publicada via `RELEASE_SMOKE_BASE_URL`, validando `healthz`, `readyz/backend`, `readyz/sync-admin`, `admin/api/health/ready`, `admin/` e `MoviRelatorios/`.
 - Motivo: a simulacao local cobria o contrato funcional, mas faltava um gate especifico para a publicacao real depois do deploy.
 - Impacto: o deploy ganha uma prova objetiva de release, a nova feature so avanca se a publicacao continuar saudavel e a operacao manual fica menos subjetiva.
+
+### D049 - O cockpit de fontes ganha acao manual de sincronizar agora
+- Decisao: expor no `sync-admin` uma acao manual de sincronizacao por fonte, com rota web dedicada, contrato de backend para enfileirar a execucao e cobertura automatizada da UI e da API.
+- Motivo: o cockpit ja mostrava o ciclo por fonte, mas ainda faltava o acionamento operacional direto para o caso em que o operador precisa forcar um ciclo sem esperar o scheduler.
+- Impacto: o produto evolui do estado apenas observacional para uma operacao mais ativa, preservando o fluxo automatico existente e sem quebrar o contrato de sincronizacao periodica.

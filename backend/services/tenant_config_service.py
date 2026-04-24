@@ -115,6 +115,16 @@ class TenantConfigService:
         summary = self.destination_repository.summary_by_empresa_id(empresa_id)
         return self._to_summary(empresa_id, "destination", summary)
 
+    def get_source_config(self, empresa_id: str, config_id: str) -> TenantConfigResponse:
+        self._ensure_tenant_exists(empresa_id)
+        config = self.source_repository.get_by_id(empresa_id, config_id)
+        if config is None:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Configuracao nao encontrada.",
+            )
+        return self._to_response(config, empresa_id)
+
     def create_source_config(
         self, empresa_id: str, payload: TenantConfigCreateRequest
     ) -> TenantConfigResponse:

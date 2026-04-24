@@ -1,10 +1,11 @@
 from datetime import date
 
 from fastapi import APIRouter, Depends, HTTPException, Request
+from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from sqlalchemy.orm import Session
 
 from backend.api.admin_deps import require_admin_token
-from backend.config.database import get_session
+from backend.config.database import SessionLocal, get_session
 from backend.models.tenant_destination_config import TenantDestinationConfig
 from backend.models.tenant_source_config import TenantSourceConfig
 from backend.repositories.server_setting_repository import ServerSettingRepository
@@ -53,6 +54,7 @@ from backend.services.tenant_report_service import TenantReportService
 from backend.services.server_settings_service import ServerSettingsService
 from backend.services.connection_secret_service import ConnectionSecretService
 from backend.services.tenant_config_service import TenantConfigService
+from backend.services.tenant_sync_scheduler import TenantSyncScheduler
 from backend.utils.audit import build_request_audit_context
 from backend.utils.metrics import metrics_registry
 
@@ -613,6 +615,51 @@ def delete_source_config(
         resource_type="source_config",
         resource_id=config_id,
         detail={"status": "deleted"},
+    )
+    session.commit()
+    return result
+
+
+@router.post(
+    "/tenants/{empresa_id}/source-configs/{config_id}/sync",
+    response_model=TenantConfigResponse,
+    dependencies=[Depends(require_admin_token)],
+)
+def trigger_source_config_sync(
+    empresa_id: str,
+    config_id: str,
+    request: Request,
+    session: Session = Depends(get_session),
+) -> TenantConfigResponse:
+    service = _tenant_config_service(session)
+    try:
+        config = service.get_source_config(empresa_id, config_id)
+        if not config.ativo:
+            raise HTTPException(status_code=400, detail="Configuracao inativa.")
+        scheduler = TenantSyncScheduler(SessionLocal, AsyncIOScheduler(timezone="UTC"))
+        scheduler.run_source_sync(config_id)
+        result = service.get_source_config(empresa_id, config_id)
+    except Exception as exc:
+        session.rollback()
+        _record_admin_failure(
+            session=session,
+            request=request,
+            empresa_id=empresa_id,
+            action="source_config.sync_now",
+            resource_type="source_config",
+            resource_id=config_id,
+            exc=exc,
+        )
+        session.commit()
+        raise
+    _record_admin_audit(
+        session=session,
+        request=request,
+        empresa_id=empresa_id,
+        action="source_config.sync_now",
+        resource_type="source_config",
+        resource_id=config_id,
+        detail={"status": "queued", "last_status": result.last_status},
     )
     session.commit()
     return result
