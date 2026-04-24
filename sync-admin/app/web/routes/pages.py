@@ -1524,7 +1524,7 @@ def dashboard_trigger_all_source_sync(
             actor=current_user.username,
         )
         return RedirectResponse(
-            f"/dashboard?flash=Sincronizacao+de+{result['active_count']}+fontes+ativa+enfileirada",
+            f"/dashboard?flash=Sincronizacao+de+{result['active_count']}+fontes+ativas+enfileiradas",
             status_code=status.HTTP_302_FOUND,
         )
     except Exception as exc:

@@ -30,7 +30,7 @@ Na retomada canonica atual, o backlog funcional esta consolidado ate `P20`. `P19
 - O mesmo contrato agora cobre o ciclo bidirecional `force_sync`, incluindo pull de comandos e resultado do cliente local.
 - O deploy agora tem smoke de release documentado e executavel via `RELEASE_SMOKE_BASE_URL`.
 - O `sync-admin` ganhou um cockpit operacional de ciclo de sincronizacao por fonte, com `last_scheduled_at`, `next_run_at` e fallback offline rapido para a API de controle.
-- O cockpit de fontes do `sync-admin` ganhou as acoes manuais `Sincronizar agora` e `Sincronizar todas as fontes`, com contrato de backend e web cobertos por teste.
+- O cockpit de fontes do `sync-admin` ganhou as acoes manuais `Sincronizar agora` e `Sincronizar todas as fontes`, com contrato de backend e web cobertos por teste e flash visual de sucesso/erro.
 
 ## Entregas recentes registradas
 
@@ -66,6 +66,7 @@ Na retomada canonica atual, o backlog funcional esta consolidado ate `P20`. `P19
  30. Dashboard operacional do `sync-admin` passou a expor o ciclo de sincronizacao por fonte, com proximo agendamento, ultimo sucesso e fallback offline rapido para a API de controle
  31. O cockpit de fontes do `sync-admin` ganhou a acao manual `Sincronizar agora`, com contrato de backend e web cobertos por teste
  32. O cockpit de fontes do `sync-admin` ganhou a acao manual `Sincronizar todas as fontes`, com contrato de backend e web cobertos por teste
+ 33. O layout base do `sync-admin` passou a exibir flash visual de sucesso e erro apos acoes administrativas
 
 ## Proximos passos mapeados
 

@@ -37,6 +37,16 @@
       </form>
     </aside>
     <main class="content p-4">
+      {% if request.query_params.get('flash') %}
+      <div class="alert alert-success" role="alert">
+        {{ request.query_params.get('flash') }}
+      </div>
+      {% endif %}
+      {% if request.query_params.get('error') %}
+      <div class="alert alert-danger" role="alert">
+        {{ request.query_params.get('error') }}
+      </div>
+      {% endif %}
       {% block content %}{% endblock %}
     </main>
   </div>

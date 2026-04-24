@@ -70,6 +70,7 @@
       "Dashboard operacional do sync-admin passou a expor o ciclo de sincronizacao por fonte com fallback offline rapido para a API de controle",
       "O cockpit de fontes do sync-admin ganhou a acao manual Sincronizar agora, com contrato de backend e web cobertos por teste",
       "O cockpit de fontes do sync-admin ganhou a acao manual Sincronizar todas as fontes, com contrato de backend e web cobertos por teste",
+      "O layout base do sync-admin passou a exibir flash visual de sucesso e erro apos acoes administrativas",
       "Suite completa validada com 62 passed apos mover o temp root do pytest para runtime/pytest-tmp no workspace",
       "Temp root do pytest movido para runtime/pytest-tmp para eliminar ACL quebrada da home do usuario",
       "P15 concluido: migracoes versionadas com rollback por versao/passos",
@@ -118,6 +119,7 @@
       "Continuar a frente de relatorios com comparacoes adicionais entre filiais e terminais, preferencialmente sem duplicar contratos entre backend e sync-admin",
       "Evoluir a operacao manual do cockpit de fontes com acoes mais claras de sincronizacao, sem quebrar o contrato automatico existente",
       "Evoluir o cockpit de fontes para suportar a sincronizacao em lote de todas as fontes ativas sem quebrar o contrato automatico",
+      "Refinar feedback visual das acoes administrativas com flash claro de sucesso e erro no layout base",
       "Consolidar a UX do painel admin para edicao de usuarios e ampliar, se necessario, o refinamento visual da auditoria local de alteracoes de escopo por empresa ou filial",
       "Enderecar drift local de migracoes e testes antes de promover novas alteracoes de schema"
     ],

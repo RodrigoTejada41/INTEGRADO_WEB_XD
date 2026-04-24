@@ -294,3 +294,8 @@ Sempre que houver decisao arquitetural, de seguranca, de dados/logs ou de produt
 - Decisao: expor uma acao administrativa para enfileirar a sincronizacao de todas as fontes ativas a partir do cockpit, reutilizando o contrato do scheduler e retornando o resumo do tenant apos o disparo.
 - Motivo: a operacao por fonte e util, mas o operador tambem precisa de um atalho para reconciliar a frota inteira sem abrir varias acoes individuais.
 - Impacto: o `sync-admin` fica mais pratico para operacao diaria, sem alterar a cadencia automatica nem o isolamento por `empresa_id`.
+
+### D051 - O layout base do sync-admin passa a mostrar flash visual
+- Decisao: exibir mensagens de sucesso e erro em um bloco visual padrao no `base.html`, reaproveitado pelas telas que fazem redirect apos acao administrativa.
+- Motivo: o cockpit e outras telas operacionais precisam de retorno claro apos comandos mutantes, sem depender apenas da URL ou de leitura manual do response.
+- Impacto: a experiencia de operacao fica mais previsivel e a semantica de sucesso/erro fica padronizada sem espalhar componentes duplicados pelas paginas.

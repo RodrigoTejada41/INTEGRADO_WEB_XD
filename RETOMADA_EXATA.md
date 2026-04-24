@@ -96,7 +96,7 @@ bash infra/scripts/deploy-prod.sh
 
 ## 5) Proximas prioridades abertas
 - Reboot local para liberar o lock do `C:\MoviSyncAgent` e retomar `3) Atualizar` do cliente MoviSync, se esse fluxo ainda for necessario.
-- A frente de produto ganhou acoes manuais de `Sincronizar agora` e `Sincronizar todas as fontes` no cockpit de fontes do `sync-admin`, com contrato de API e UI cobertos por teste.
+- A frente de produto ganhou acoes manuais de `Sincronizar agora` e `Sincronizar todas as fontes` no cockpit de fontes do `sync-admin`, com contrato de API e UI cobertos por teste e feedback visual de flash em sucesso/erro.
 
 ## 6) Regras para continuidade sem regressao
 - Nao remover isolamento por `empresa_id`.
@@ -119,7 +119,7 @@ bash infra/scripts/deploy-prod.sh
 - Validacao local desta correcao: `py -3 -m pytest tests/test_production_operations.py -q` com `5 passed`, seguido de `py -3 -m pytest -q` com `60 passed`.
 - Ajuste de isolamento de teste desta sessao: `conftest.py` passou a restaurar `os.environ` apos cada teste para impedir vazamento de ambiente entre casos.
 - Validacao final desta sessao: `py -3 -m pytest -q` com `67 passed`.
-- Entrega de produto desta sessao: o cockpit de fontes do `sync-admin` ganhou as acoes manuais `Sincronizar agora` e `Sincronizar todas as fontes`, com contrato de backend e web cobertos por teste.
+- Entrega de produto desta sessao: o cockpit de fontes do `sync-admin` ganhou as acoes manuais `Sincronizar agora` e `Sincronizar todas as fontes`, com contrato de backend e web cobertos por teste e feedback visual de flash no `base.html`.
 - Validacao final desta sessao: `py -3 -m pytest -q` com `88 passed, 1 skipped`.
 - Deploy VPS concluido em `https://movisystecnologia.com.br` com `GET /admin/api/health/ready` em `200`, `GET /MoviRelatorios/` em `302` e containers `backend`, `frontend`, `db` e `nginx` saudaveis.
 - Runbook operacional consolidado em `infra/RUNBOOK_PRODUCAO.md`, cobrindo deploy manual, update, backup, restore, rollback e health checks.

@@ -323,6 +323,15 @@ def test_sync_admin_dashboard_triggers_source_sync_action(monkeypatch) -> None:
         )
         assert sync_resp.status_code in (302, 303)
         assert sync_resp.headers["location"].startswith("/dashboard?flash=")
+        assert sync_calls == [("src-1", "12345678000199", "admin")]
+        sync_calls.clear()
+
+        sync_page = client.post(
+            "/dashboard/source-configs/src-1/sync",
+            follow_redirects=True,
+        )
+        assert sync_page.status_code == 200
+        assert "Sincronizacao da fonte enfileirada" in sync_page.text
 
     assert sync_calls == [("src-1", "12345678000199", "admin")]
 
@@ -485,5 +494,14 @@ def test_sync_admin_dashboard_triggers_all_source_sync_action(monkeypatch) -> No
         )
         assert sync_resp.status_code in (302, 303)
         assert sync_resp.headers["location"].startswith("/dashboard?flash=")
+        assert sync_all_calls == ["12345678000199"]
+        sync_all_calls.clear()
+
+        sync_page = client.post(
+            "/dashboard/source-configs/sync-all",
+            follow_redirects=True,
+        )
+        assert sync_page.status_code == 200
+        assert "Sincronizacao de 2 fontes ativas enfileiradas" in sync_page.text
 
     assert sync_all_calls == ["12345678000199"]
