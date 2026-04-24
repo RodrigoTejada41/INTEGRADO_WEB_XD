@@ -99,6 +99,7 @@ Este repositorio tambem abriga documentacao, indices, artefatos de apoio e trilh
 
 ## Deploy em VPS (producao)
 - Guia operacional: [`infra/VPS_DEPLOY.md`](infra/VPS_DEPLOY.md)
+- Runbook operacional: [`infra/RUNBOOK_PRODUCAO.md`](infra/RUNBOOK_PRODUCAO.md)
 - Acesso SSH e handoff para outra IA: [`infra/SSH_ACESSO.md`](infra/SSH_ACESSO.md)
 - Stack de producao: `docker-compose.prod.yml`
 - Nginx reverso: `infra/nginx/default.conf`

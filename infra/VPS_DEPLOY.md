@@ -9,6 +9,7 @@
 - `docker-compose.prod.yml`
 - `infra/nginx/default.conf`
 - `infra/nginx/ssl-example.conf`
+- `infra/RUNBOOK_PRODUCAO.md`
 - `infra/scripts/setup-vps.sh`
 - `infra/scripts/deploy-prod.sh`
 - `infra/scripts/update.sh`
@@ -222,6 +223,14 @@ curl -f https://SEU_DOMINIO/healthz
 curl -f https://SEU_DOMINIO/api/health/ready
 ```
 10. Confirmar redirecionamento de HTTP para HTTPS, se aplicavel.
+
+## 7.4. Runbook operacional consolidado
+Use [`infra/RUNBOOK_PRODUCAO.md`](RUNBOOK_PRODUCAO.md) como checklist principal para:
+- deploy manual;
+- atualizacao rotineira;
+- backup e restore;
+- rollback operacional;
+- validacao de health/readiness.
 
 Riscos que este checklist evita:
 - expiracao do certificado em producao

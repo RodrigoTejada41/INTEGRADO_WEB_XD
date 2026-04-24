@@ -61,3 +61,16 @@ def test_nginx_exposes_explicit_backend_and_sync_admin_readiness_routes() -> Non
     assert "proxy_pass http://frontend_upstream/health/ready;" in nginx_config
     assert "location /admin/api/" in nginx_config
     assert "rewrite ^/admin/api/(.*)$ /$1 break;" in nginx_config
+
+
+def test_production_runbook_documents_the_operational_flow() -> None:
+    runbook = (ROOT / "infra" / "RUNBOOK_PRODUCAO.md").read_text(encoding="utf-8")
+
+    assert "Deploy manual" in runbook
+    assert "Atualizacao rotineira" in runbook
+    assert "Backup do banco" in runbook
+    assert "Restore do banco" in runbook
+    assert "Rollback operacional" in runbook
+    assert "curl -f http://127.0.0.1/healthz" in runbook
+    assert "curl -f http://127.0.0.1/api/health/ready" in runbook
+    assert "curl -f http://127.0.0.1/readyz/sync-admin" in runbook

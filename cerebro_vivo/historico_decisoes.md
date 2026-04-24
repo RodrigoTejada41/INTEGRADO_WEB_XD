@@ -208,3 +208,8 @@ Sempre que houver decisao arquitetural, de seguranca, de dados/logs ou de produt
 - Decisao: adicionar um fixture autouse em `conftest.py` para restaurar `os.environ` apos cada teste.
 - Motivo: a suite estava vazando `ENVIRONMENT=production`, `RATE_LIMIT_*` e segredos entre casos, fazendo testes de desenvolvimento falharem por herdar estado de um teste anterior.
 - Impacto: o isolamento da suite fica previsivel, os testes deixam de depender da ordem de execucao e a validacao de producao continua coberta pelos testes dedicados.
+
+### D035 - O runbook de producao passa a ser a referencia operacional unica
+- Decisao: consolidar as operacoes recorrentes em `infra/RUNBOOK_PRODUCAO.md` e referenciar esse arquivo no guia de VPS e no README.
+- Motivo: o projeto ja tinha scripts e verificacoes, mas faltava um caminho unico e coerente para deploy, update, backup, restore, rollback e health checks.
+- Impacto: reduz-se a dispersao de instrucoes, melhora-se a continuidade entre sessoes e a operacao fica mais segura para humanos e outras IAs.

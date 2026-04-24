@@ -170,6 +170,7 @@ Na retomada canonica atual, o backlog funcional esta consolidado ate `P20`. `P19
 - O temp root do pytest foi movido para `runtime/pytest-tmp` no workspace para eliminar o bloqueio de ACL herdado de `.codex/memories/pytest-tmp`.
 - O backend passou a tratar `ENVIRONMENT=development` como default seguro e ativa `https_only` no `SessionMiddleware` somente em producao.
 - O `conftest.py` agora restaura `os.environ` apos cada teste para evitar vazamento de `ENVIRONMENT`, `RATE_LIMIT_*` e segredos de producao entre casos.
+- Runbook operacional consolidado em `infra/RUNBOOK_PRODUCAO.md` para deploy, update, backup, restore, rollback e health checks.
 
 ## Atualizacao do deploy VPS
 
@@ -180,7 +181,7 @@ Na retomada canonica atual, o backlog funcional esta consolidado ate `P20`. `P19
 - Schema do PostgreSQL recebeu `last_scheduled_at` e `next_run_at` em `tenant_source_configs`.
 - A divergencia antiga entre `P18` e `P20` foi encerrada; a linha executiva canonica atual e `P20` concluido.
 - A VPS consolidou o commit `5a06f1d` como linha de producao estavel.
-- O principal risco agora e local: drift entre migracoes, rollback e testes de schema.
+- O principal risco agora e operacional: ausencia de runbook unico consolidado para rotina recorrente de producao.
 
 ### D031 - O intervalo padrao de sincronizacao passa a ser 16 minutos
 - Decisao: normalizar o default de sincronizacao para 16 minutos em `agent_local`, schemas de criacao de config e defaults ORM do backend.
@@ -191,3 +192,4 @@ Na retomada canonica atual, o backlog funcional esta consolidado ate `P20`. `P19
 
 - Validacao dirigida executada: `py -3 -m pytest tests/test_sync_interval_contract.py tests/test_agent_main_registration.py tests/test_tenant_scheduler.py tests/test_db_migrations.py -q` com 15 testes aprovados.
 - A suite completa desta maquina agora passa com `67 passed` apos o endurecimento de ambiente, sessao e isolamento de variaveis de ambiente.
+- O runbook operacional foi consolidado em `infra/RUNBOOK_PRODUCAO.md` e passou a ser a referencia principal para deploy, update, backup, restore, rollback e health checks.
