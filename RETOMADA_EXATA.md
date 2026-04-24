@@ -122,6 +122,7 @@ bash infra/scripts/deploy-prod.sh
 - Checkpoint atual consolidado no commit `e10e880`, com suite completa em `82 passed` e worktree limpo.
 - O comando remoto `force_sync` agora tem cobertura funcional de efeito real, com estado local e log operacional validados.
 - O contrato E2E da API central agora cobre provisionamento, registro, sync, revogacao por rotacao de chave e bloqueio da chave antiga.
+- O contrato E2E da API central agora tambem valida rastreio por `correlation_id` em auditoria e log de cliente.
 - Divergencia antiga entre `P18` e `P20` resolvida: a fonte de verdade atual passa a considerar `P20` concluido.
 - Risco atual principal deslocado para o drift local de migracoes e testes, especialmente a divergencia entre baseline local e contrato de rollback/migration.
 - Proxima retomada: abrir primeiro `RETOMADA_EXATA.md`, depois `cerebro_vivo/estado_atual.md`, depois `cerebro_vivo/historico_decisoes.md`.

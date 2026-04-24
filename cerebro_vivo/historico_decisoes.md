@@ -248,3 +248,8 @@ Sempre que houver decisao arquitetural, de seguranca, de dados/logs ou de produt
 - Decisao: validar em teste o ciclo completo de `provision_tenant`, `register`, `sync`, `rotate_tenant_key` e bloqueio da chave antiga.
 - Motivo: a API central precisava de uma prova unica de autenticacao, isolamento por `empresa_id`, ingestao, revogacao e reautorizacao.
 - Impacto: o fluxo comercial principal passa a ter um gate de regressao que separa funcionamento parcial de contrato realmente blindado.
+
+### D043 - O contrato E2E da API central tambem precisa rastrear correlation_id
+- Decisao: adicionar assercoes de `correlation_id` em auditoria administrativa de provisionamento, rotacao de chave e sync, alem do log do cliente local no registro.
+- Motivo: o contrato precisava provar nao apenas resultado funcional, mas tambem rastreabilidade operacional entre admin, sync e cliente.
+- Impacto: o gate de release passa a validar observabilidade fim a fim sem depender de inspecao manual em logs ou auditoria.

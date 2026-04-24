@@ -7,6 +7,7 @@ from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 from fastapi.testclient import TestClient
+from sqlalchemy import select
 
 
 def _reset_backend_modules() -> None:
@@ -38,8 +39,15 @@ def test_backend_api_e2e_contract_covers_registration_sync_and_key_rotation() ->
     _prepare_backend("test_api_e2e_contract.db")
 
     from backend.main import app
+    from backend.config.database import SessionLocal
+    from backend.models.local_client_log import LocalClientLog
+    from backend.models.tenant_audit_event import TenantAuditEvent
 
-    admin_headers = {"X-Admin-Token": "admin-token-test", "X-Audit-Actor": "panel.admin"}
+    admin_headers = {
+        "X-Admin-Token": "admin-token-test",
+        "X-Audit-Actor": "panel.admin",
+        "X-Correlation-Id": "corr-admin-e2e",
+    }
     empresa_id = "12345678000199"
 
     with TestClient(app) as client:
@@ -74,7 +82,11 @@ def test_backend_api_e2e_contract_covers_registration_sync_and_key_rotation() ->
 
         sync_insert_resp = client.post(
             "/sync",
-            headers={"X-Empresa-Id": empresa_id, "X-API-Key": initial_api_key},
+            headers={
+                "X-Empresa-Id": empresa_id,
+                "X-API-Key": initial_api_key,
+                "X-Correlation-Id": "corr-sync-e2e-001",
+            },
             json={
                 "empresa_id": empresa_id,
                 "records": [
@@ -94,7 +106,11 @@ def test_backend_api_e2e_contract_covers_registration_sync_and_key_rotation() ->
 
         mismatch_resp = client.post(
             "/sync",
-            headers={"X-Empresa-Id": empresa_id, "X-API-Key": initial_api_key},
+            headers={
+                "X-Empresa-Id": empresa_id,
+                "X-API-Key": initial_api_key,
+                "X-Correlation-Id": "corr-sync-e2e-mismatch",
+            },
             json={
                 "empresa_id": "98765432000155",
                 "records": [
@@ -121,7 +137,11 @@ def test_backend_api_e2e_contract_covers_registration_sync_and_key_rotation() ->
 
         old_key_resp = client.post(
             "/sync",
-            headers={"X-Empresa-Id": empresa_id, "X-API-Key": initial_api_key},
+            headers={
+                "X-Empresa-Id": empresa_id,
+                "X-API-Key": initial_api_key,
+                "X-Correlation-Id": "corr-sync-e2e-old-key",
+            },
             json={
                 "empresa_id": empresa_id,
                 "records": [
@@ -139,7 +159,11 @@ def test_backend_api_e2e_contract_covers_registration_sync_and_key_rotation() ->
 
         sync_update_resp = client.post(
             "/sync",
-            headers={"X-Empresa-Id": empresa_id, "X-API-Key": rotated_api_key},
+            headers={
+                "X-Empresa-Id": empresa_id,
+                "X-API-Key": rotated_api_key,
+                "X-Correlation-Id": "corr-sync-e2e-002",
+            },
             json={
                 "empresa_id": empresa_id,
                 "records": [
@@ -164,3 +188,28 @@ def test_backend_api_e2e_contract_covers_registration_sync_and_key_rotation() ->
         assert clients_summary.status_code == 200, clients_summary.text
         assert clients_summary.json()["total_clients"] == 1
         assert clients_summary.json()["online_clients"] == 1
+
+    with SessionLocal() as session:
+        tenant_audits = list(
+            session.scalars(
+                select(TenantAuditEvent)
+                .where(TenantAuditEvent.empresa_id == empresa_id)
+                .order_by(TenantAuditEvent.created_at.asc())
+            ).all()
+        )
+        client_logs = list(
+            session.scalars(
+                select(LocalClientLog)
+                .where(LocalClientLog.empresa_id == empresa_id)
+                .order_by(LocalClientLog.created_at.asc())
+            ).all()
+        )
+
+    assert any(audit.action == "tenant.provision" for audit in tenant_audits)
+    assert any(audit.action == "tenant.rotate_key" for audit in tenant_audits)
+    assert any(audit.action == "sync.ingest" for audit in tenant_audits)
+    assert any(audit.correlation_id == "corr-admin-e2e" for audit in tenant_audits)
+    assert any(audit.correlation_id == "corr-sync-e2e-001" for audit in tenant_audits)
+    assert any(audit.correlation_id == "corr-sync-e2e-002" for audit in tenant_audits)
+
+    assert any('"correlation_id": "corr-register-e2e"' in log.detail_json for log in client_logs)

@@ -59,6 +59,7 @@
       "Checkpoint atual fechado no commit e10e880 com suite completa em 82 passed e worktree limpo",
       "Comando remoto force_sync recebeu cobertura funcional de efeito real no remote_agent",
       "Contrato E2E da API central cobre provisionamento, registro, sync e revogacao por rotacao de chave",
+      "Contrato E2E da API central tambem valida correlation_id em auditoria e log do cliente",
       "Suite completa validada com 62 passed apos mover o temp root do pytest para runtime/pytest-tmp no workspace",
       "Temp root do pytest movido para runtime/pytest-tmp para eliminar ACL quebrada da home do usuario",
       "P15 concluido: migracoes versionadas com rollback por versao/passos",

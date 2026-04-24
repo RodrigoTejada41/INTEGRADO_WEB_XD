@@ -209,3 +209,4 @@ Na retomada canonica atual, o backlog funcional esta consolidado ate `P20`. `P19
 - A continuidade executiva desta sessao foi consolidada para retomada futura sem redescoberta de contexto.
 - O comando remoto `force_sync` passou a ter cobertura funcional de efeito real, com log local e estado de sincronizacao atualizados.
 - O contrato E2E da API central agora cobre provisionamento, registro, sync, revogacao por rotacao de chave e bloqueio da chave antiga.
+- O contrato E2E da API central tambem valida rastreio por `correlation_id` em auditoria e log de cliente.
