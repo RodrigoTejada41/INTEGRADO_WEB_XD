@@ -71,6 +71,7 @@ def test_production_runbook_documents_the_operational_flow() -> None:
     assert "Backup do banco" in runbook
     assert "Restore do banco" in runbook
     assert "Rollback operacional" in runbook
+    assert "Smoke da cadeia" in runbook
     assert "curl -f http://127.0.0.1/healthz" in runbook
     assert "curl -f http://127.0.0.1/api/health/ready" in runbook
     assert "curl -f http://127.0.0.1/readyz/sync-admin" in runbook

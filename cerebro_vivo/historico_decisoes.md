@@ -233,3 +233,8 @@ Sempre que houver decisao arquitetural, de seguranca, de dados/logs ou de produt
 - Decisao: registrar em teste que `run_remote_cycle()` deve retornar imediatamente quando `remote_command_pull_enabled` estiver desabilitado e que o snapshot de status precisa expor `last_command_poll_at`, `last_registration_at`, `pending_local_batches` e `total_local_records`.
 - Motivo: o controle remoto do `sync-admin` nao pode executar polling ou registro quando a configuracao local esta desligada, e o painel precisa de um snapshot minimo para diagnostico.
 - Impacto: o contrato do fluxo remoto fica protegido contra ativacao indevida e o status operacional ganha campos verificaveis para suporte e auditoria.
+
+### D040 - A fumaça de readiness passa a cobrir a cadeia produtiva inteira em um unico contrato
+- Decisao: consolidar o smoke de readiness em um teste que valida backend, sync-admin e o snapshot operacional do `remote_agent`, mantendo o contrato de ciclo desligado no teste dedicado.
+- Motivo: a cadeia produtiva precisa de um ponto unico de verificacao para a operacao principal sem misturar responsabilidade de health com comportamento de polling remoto.
+- Impacto: o fechamento operacional fica mais simples de auditar e a regressao da cadeia inteira pode ser detectada por um unico teste de fumaça, sem remover a cobertura especializada existente.

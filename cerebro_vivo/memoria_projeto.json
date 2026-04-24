@@ -47,7 +47,7 @@
     "historico_consolidado": "cerebro_vivo/historico_decisoes.md"
   },
   "estado_atual": {
-    "checkpoint_base": "P20 concluido com backlog pos-P20 avancado, console web centralizada entregue, frente de relatorios separada entre admin e cliente, producao estavel no commit 5a06f1d, checkpoint de reboot do cliente MoviSync registrado, runbook operacional consolidado, guardrails multi-tenant reforcados, allowlist de IP do controle remoto coberta, exposicao publica exclusiva no nginx, remote_agent coberto por teste de ciclo desabilitado e snapshot de comando, e suite completa validada com 80 passed",
+    "checkpoint_base": "P20 concluido com backlog pos-P20 avancado, console web centralizada entregue, frente de relatorios separada entre admin e cliente, producao estavel no commit 5a06f1d, checkpoint de reboot do cliente MoviSync registrado, runbook operacional consolidado, guardrails multi-tenant reforcados, allowlist de IP do controle remoto coberta, exposicao publica exclusiva no nginx, remote_agent coberto por teste de ciclo desabilitado e snapshot de comando, smoke de readiness consolidado na cadeia inteira e suite completa validada com 80 passed",
     "ultimas_entregas": [
       "Suite completa validada com 67 passed apos endurecer a sessao do backend por ambiente e isolar variaveis de ambiente entre testes",
       "Runbook operacional consolidado em infra/RUNBOOK_PRODUCAO.md como referencia unica para deploy, update, backup, restore, rollback e health checks",
@@ -55,6 +55,7 @@
       "Controle remoto local do sync-admin reforcado com teste de allowlist por IP",
       "Composicao de producao reforcada com contrato de porta publica unica no nginx",
       "remote_agent do sync-admin reforcado com contrato de ciclo desabilitado por remote_command_pull_enabled e snapshot de status com estado de comandos",
+      "Smoke de readiness consolidado para backend, sync-admin e snapshot do remote_agent em um unico contrato",
       "Suite completa validada com 62 passed apos mover o temp root do pytest para runtime/pytest-tmp no workspace",
       "Temp root do pytest movido para runtime/pytest-tmp para eliminar ACL quebrada da home do usuario",
       "P15 concluido: migracoes versionadas com rollback por versao/passos",

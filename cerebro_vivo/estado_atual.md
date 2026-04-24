@@ -177,6 +177,7 @@ Na retomada canonica atual, o backlog funcional esta consolidado ate `P20`. `P19
 - Controle remoto do `sync-admin` reforcado com cobertura para allowlist de IP no token local.
 - O compose de producao passou a manter exposicao publica exclusiva no `nginx`.
 - O `remote_agent` do `sync-admin` passou a respeitar `remote_command_pull_enabled` e a expor snapshot de estado de comandos no status.
+- A fumaça de readiness agora valida backend, sync-admin e o snapshot do `remote_agent` em um unico contrato.
 
 ## Atualizacao do deploy VPS
 
@@ -203,3 +204,4 @@ Na retomada canonica atual, o backlog funcional esta consolidado ate `P20`. `P19
 - O fluxo bidirecional ganhou cobertura de allowlist por IP no controle remoto local do `sync-admin`.
 - A composicao de producao ficou com contrato explicito de porta publica unica no `nginx`.
 - O `remote_agent` recebeu cobertura para ciclo desabilitado por configuracao e snapshot de estado de comandos.
+- O smoke de readiness consolidado passa a incluir o `remote_agent` como parte da cadeia produtiva validada.

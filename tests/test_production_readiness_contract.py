@@ -8,8 +8,16 @@ import threading
 from contextlib import contextmanager
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
-
+from sqlalchemy import create_engine
+from sqlalchemy.orm import Session, sessionmaker
 from fastapi.testclient import TestClient
+
+SYNC_ADMIN_ROOT = Path("sync-admin").resolve()
+if str(SYNC_ADMIN_ROOT) not in sys.path:
+    sys.path.insert(0, str(SYNC_ADMIN_ROOT))
+
+from app.core.db import Base as SyncAdminBase
+from app.services.remote_agent_service import RemoteAgentService
 
 
 def _reset_backend_modules() -> None:
@@ -55,6 +63,13 @@ def _stub_health_server() -> str:
         server.shutdown()
         server.server_close()
         thread.join(timeout=5)
+
+
+def _sync_admin_session() -> Session:
+    engine = create_engine("sqlite+pysqlite:///:memory:", future=True)
+    SyncAdminBase.metadata.create_all(bind=engine)
+    factory = sessionmaker(bind=engine, autoflush=False, autocommit=False, class_=Session)
+    return factory()
 
 
 def test_backend_and_sync_admin_expose_production_readiness(tmp_path: Path) -> None:
@@ -131,6 +146,18 @@ def test_backend_and_sync_admin_expose_production_readiness(tmp_path: Path) -> N
                 assert ready.json()["status"] == "ready"
                 assert ready.json()["components"]["database"] == "ready"
                 assert ready.json()["components"]["control_api"] == "ready"
+
+            remote_agent_session = _sync_admin_session()
+            remote_agent_service = RemoteAgentService(remote_agent_session)
+            remote_agent_snapshot = remote_agent_service.build_status_snapshot()
+
+            assert remote_agent_snapshot["service"] == "sync-admin"
+            assert "last_command_poll_at" in remote_agent_snapshot
+            assert "last_registration_at" in remote_agent_snapshot
+            assert "pending_local_batches" in remote_agent_snapshot
+            assert "total_local_records" in remote_agent_snapshot
+
+            remote_agent_session.close()
     finally:
         _reset_backend_modules()
         _reset_sync_admin_modules()

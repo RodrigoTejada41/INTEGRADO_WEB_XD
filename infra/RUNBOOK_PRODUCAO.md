@@ -15,6 +15,7 @@ Este runbook consolida as operações recorrentes da VPS e do stack de produçã
 - Admin: `/admin`
 - Health do backend: `/admin/api/health/ready`
 - Health do frontend: `/readyz/sync-admin`
+- Smoke da cadeia: backend + sync-admin + snapshot do `remote_agent`
 - Health do edge: `/healthz`
 
 ## Antes de qualquer deploy
