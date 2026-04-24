@@ -123,3 +123,11 @@ bash infra/scripts/deploy-prod.sh
 - Divergencia antiga entre `P18` e `P20` resolvida: a fonte de verdade atual passa a considerar `P20` concluido.
 - Risco atual principal deslocado para o drift local de migracoes e testes, especialmente a divergencia entre baseline local e contrato de rollback/migration.
 - Proxima retomada: abrir primeiro `RETOMADA_EXATA.md`, depois `cerebro_vivo/estado_atual.md`, depois `cerebro_vivo/historico_decisoes.md`.
+
+## 8) Retomada rapida
+
+1. Abrir `RETOMADA_EXATA.md`.
+2. Verificar `git status --short`.
+3. Validar com `py -3 -m pytest -q`.
+4. Se for deploy, seguir `infra/RUNBOOK_PRODUCAO.md`.
+5. Se for VPS, seguir `infra/VPS_DEPLOY.md`.
