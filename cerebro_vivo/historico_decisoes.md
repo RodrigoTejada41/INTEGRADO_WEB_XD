@@ -319,3 +319,8 @@ Sempre que houver decisao arquitetural, de seguranca, de dados/logs ou de produt
 - Decisao: mostrar no topo de `/connected-apis` os contadores totais, online, offline e com erro calculados a partir do summary remoto.
 - Motivo: a pagina de frota precisava de leitura imediata antes da lista detalhada, sem exigir que o operador inferisse o estado operacional apenas pela tabela.
 - Impacto: o console ganha visao executiva da frota remota e facilita triagem rapida de saude operacional.
+
+### D056 - O detalhe de uma API conectada tambem recebe um resumo rapido operacional
+- Decisao: exibir no topo da tela de detalhe o status, ultimo seen, ultimo sync, ultimo poll e a ultima correlacao observada nos logs.
+- Motivo: a leitura do detalhe precisava ser ainda mais objetiva antes das acoes remotas e dos logs.
+- Impacto: o operador consegue bater o olho e validar a situacao da instancia sem descer para os blocos de JSON e tabela.

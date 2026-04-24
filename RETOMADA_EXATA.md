@@ -139,6 +139,7 @@ bash infra/scripts/deploy-prod.sh
 - O topo do dashboard agora exibe um resumo compacto da execucao por fonte com fila, em execucao, concluidas e falhas.
 - O topo do `settings` agora replica o mesmo resumo compacto para o console administrativo principal.
 - A pagina de APIs Conectadas agora replica um resumo compacto da frota remota com total, online, offline e erro.
+- O detalhe de uma API conectada agora exibe um resumo rapido com status, ultimo seen, ultimo sync, ultimo poll e ultima correlacao.
 - Divergencia antiga entre `P18` e `P20` resolvida: a fonte de verdade atual passa a considerar `P20` concluido.
 - Risco atual principal deslocado para o drift local de migracoes e testes, especialmente a divergencia entre baseline local e contrato de rollback/migration.
 - Proxima retomada: abrir primeiro `RETOMADA_EXATA.md`, depois `cerebro_vivo/estado_atual.md`, depois `cerebro_vivo/historico_decisoes.md`.

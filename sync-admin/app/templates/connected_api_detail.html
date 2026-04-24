@@ -5,8 +5,8 @@
     <h3 class="mb-0">{{ client_data.hostname }}</h3>
     <small class="text-muted">
       <code>{{ client_data.id }}</code>
-      · {{ client_data.empresa_nome or 'Empresa sem nome' }}
-      · CNPJ <code>{{ client_data.empresa_id }}</code>
+      Â· {{ client_data.empresa_nome or 'Empresa sem nome' }}
+      Â· CNPJ <code>{{ client_data.empresa_id }}</code>
     </small>
   </div>
   <div class="d-flex gap-2">
@@ -23,10 +23,17 @@
 {% endif %}
 
 <div class="row g-3 mb-4">
-  <div class="col-md-3"><div class="card p-3"><small>Status</small><h5>{{ client_data.status }}</h5></div></div>
-  <div class="col-md-3"><div class="card p-3"><small>Ultimo seen</small><h6>{{ client_data.last_seen_at or '-' }}</h6></div></div>
-  <div class="col-md-3"><div class="card p-3"><small>Ultimo sync</small><h6>{{ client_data.last_sync_at or '-' }}</h6></div></div>
-  <div class="col-md-3"><div class="card p-3"><small>Ultimo poll</small><h6>{{ client_data.last_command_poll_at or '-' }}</h6></div></div>
+  <div class="col-md-3"><div class="card p-3"><small>Status</small><h5>{{ client_overview.status }}</h5></div></div>
+  <div class="col-md-3"><div class="card p-3"><small>Ultimo seen</small><h6>{{ client_overview.last_seen_at or '-' }}</h6></div></div>
+  <div class="col-md-3"><div class="card p-3"><small>Ultimo sync</small><h6>{{ client_overview.last_sync_at or '-' }}</h6></div></div>
+  <div class="col-md-3"><div class="card p-3"><small>Ultimo poll</small><h6>{{ client_overview.last_command_poll_at or '-' }}</h6></div></div>
+</div>
+
+<div class="row g-3 mb-4">
+  <div class="col-md-3"><div class="card p-3"><small>Endpoint</small><h6>{{ client_data.endpoint_url or '-' }}</h6></div></div>
+  <div class="col-md-3"><div class="card p-3"><small>CNPJ</small><h6><code>{{ client_data.empresa_id }}</code></h6></div></div>
+  <div class="col-md-3"><div class="card p-3"><small>Ultimo evento</small><h6>{{ client_overview.last_event_type or '-' }}</h6></div></div>
+  <div class="col-md-3"><div class="card p-3"><small>Correlacao</small><h6><code>{{ client_overview.last_correlation_id or '-' }}</code></h6></div></div>
 </div>
 
 <div class="row g-3 mb-4">

@@ -207,6 +207,12 @@
         "item": "Replicar o resumo compacto na pagina de APIs Conectadas",
         "motivo": "Dar visao imediata da frota remota com total, online, offline e erro antes da lista detalhada",
         "status": "concluido"
+      },
+      {
+        "ordem": 15,
+        "item": "Adicionar resumo rapido no detalhe de uma API conectada",
+        "motivo": "Mostrar status, ultimo seen, ultimo sync, ultimo poll e ultima correlacao no topo da tela de detalhe",
+        "status": "concluido"
       }
     ],
     "riscos_conhecidos": [

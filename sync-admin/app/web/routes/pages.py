@@ -1457,6 +1457,15 @@ def connected_api_detail_page(
     control = ControlService()
     client_data = control.fetch_remote_client(client_id)
     logs = control.fetch_remote_client_logs(client_id, limit=20)
+    latest_log = logs[0] if logs else {}
+    client_overview = {
+        'status': client_data.get('status', '-'),
+        'last_seen_at': client_data.get('last_seen_at', '-'),
+        'last_sync_at': client_data.get('last_sync_at', '-'),
+        'last_command_poll_at': client_data.get('last_command_poll_at', '-'),
+        'last_event_type': latest_log.get('event_type', '-'),
+        'last_correlation_id': latest_log.get('correlation_id', '-'),
+    }
     return templates.TemplateResponse(
         request,
         'connected_api_detail.html',
@@ -1465,6 +1474,7 @@ def connected_api_detail_page(
             'current_user': current_user,
             'client_data': client_data,
             'logs': logs,
+            'client_overview': client_overview,
             'pretty_config_snapshot': json.dumps(client_data.get('config_snapshot', {}), indent=2, ensure_ascii=False),
             'pretty_status_snapshot': json.dumps(client_data.get('status_snapshot', {}), indent=2, ensure_ascii=False),
         },

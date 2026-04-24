@@ -228,3 +228,4 @@ Na retomada canonica atual, o backlog funcional esta consolidado ate `P20`. `P19
 - O topo do dashboard agora exibe um resumo compacto da execucao por fonte com fila, em execucao, concluidas e falhas.
 - O topo do `settings` passou a replicar o mesmo resumo compacto para o console administrativo principal.
 - A pagina de APIs Conectadas passou a replicar um resumo compacto da frota remota com total, online, offline e erro.
+- O detalhe de uma API conectada passou a exibir um resumo rapido com status, ultimo seen, ultimo sync, ultimo poll e ultima correlacao.

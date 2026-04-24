@@ -125,6 +125,7 @@ def test_sync_admin_web_lists_and_controls_connected_apis(monkeypatch) -> None:
 
         detail_page = client.get("/connected-apis/client-a")
         assert detail_page.status_code == 200
+        assert "Ultimo evento" in detail_page.text
         assert "Forcar sincronizacao" in detail_page.text
         assert "corr-123" in detail_page.text
         assert "Empresa Alpha" in detail_page.text
