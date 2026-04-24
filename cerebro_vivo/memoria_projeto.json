@@ -219,6 +219,12 @@
         "item": "Adicionar saude operacional derivada no detalhe da API conectada",
         "motivo": "Explicitar se a instancia esta online, em atencao ou em erro usando lags de sync e poll",
         "status": "concluido"
+      },
+      {
+        "ordem": 17,
+        "item": "Blindar o deploy com contrato dedicado de hardening SSH",
+        "motivo": "Garantir usuario dedicado, comando forcado e flags restritivas no acesso de deploy",
+        "status": "concluido"
       }
     ],
     "riscos_conhecidos": [
@@ -233,5 +239,5 @@
     "pasta_historica": ".cerebro-vivo",
     "regra": "A pasta top-level resume e aponta; a pasta oculta preserva a base operacional detalhada."
   },
-  "atualizado_em": "2026-04-24"
+  "atualizado_em": "2026-04-24T20:02:16.0581396-03:00"
 }

@@ -157,3 +157,5 @@ bash infra/scripts/deploy-prod.sh
 - O detalhe de uma API conectada ganhou um card de saude operacional com status, janela de referencia, lag de sync e lag de poll.
 - A heuristica usa timestamps do cliente e tolerancia derivada do intervalo de sincronizacao configurado.
 - A validacao final desta rodada passou com `88 passed, 1 skipped`.
+- O endurecimento SSH do deploy passou a ter contrato dedicado em `tests/test_vps_security_contract.py`.
+- O `setup-deploy-user.sh` agora fica coberto por teste para impedir regressao em chaves restritas e comando forcado.

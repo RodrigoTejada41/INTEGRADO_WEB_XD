@@ -141,6 +141,8 @@ Se o problema for banco:
 - nao salvar chave privada no repositorio;
 - nao salvar senha de VPS no repositorio;
 - usar segredo externo ou GitHub Secrets;
+- usar usuario dedicado `deploy` com chave SSH restrita por comando;
+- limitar o acesso da chave com `no-agent-forwarding`, `no-port-forwarding`, `no-pty`, `no-user-rc` e `no-X11-forwarding`;
 - manter `backend` sem exposicao direta na porta publica;
 - manter `db` sem porta publica.
 

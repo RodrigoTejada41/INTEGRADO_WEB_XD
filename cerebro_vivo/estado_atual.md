@@ -232,3 +232,5 @@ Na retomada canonica atual, o backlog funcional esta consolidado ate `P20`. `P19
 - O detalhe de uma API conectada ganhou um card de saude operacional com status, janela de referencia, lag de sync e lag de poll.
 - A heuristica de saude trata timestamps sem timezone como UTC e valida a janela com base no intervalo configurado.
 - A suite completa desta sessao fecha em `88 passed, 1 skipped`.
+- A blindagem SSH do deploy ganhou contrato dedicado para o script `setup-deploy-user.sh`.
+- O runbook de producao agora explicita usuario dedicado `deploy` e restricao de chave SSH.

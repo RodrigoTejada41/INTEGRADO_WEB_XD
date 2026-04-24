@@ -329,3 +329,8 @@ Sempre que houver decisao arquitetural, de seguranca, de dados/logs ou de produt
 - Decisao: acrescentar um card de saude operacional no detalhe com nivel, motivo, janela de referencia e lags de sync e poll calculados a partir do estado recente do cliente.
 - Motivo: o resumo rapido do detalhe ainda exigia interpretacao manual para saber se a instancia estava realmente dentro da janela esperada.
 - Impacto: o operador passa a enxergar de imediato se a instancia esta online, em atencao ou em erro, reduzindo risco de leitura ambigua da tela.
+
+### D058 - O deploy de producao ganha contrato dedicado de hardening SSH
+- Decisao: cobrir o script `setup-deploy-user.sh` com teste explicito para manter restricao de chave, comando forcado e flags de seguranca SSH.
+- Motivo: a trilha de seguranca operacional ainda precisava de uma garantia automatizada para nao regredir quando o deploy fosse ajustado.
+- Impacto: o deploy passa a ter uma barreira de regressao contra chaves soltas e perda das restricoes de acesso no usuario dedicado `deploy`.
