@@ -8,10 +8,11 @@ Workspace local: alterado com memoria executiva atualizada e docs de continuidad
 - Fase de backlog concluida ate `P20`.
 - Ultima entrega funcional consolidada: observabilidade avancada por tenant + correlacao ponta a ponta de logs (`correlation_id`) + endpoint admin de observabilidade.
 - Etapa extra de producao concluida: stack VPS com Docker, Nginx, scripts e GitHub Actions.
-- Ultima validacao tecnica executada: `py -3 -m pytest -q` com `85 passed`.
+- Ultima validacao tecnica executada: `py -3 -m pytest -q` com `86 passed, 1 skipped`.
 - Novo contrato adicionando simulacao local/VPS em um unico teste end-to-end, cobrindo provisionamento via painel, registro do cliente local, rotacao de chave e validacao do bloqueio da credencial antiga.
 - O mesmo contrato agora cobre tambem o ciclo bidirecional de `force_sync`, com enfileiramento pelo painel, pull de comandos e resultado aplicado pelo cliente local.
 - Smoke de release documentado e executavel via `RELEASE_SMOKE_BASE_URL` para validar a VPS publicada apos cada deploy.
+- O dashboard operacional do `sync-admin` agora mostra o ciclo de sincronizacao por fonte, com `last_scheduled_at`, `next_run_at` e fallback rapido quando a API de controle esta offline.
 - Deploy VPS concluido em `https://movisystecnologia.com.br`.
 - `GET /admin/api/health/ready` responde `200`.
 - `GET /MoviRelatorios/` responde `302`.

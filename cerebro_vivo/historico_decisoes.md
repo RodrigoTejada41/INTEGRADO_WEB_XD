@@ -158,6 +158,12 @@ Sempre que houver decisao arquitetural, de seguranca, de dados/logs ou de produt
 ### D024 - A reinstalacao do MoviSync deve preservar vinculacao, identidade e checkpoints
 - Decisao: o instalador do cliente agora faz backup e restaura `.env`, `agent_api_key.txt`, `local_client_identity.json` e `checkpoints.json` quando `ForceReinstall` e executado.
 - Motivo: a reinstalacao nao pode apagar estado funcional do cliente nem forcar nova configuracao quando o objetivo e apenas atualizar o pacote.
+- Impacto: o cliente fica recuperavel apos update/reinstall sem perder a identidade de pareamento nem o checkpoint de operacao.
+
+### D025 - O dashboard operacional do sync-admin passa a expor o ciclo real de sincronizacao por fonte
+- Decisao: o dashboard principal do `sync-admin` agora mostra `last_scheduled_at`, `next_run_at`, ultimo sucesso e estado de cada `source config`, com fallback rapido quando a API de controle estiver offline.
+- Motivo: a operacao precisava sair do modelo de apenas verificar saude/telemetria e passar a enxergar o ciclo de sincronizacao de forma direta e acionavel.
+- Impacto: o produto ganha cockpit operacional para acompanhar o que esta pronto para sincronizar agora, sem alterar o motor de sync nem o isolamento por tenant.
 - Impacto: a atualizacao do cliente fica menos disruptiva, o launcher pode iniciar oculto sem janela preta e a re-vinculacao passa a depender apenas de um novo pairing code valido quando o anterior expirar.
 
 ### D025 - O checkpoint de reboot do cliente MoviSync fica registrado como continuidade principal

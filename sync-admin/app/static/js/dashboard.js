@@ -51,6 +51,10 @@
       setText('kpi-queue-dlq', data.control.queue_dead_letter_total);
       setText('kpi-destination-delivery', data.control.destination_delivery_total);
       setText('kpi-destination-failures', data.control.destination_delivery_failed_total);
+      setText('kpi-source-active', data.source_cycle.active_count);
+      setText('kpi-source-due', data.source_cycle.due_count);
+      setText('kpi-source-overdue', data.source_cycle.overdue_count);
+      setText('kpi-source-next-cycle', data.source_cycle.next_run_at);
     } catch (_err) {
     }
   }

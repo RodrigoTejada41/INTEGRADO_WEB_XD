@@ -22,13 +22,14 @@ Na retomada canonica atual, o backlog funcional esta consolidado ate `P20`. `P19
 - Estado corrente desta sessao: P20 concluido + backlog pos-P20 em execucao
 - Ultima entrega funcional consolidada: registro de instancias locais, fila de comandos remotos pull, endpoints protegidos de configuracao/status no `sync-admin`, controle central no `receiver-api` e portal cliente com escopo formal por empresa ou conjunto de filiais
 - Ultima validacao registrada nesta camada executiva: `py -3 -m pytest tests/test_sync_admin_connected_apis.py tests/test_sync_admin_client_portal.py tests/test_sync_admin_reports.py tests/test_sync_admin_client_scope.py tests/test_sync_admin_settings_client_scope.py -q` com 10 testes aprovados
-- Ultima validacao global registrada nesta camada executiva: `py -3 -m pytest -q` com `85 passed`
+- Ultima validacao global registrada nesta camada executiva: `py -3 -m pytest -q` com `86 passed, 1 skipped`
 - Etapa adicional ja concluida no codigo: estrutura completa para deploy em VPS Linux com Docker, Nginx e GitHub Actions
 - Estado de producao atual validado: `GET /admin/api/health/ready` em `200`, `GET /MoviRelatorios/` em `302`, backend/frontend/db/nginx saudaveis.
 - Estado de producao atualmente estavel no commit `5a06f1d`.
 - O projeto ganhou um contrato de simulacao local/VPS que exercita o painel local e a API central em um unico teste end-to-end.
 - O mesmo contrato agora cobre o ciclo bidirecional `force_sync`, incluindo pull de comandos e resultado do cliente local.
 - O deploy agora tem smoke de release documentado e executavel via `RELEASE_SMOKE_BASE_URL`.
+- O `sync-admin` ganhou um cockpit operacional de ciclo de sincronizacao por fonte, com `last_scheduled_at`, `next_run_at` e fallback offline rapido para a API de controle.
 
 ## Entregas recentes registradas
 
@@ -60,7 +61,8 @@ Na retomada canonica atual, o backlog funcional esta consolidado ate `P20`. `P19
 26. Auditoria local com severidade visual: a tela `settings` agora classifica eventos de acesso como `critico`, `atencao` ou `informativo` e destaca sinais como troca de empresa, troca de perfil, desativacao de usuario, mudanca de escopo e reducao de filiais autorizadas
 27. Teste end-to-end de simulacao local/VPS adicionado, provando o fluxo entre painel local, cadastro central, registro do cliente e rotacao de chave sem depender de rede externa
 28. O contrato local/VPS agora tambem cobre o ciclo de comando remoto `force_sync`, validando enfileiramento, pull e resultado do cliente local
-29. Smoke de release adicionado para validar a VPS publicada apos o deploy, usando `RELEASE_SMOKE_BASE_URL` como gate antes de nova feature
+ 29. Smoke de release adicionado para validar a VPS publicada apos o deploy, usando `RELEASE_SMOKE_BASE_URL` como gate antes de nova feature
+ 30. Dashboard operacional do `sync-admin` passou a expor o ciclo de sincronizacao por fonte, com proximo agendamento, ultimo sucesso e fallback offline rapido para a API de controle
 
 ## Proximos passos mapeados
 

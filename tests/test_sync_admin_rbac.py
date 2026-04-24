@@ -6,9 +6,12 @@ from pathlib import Path
 
 
 def test_sync_admin_role_based_access() -> None:
-    db_path = Path("output/test_sync_admin_rbac.db")
+    db_path = Path(f"output/test_sync_admin_rbac_{os.getpid()}.db")
     if db_path.exists():
-        db_path.unlink()
+        try:
+            db_path.unlink()
+        except PermissionError:
+            pass
 
     os.environ["DATABASE_URL"] = f"sqlite+pysqlite:///{db_path.as_posix()}"
     os.environ["SECRET_KEY"] = "test-secret-key"
@@ -17,7 +20,7 @@ def test_sync_admin_role_based_access() -> None:
     os.environ["INTEGRATION_API_KEY"] = "sync-key-change-me"
     os.environ["REMOTE_COMMAND_PULL_ENABLED"] = "false"
     os.environ["LOCAL_CONTROL_TOKEN"] = "local-token-test"
-    os.environ["LOCAL_CONTROL_TOKEN_FILE"] = "output/test_sync_admin_rbac_token.txt"
+    os.environ["LOCAL_CONTROL_TOKEN_FILE"] = f"output/test_sync_admin_rbac_{os.getpid()}.token.txt"
 
     sync_admin_root = Path("sync-admin").resolve()
     if str(sync_admin_root) not in sys.path:

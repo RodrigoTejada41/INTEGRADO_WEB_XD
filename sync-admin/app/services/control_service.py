@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from datetime import UTC, datetime
 import json
 from pathlib import Path
 
@@ -58,6 +59,18 @@ class TenantObservabilitySummary:
     tenant_scheduler_last_success_lag_seconds: float
     tenant_queue_last_event_lag_seconds: float
     tenant_destination_last_event_lag_seconds: float
+
+
+@dataclass
+class SourceCycleSummary:
+    empresa_id: str
+    total_count: int
+    active_count: int
+    due_count: int
+    overdue_count: int
+    next_run_at: str
+    last_success_at: str
+    last_success_lag_seconds: float
 
 
 @dataclass
@@ -272,12 +285,52 @@ class ControlService:
                     'sync_interval_minutes': item.get('sync_interval_minutes', 0),
                     'ativo': item.get('ativo', False),
                     'last_run_at': item.get('last_run_at', '-'),
+                    'last_scheduled_at': item.get('last_scheduled_at', '-'),
+                    'next_run_at': item.get('next_run_at', '-'),
                     'last_status': item.get('last_status', '-'),
                     'last_error': item.get('last_error', '-'),
                     'settings': item.get('settings', {}),
                 }
             )
         return rows
+
+    def fetch_source_cycle_summary(self, source_configs: list[dict] | None = None) -> SourceCycleSummary:
+        configs = source_configs if source_configs is not None else self.fetch_source_configs()
+        now = datetime.now(UTC)
+        active_configs = [item for item in configs if item.get('ativo', False)]
+        due_count = 0
+        overdue_count = 0
+        next_run_candidates: list[datetime] = []
+        success_candidates: list[datetime] = []
+
+        for item in active_configs:
+            next_run_at = self._parse_timestamp(item.get('next_run_at'))
+            last_run_at = self._parse_timestamp(item.get('last_run_at'))
+            if next_run_at is not None:
+                next_run_candidates.append(next_run_at)
+                if next_run_at <= now:
+                    due_count += 1
+                if next_run_at < now:
+                    overdue_count += 1
+            if item.get('last_status') == 'ok' and last_run_at is not None:
+                success_candidates.append(last_run_at)
+
+        next_run_at_value = min(next_run_candidates) if next_run_candidates else None
+        last_success_at_value = max(success_candidates) if success_candidates else None
+        last_success_lag_seconds = 0.0
+        if last_success_at_value is not None:
+            last_success_lag_seconds = max(0.0, (now - last_success_at_value).total_seconds())
+
+        return SourceCycleSummary(
+            empresa_id=settings.control_empresa_id,
+            total_count=len(configs),
+            active_count=len(active_configs),
+            due_count=due_count,
+            overdue_count=overdue_count,
+            next_run_at=next_run_at_value.isoformat() if next_run_at_value else '-',
+            last_success_at=last_success_at_value.isoformat() if last_success_at_value else '-',
+            last_success_lag_seconds=last_success_lag_seconds,
+        )
 
     def fetch_source_configs(self) -> list[dict]:
         try:
@@ -301,6 +354,8 @@ class ControlService:
                     'sync_interval_minutes': item.get('sync_interval_minutes', 0),
                     'ativo': item.get('ativo', False),
                     'last_run_at': item.get('last_run_at', '-'),
+                    'last_scheduled_at': item.get('last_scheduled_at', '-'),
+                    'next_run_at': item.get('next_run_at', '-'),
                     'last_status': item.get('last_status', '-'),
                     'last_error': item.get('last_error', '-'),
                     'settings': item.get('settings', {}),
@@ -362,6 +417,24 @@ class ControlService:
             )
             response.raise_for_status()
             return response.json()
+
+    @staticmethod
+    def _parse_timestamp(value: object) -> datetime | None:
+        if not value:
+            return None
+        if isinstance(value, datetime):
+            if value.tzinfo is None:
+                return value.replace(tzinfo=UTC)
+            return value
+        if isinstance(value, str):
+            try:
+                parsed = datetime.fromisoformat(value.replace('Z', '+00:00'))
+            except ValueError:
+                return None
+            if parsed.tzinfo is None:
+                return parsed.replace(tzinfo=UTC)
+            return parsed
+        return None
 
     def fetch_remote_client_logs(self, client_id: str, *, limit: int = 20) -> list[dict]:
         with httpx.Client(timeout=10.0) as client:

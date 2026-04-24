@@ -22,7 +22,7 @@ from app.repositories.sync_repository import SyncRepository
 from app.repositories.user_repository import UserRepository
 from app.services.auth_service import AuthService
 from app.services.client_scope_service import ClientScopeService
-from app.services.control_service import ControlService
+from app.services.control_service import ControlService, SourceCycleSummary, SyncJobsSummary, TenantObservabilitySummary
 from app.services.dashboard_service import DashboardService
 from app.services.export_service import (
     audit_to_csv,
@@ -483,9 +483,51 @@ def dashboard(
     )
     control = ControlService()
     control_summary = control.fetch_summary()
-    job_summary = control.fetch_sync_jobs_summary()
-    tenant_observability = control.fetch_tenant_observability()
-    destination_configs = control.fetch_destination_configs()
+    control_online = control_summary.api_health == 'online'
+    if control_online:
+        job_summary = control.fetch_sync_jobs_summary()
+        tenant_observability = control.fetch_tenant_observability()
+        source_configs = control.fetch_source_configs()
+        source_cycle_summary = control.fetch_source_cycle_summary(source_configs)
+        destination_configs = control.fetch_destination_configs()
+    else:
+        empresa_id = settings.control_empresa_id
+        job_summary = SyncJobsSummary(
+            empresa_id=empresa_id,
+            pending_count=0.0,
+            processing_count=0.0,
+            done_count=0.0,
+            dead_letter_count=0.0,
+            failed_count=0.0,
+        )
+        tenant_observability = TenantObservabilitySummary(
+            empresa_id=empresa_id,
+            sync_batches_total=0.0,
+            sync_failures_total=0.0,
+            tenant_scheduler_runs_total=0.0,
+            tenant_queue_processed_total=0.0,
+            tenant_queue_failed_total=0.0,
+            tenant_queue_retried_total=0.0,
+            tenant_queue_dead_letter_total=0.0,
+            tenant_destination_delivery_total=0.0,
+            tenant_destination_delivery_failed_total=0.0,
+            sync_last_success_lag_seconds=0.0,
+            tenant_scheduler_last_success_lag_seconds=0.0,
+            tenant_queue_last_event_lag_seconds=0.0,
+            tenant_destination_last_event_lag_seconds=0.0,
+        )
+        source_configs = []
+        source_cycle_summary = SourceCycleSummary(
+            empresa_id=empresa_id,
+            total_count=0,
+            active_count=0,
+            due_count=0,
+            overdue_count=0,
+            next_run_at='-',
+            last_success_at='-',
+            last_success_lag_seconds=0.0,
+        )
+        destination_configs = []
     failed_batches, _ = SyncRepository(db).list_batches(page=1, page_size=10, status='failed')
     recent_errors = control.recent_agent_errors(limit=10)
     dead_letter_jobs = control.fetch_dead_letter_jobs(limit=10)
@@ -498,7 +540,16 @@ def dashboard(
                 'detail': batch.error_message or f'batch_id={batch.id}',
             }
         )
-    recent_errors.append(control.api_error_snapshot())
+    recent_errors.append(
+        control.api_error_snapshot()
+        if control_online
+        else {
+            'timestamp': '-',
+            'source': 'api',
+            'event': 'control_api_offline',
+            'detail': f'api_health={control_summary.api_health}',
+        }
+    )
     recent_errors = sorted(recent_errors, key=lambda x: x['timestamp'], reverse=True)[:15]
     chart_labels = [p['label'] for p in data['chart_daily']]
     chart_values = [p['value'] for p in data['chart_daily']]
@@ -512,6 +563,8 @@ def dashboard(
             'control_summary': control_summary,
             'job_summary': job_summary,
             'tenant_observability': tenant_observability,
+            'source_configs': source_configs,
+            'source_cycle_summary': source_cycle_summary,
             'destination_configs': destination_configs,
             'recent_errors': recent_errors,
             'dead_letter_jobs': dead_letter_jobs,
@@ -540,9 +593,51 @@ def dashboard_data(
     )
     control_service = ControlService()
     control_summary = control_service.fetch_summary()
-    job_summary = control_service.fetch_sync_jobs_summary()
-    tenant_observability = control_service.fetch_tenant_observability()
-    destination_configs = control_service.fetch_destination_configs()
+    control_online = control_summary.api_health == 'online'
+    if control_online:
+        job_summary = control_service.fetch_sync_jobs_summary()
+        tenant_observability = control_service.fetch_tenant_observability()
+        source_configs = control_service.fetch_source_configs()
+        source_cycle_summary = control_service.fetch_source_cycle_summary(source_configs)
+        destination_configs = control_service.fetch_destination_configs()
+    else:
+        empresa_id = settings.control_empresa_id
+        job_summary = SyncJobsSummary(
+            empresa_id=empresa_id,
+            pending_count=0.0,
+            processing_count=0.0,
+            done_count=0.0,
+            dead_letter_count=0.0,
+            failed_count=0.0,
+        )
+        tenant_observability = TenantObservabilitySummary(
+            empresa_id=empresa_id,
+            sync_batches_total=0.0,
+            sync_failures_total=0.0,
+            tenant_scheduler_runs_total=0.0,
+            tenant_queue_processed_total=0.0,
+            tenant_queue_failed_total=0.0,
+            tenant_queue_retried_total=0.0,
+            tenant_queue_dead_letter_total=0.0,
+            tenant_destination_delivery_total=0.0,
+            tenant_destination_delivery_failed_total=0.0,
+            sync_last_success_lag_seconds=0.0,
+            tenant_scheduler_last_success_lag_seconds=0.0,
+            tenant_queue_last_event_lag_seconds=0.0,
+            tenant_destination_last_event_lag_seconds=0.0,
+        )
+        source_configs = []
+        source_cycle_summary = SourceCycleSummary(
+            empresa_id=empresa_id,
+            total_count=0,
+            active_count=0,
+            due_count=0,
+            overdue_count=0,
+            next_run_at='-',
+            last_success_at='-',
+            last_success_lag_seconds=0.0,
+        )
+        destination_configs = []
     return JSONResponse(
         {
             'summary': {
@@ -582,7 +677,18 @@ def dashboard_data(
                 'tenant_queue_last_event_lag_seconds': tenant_observability.tenant_queue_last_event_lag_seconds,
                 'tenant_destination_last_event_lag_seconds': tenant_observability.tenant_destination_last_event_lag_seconds,
             },
+            'source_cycle': {
+                'empresa_id': source_cycle_summary.empresa_id,
+                'total_count': source_cycle_summary.total_count,
+                'active_count': source_cycle_summary.active_count,
+                'due_count': source_cycle_summary.due_count,
+                'overdue_count': source_cycle_summary.overdue_count,
+                'next_run_at': source_cycle_summary.next_run_at,
+                'last_success_at': source_cycle_summary.last_success_at,
+                'last_success_lag_seconds': source_cycle_summary.last_success_lag_seconds,
+            },
             'destinations': destination_configs,
+            'source_configs': source_configs,
         }
     )
 

@@ -102,6 +102,86 @@
 </div>
 
 <div class="row g-3 mb-4">
+  <div class="col-md-3">
+    <div class="card p-3">
+      <small>Fontes ativas</small>
+      <h4 id="kpi-source-active">{{ source_cycle_summary.active_count }}</h4>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="card p-3">
+      <small>Fontes prontas</small>
+      <h4 id="kpi-source-due">{{ source_cycle_summary.due_count }}</h4>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="card p-3">
+      <small>Fontes atrasadas</small>
+      <h4 id="kpi-source-overdue">{{ source_cycle_summary.overdue_count }}</h4>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="card p-3">
+      <small>Proximo ciclo</small>
+      <h6 id="kpi-source-next-cycle">{{ source_cycle_summary.next_run_at }}</h6>
+    </div>
+  </div>
+</div>
+
+<div class="card mb-4 p-3">
+  <div class="d-flex justify-content-between align-items-center mb-2">
+    <h6 class="mb-0">Ciclo de sincronizacao por fonte</h6>
+    <small class="text-muted">
+      Ultimo sucesso: {{ source_cycle_summary.last_success_at }}
+      · Lag: {{ source_cycle_summary.last_success_lag_seconds }} s
+    </small>
+  </div>
+  <div class="table-responsive">
+    <table class="table table-sm table-striped align-middle">
+      <thead>
+        <tr>
+          <th>Fonte</th>
+          <th>Tipo</th>
+          <th>Intervalo</th>
+          <th>Status</th>
+          <th>Ultimo agendamento</th>
+          <th>Proxima execucao</th>
+          <th>Ultimo sucesso</th>
+          <th>Erro</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for source in source_configs %}
+        <tr>
+          <td>{{ source.nome }}</td>
+          <td><code>{{ source.connector_type }}</code></td>
+          <td>{{ source.sync_interval_minutes }} min</td>
+          <td>
+            {% if source.last_status == 'ok' %}
+            <span class="badge text-bg-success">{{ source.last_status }}</span>
+            {% elif source.last_status == 'failed' %}
+            <span class="badge text-bg-danger">{{ source.last_status }}</span>
+            {% elif source.last_status == 'retrying' %}
+            <span class="badge text-bg-warning">{{ source.last_status }}</span>
+            {% else %}
+            <span class="badge text-bg-secondary">{{ source.last_status }}</span>
+            {% endif %}
+          </td>
+          <td>{{ source.last_scheduled_at or '-' }}</td>
+          <td>{{ source.next_run_at or '-' }}</td>
+          <td>{{ source.last_run_at or '-' }}</td>
+          <td><code>{{ source.last_error or '-' }}</code></td>
+        </tr>
+        {% endfor %}
+        {% if source_configs|length == 0 %}
+        <tr><td colspan="8" class="text-muted">Sem fontes de sincronizacao cadastradas.</td></tr>
+        {% endif %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="row g-3 mb-4">
   <div class="col-md-6">
     <div class="card p-3">
       <small>Registros enviados para destinos</small>
