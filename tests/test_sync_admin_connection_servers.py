@@ -60,6 +60,42 @@ def test_sync_admin_settings_manages_secure_connection_servers(monkeypatch) -> N
             }
         ]
 
+    def fake_fetch_sync_jobs(self, limit: int = 20):
+        return [
+            {
+                "id": "job-1",
+                "empresa_id": "12345678000199",
+                "source_config_id": "src-1",
+                "status": "queued",
+                "attempts": 0,
+                "scheduled_at": "2026-04-24T10:15:00+00:00",
+                "next_run_at": "2026-04-24T10:32:00+00:00",
+                "started_at": None,
+                "finished_at": None,
+                "dead_letter_at": None,
+                "dead_letter_reason": None,
+                "last_error": None,
+                "created_at": "2026-04-24T10:15:00+00:00",
+                "updated_at": "2026-04-24T10:15:00+00:00",
+            },
+            {
+                "id": "job-2",
+                "empresa_id": "12345678000199",
+                "source_config_id": "src-1",
+                "status": "done",
+                "attempts": 1,
+                "scheduled_at": "2026-04-24T10:10:00+00:00",
+                "next_run_at": "2026-04-24T10:26:00+00:00",
+                "started_at": "2026-04-24T10:11:00+00:00",
+                "finished_at": "2026-04-24T10:12:00+00:00",
+                "dead_letter_at": None,
+                "dead_letter_reason": None,
+                "last_error": None,
+                "created_at": "2026-04-24T10:10:00+00:00",
+                "updated_at": "2026-04-24T10:12:00+00:00",
+            },
+        ]
+
     def fake_fetch_destination_configs(self):
         return []
 
@@ -104,6 +140,7 @@ def test_sync_admin_settings_manages_secure_connection_servers(monkeypatch) -> N
 
     monkeypatch.setattr(ControlService, "get_server_settings", fake_get_server_settings)
     monkeypatch.setattr(ControlService, "fetch_source_configs", fake_fetch_source_configs)
+    monkeypatch.setattr(ControlService, "fetch_sync_jobs", fake_fetch_sync_jobs)
     monkeypatch.setattr(ControlService, "fetch_destination_configs", fake_fetch_destination_configs)
     monkeypatch.setattr(ControlService, "create_secure_connection_config", fake_create_secure_connection_config)
     monkeypatch.setattr(ControlService, "rotate_secure_connection_key", fake_rotate_secure_connection_key)
@@ -119,6 +156,10 @@ def test_sync_admin_settings_manages_secure_connection_servers(monkeypatch) -> N
 
         page = client.get("/settings")
         assert page.status_code == 200
+        assert "kpi-source-exec-queued" in page.text
+        assert "kpi-source-exec-running" in page.text
+        assert "kpi-source-exec-done" in page.text
+        assert "kpi-source-exec-failed" in page.text
         assert "Servidores de conexao seguros" in page.text
         assert "server-ref-1" in page.text
         assert "Rotacionar chave" in page.text

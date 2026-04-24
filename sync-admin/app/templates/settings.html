@@ -21,6 +21,13 @@
 </div>
 {% endif %}
 
+<div class="row g-3 mb-4">
+  <div class="col-md-3"><div class="card p-3"><small>Na fila</small><h4 id="kpi-source-exec-queued">{{ source_execution_overview.queued_count }}</h4></div></div>
+  <div class="col-md-3"><div class="card p-3"><small>Em execucao</small><h4 id="kpi-source-exec-running">{{ source_execution_overview.running_count }}</h4></div></div>
+  <div class="col-md-3"><div class="card p-3"><small>Concluidas</small><h4 id="kpi-source-exec-done">{{ source_execution_overview.done_count }}</h4></div></div>
+  <div class="col-md-3"><div class="card p-3"><small>Falhas</small><h4 id="kpi-source-exec-failed">{{ source_execution_overview.failed_count }}</h4></div></div>
+</div>
+
 <div class="row g-3">
   <div class="col-md-6">
     <div class="card p-3 h-100">

@@ -309,3 +309,8 @@ Sempre que houver decisao arquitetural, de seguranca, de dados/logs ou de produt
 - Decisao: expor na primeira dobra do dashboard os contadores agregados de fila, em execucao, concluidas e falhas calculados a partir do snapshot por fonte.
 - Motivo: o operador precisava de leitura imediata antes da tabela detalhada, sem perder a fidelidade do estado ao vivo.
 - Impacto: o painel reduz o tempo para diagnostico rapido e melhora a visibilidade operacional sem alterar o contrato da API central.
+
+### D054 - O console administrativo principal tambem recebe o resumo compacto
+- Decisao: replicar no `settings` o mesmo resumo compacto da execucao por fonte, usando a mesma base calculada para manter consistencia visual e semantica.
+- Motivo: o console administrativo e a entrada mais natural para operacao humana, entao ele precisa mostrar a saude resumida antes de qualquer acao mutante.
+- Impacto: o administrador ganha leitura rapida da frota no topo da tela principal sem depender de abrir o dashboard operacional detalhado.

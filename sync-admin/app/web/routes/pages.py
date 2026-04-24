@@ -1539,6 +1539,9 @@ def settings_page(
     control = ControlService()
     control_summary = control.fetch_summary()
     source_configs = control.fetch_source_configs()
+    sync_jobs = control.fetch_sync_jobs(limit=50)
+    source_status_snapshot = _source_status_snapshot(source_configs, sync_jobs)
+    source_execution_overview = _source_execution_overview(source_status_snapshot)
     destination_configs = control.fetch_destination_configs()
     audit_summary = control.fetch_audit_summary()
     audit_events = control.fetch_audit_events(limit=10)
@@ -1564,6 +1567,7 @@ def settings_page(
             'current_user': current_user,
             'summary': summary,
             'control_summary': control_summary,
+            'source_execution_overview': source_execution_overview,
             'flash': flash,
             'error': error,
             'generated_key': generated_key,
