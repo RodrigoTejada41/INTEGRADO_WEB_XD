@@ -3,7 +3,7 @@
 ## Resumo executivo
 
 O projeto e uma plataforma de sincronizacao de dados multi-tenant com memoria local-first em `.cerebro-vivo/` e uma camada executiva visivel em `cerebro_vivo/` para coordenacao multi-agentes.
-O resumo curto e canônico desta visao fica em [`cerebro_vivo/resumo_executivo.md`](resumo_executivo.md).
+O resumo curto e canonico desta visao fica em [`cerebro_vivo/resumo_executivo.md`](resumo_executivo.md).
 
 Na governanca oficial atual, `backend/`, `agent_local/`, `sync-admin/` e `infra/` sao as fontes canonicas operacionais. `backend/src`, `frontend`, `database`, `devops` e `docker-compose.yml` na raiz permanecem como camadas de compatibilidade e onboarding.
 
@@ -22,6 +22,7 @@ Na retomada canonica atual, o backlog funcional esta consolidado ate `P20`. `P19
 - Estado corrente desta sessao: P20 concluido + backlog pos-P20 em execucao
 - Ultima entrega funcional consolidada: registro de instancias locais, fila de comandos remotos pull, endpoints protegidos de configuracao/status no `sync-admin`, controle central no `receiver-api` e portal cliente com escopo formal por empresa ou conjunto de filiais
 - Ultima validacao registrada nesta camada executiva: `py -3 -m pytest tests/test_sync_admin_connected_apis.py tests/test_sync_admin_client_portal.py tests/test_sync_admin_reports.py tests/test_sync_admin_client_scope.py tests/test_sync_admin_settings_client_scope.py -q` com 10 testes aprovados
+- Ultima validacao global registrada nesta camada executiva: `py -3 -m pytest -q` com `80 passed`
 - Etapa adicional ja concluida no codigo: estrutura completa para deploy em VPS Linux com Docker, Nginx e GitHub Actions
 - Estado de producao atual validado: `GET /admin/api/health/ready` em `200`, `GET /MoviRelatorios/` em `302`, backend/frontend/db/nginx saudaveis.
 - Estado de producao atualmente estavel no commit `5a06f1d`.
@@ -175,6 +176,7 @@ Na retomada canonica atual, o backlog funcional esta consolidado ate `P20`. `P19
 - Guardrails multi-tenant reforcados com contrato explicito de validacao de `empresa_id` e formato de API key.
 - Controle remoto do `sync-admin` reforcado com cobertura para allowlist de IP no token local.
 - O compose de producao passou a manter exposicao publica exclusiva no `nginx`.
+- O `remote_agent` do `sync-admin` passou a respeitar `remote_command_pull_enabled` e a expor snapshot de estado de comandos no status.
 
 ## Atualizacao do deploy VPS
 
@@ -200,3 +202,4 @@ Na retomada canonica atual, o backlog funcional esta consolidado ate `P20`. `P19
 - Os guardrails multi-tenant ganharam cobertura dedicada para `validate_empresa_id` e `validate_api_key_format`.
 - O fluxo bidirecional ganhou cobertura de allowlist por IP no controle remoto local do `sync-admin`.
 - A composicao de producao ficou com contrato explicito de porta publica unica no `nginx`.
+- O `remote_agent` recebeu cobertura para ciclo desabilitado por configuracao e snapshot de estado de comandos.

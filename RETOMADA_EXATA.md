@@ -8,7 +8,7 @@ Workspace local: alterado com memoria executiva atualizada e docs de continuidad
 - Fase de backlog concluida ate `P20`.
 - Ultima entrega funcional consolidada: observabilidade avancada por tenant + correlacao ponta a ponta de logs (`correlation_id`) + endpoint admin de observabilidade.
 - Etapa extra de producao concluida: stack VPS com Docker, Nginx, scripts e GitHub Actions.
-- Ultima validacao tecnica executada: `py -3 -m pytest -q` com `64 passed`.
+- Ultima validacao tecnica executada: `py -3 -m pytest -q` com `80 passed`.
 - Deploy VPS concluido em `https://movisystecnologia.com.br`.
 - `GET /admin/api/health/ready` responde `200`.
 - `GET /MoviRelatorios/` responde `302`.
@@ -117,6 +117,7 @@ bash infra/scripts/deploy-prod.sh
 - Runbook operacional consolidado em `infra/RUNBOOK_PRODUCAO.md`, cobrindo deploy manual, update, backup, restore, rollback e health checks.
 - Controle remoto local do `sync-admin` passou a ter cobertura de allowlist por IP no token local.
 - O compose de producao passou a ter contrato explicito de exposicao publica apenas para o `nginx`.
+- O `remote_agent` do `sync-admin` passou a ter contrato de ciclo desabilitado por `remote_command_pull_enabled` e snapshot de status com estado de comandos.
 - Divergencia antiga entre `P18` e `P20` resolvida: a fonte de verdade atual passa a considerar `P20` concluido.
 - Risco atual principal deslocado para o drift local de migracoes e testes, especialmente a divergencia entre baseline local e contrato de rollback/migration.
 - Proxima retomada: abrir primeiro `RETOMADA_EXATA.md`, depois `cerebro_vivo/estado_atual.md`, depois `cerebro_vivo/historico_decisoes.md`.

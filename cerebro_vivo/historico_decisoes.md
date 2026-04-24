@@ -228,3 +228,8 @@ Sempre que houver decisao arquitetural, de seguranca, de dados/logs ou de produt
 - Decisao: criar contrato de teste para garantir que `backend`, `frontend` e `db` nao tenham porta publica e que apenas o `nginx` publique porta no host.
 - Motivo: a VPS deve manter a superficie exposta minimizada, com toda a entrada passando pela borda reversa.
 - Impacto: reduz risco de exposicao acidental de servicos internos e torna o contrato de producao verificavel por regressao automatizada.
+
+### D039 - O ciclo remoto do `remote_agent` respeita o pull habilitado e expõe snapshot de comandos
+- Decisao: registrar em teste que `run_remote_cycle()` deve retornar imediatamente quando `remote_command_pull_enabled` estiver desabilitado e que o snapshot de status precisa expor `last_command_poll_at`, `last_registration_at`, `pending_local_batches` e `total_local_records`.
+- Motivo: o controle remoto do `sync-admin` nao pode executar polling ou registro quando a configuracao local esta desligada, e o painel precisa de um snapshot minimo para diagnostico.
+- Impacto: o contrato do fluxo remoto fica protegido contra ativacao indevida e o status operacional ganha campos verificaveis para suporte e auditoria.
