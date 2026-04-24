@@ -213,6 +213,12 @@
         "item": "Adicionar resumo rapido no detalhe de uma API conectada",
         "motivo": "Mostrar status, ultimo seen, ultimo sync, ultimo poll e ultima correlacao no topo da tela de detalhe",
         "status": "concluido"
+      },
+      {
+        "ordem": 16,
+        "item": "Adicionar saude operacional derivada no detalhe da API conectada",
+        "motivo": "Explicitar se a instancia esta online, em atencao ou em erro usando lags de sync e poll",
+        "status": "concluido"
       }
     ],
     "riscos_conhecidos": [

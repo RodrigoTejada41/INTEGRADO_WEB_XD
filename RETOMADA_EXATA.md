@@ -151,3 +151,9 @@ bash infra/scripts/deploy-prod.sh
 3. Validar com `py -3 -m pytest -q`.
 4. Se for deploy, seguir `infra/RUNBOOK_PRODUCAO.md`.
 5. Se for VPS, seguir `infra/VPS_DEPLOY.md`.
+
+## Atualizacao desta sessao
+
+- O detalhe de uma API conectada ganhou um card de saude operacional com status, janela de referencia, lag de sync e lag de poll.
+- A heuristica usa timestamps do cliente e tolerancia derivada do intervalo de sincronizacao configurado.
+- A validacao final desta rodada passou com `88 passed, 1 skipped`.

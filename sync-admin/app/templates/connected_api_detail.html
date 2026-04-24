@@ -22,6 +22,23 @@
 <div class="alert alert-danger">{{ request.query_params.get('error') }}</div>
 {% endif %}
 
+<div class="card p-3 mb-4">
+  <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
+    <div>
+      <small class="text-muted">Saude operacional</small>
+      <div class="d-flex align-items-center gap-2">
+        <span class="badge text-bg-{{ 'success' if client_health.level == 'online' else 'warning' if client_health.level == 'warning' else 'danger' }}">{{ client_health.label }}</span>
+        <strong>{{ client_health.reason }}</strong>
+      </div>
+      <small class="text-muted">Janela de referencia: {{ client_health.grace_minutes }} min</small>
+    </div>
+    <div class="text-muted small">
+      <div>Lag sync: {{ client_health.sync_lag_minutes if client_health.sync_lag_minutes is not none else '-' }} min</div>
+      <div>Lag poll: {{ client_health.poll_lag_minutes if client_health.poll_lag_minutes is not none else '-' }} min</div>
+    </div>
+  </div>
+</div>
+
 <div class="row g-3 mb-4">
   <div class="col-md-3"><div class="card p-3"><small>Status</small><h5>{{ client_overview.status }}</h5></div></div>
   <div class="col-md-3"><div class="card p-3"><small>Ultimo seen</small><h6>{{ client_overview.last_seen_at or '-' }}</h6></div></div>

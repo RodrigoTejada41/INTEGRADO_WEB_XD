@@ -1,6 +1,6 @@
 ﻿from __future__ import annotations
 
-from datetime import date, timedelta
+from datetime import UTC, date, datetime, timedelta
 import json
 from math import ceil
 from pathlib import Path
@@ -205,6 +205,16 @@ def _safe_float(value: object) -> float:
         return 0.0
 
 
+def _parse_timestamp(value: object) -> datetime | None:
+    if value in (None, ''):
+        return None
+    try:
+        parsed = datetime.fromisoformat(str(value).replace('Z', '+00:00'))
+        return parsed if parsed.tzinfo is not None else parsed.replace(tzinfo=UTC)
+    except ValueError:
+        return None
+
+
 def _format_signed(value: float, decimals: int = 2) -> str:
     return f'{value:+.{decimals}f}'
 
@@ -347,6 +357,51 @@ def _remote_client_fleet_overview(fleet_summary) -> dict[str, int]:
         'online_clients': online_clients,
         'error_clients': error_clients,
         'offline_clients': offline_clients,
+    }
+
+
+def _remote_client_health_snapshot(client_data: dict) -> dict[str, object]:
+    now = datetime.now(UTC)
+    config_snapshot = client_data.get('config_snapshot') if isinstance(client_data.get('config_snapshot'), dict) else {}
+    try:
+        sync_interval_minutes = int(config_snapshot.get('sync_interval_minutes') or 0)
+    except (TypeError, ValueError):
+        sync_interval_minutes = 0
+    grace_minutes = max(30, sync_interval_minutes * 2 if sync_interval_minutes else 30)
+
+    last_sync_at = _parse_timestamp(client_data.get('last_sync_at'))
+    last_poll_at = _parse_timestamp(client_data.get('last_command_poll_at'))
+    sync_lag_minutes = None
+    poll_lag_minutes = None
+    if last_sync_at is not None:
+        sync_lag_minutes = max(0.0, (now - last_sync_at).total_seconds() / 60.0)
+    if last_poll_at is not None:
+        poll_lag_minutes = max(0.0, (now - last_poll_at).total_seconds() / 60.0)
+
+    status = str(client_data.get('status') or 'unknown').lower()
+    stale_sync = sync_lag_minutes is None or sync_lag_minutes > grace_minutes
+    stale_poll = poll_lag_minutes is None or poll_lag_minutes > grace_minutes
+
+    if status in {'error', 'failed', 'offline'} or (stale_sync and stale_poll):
+        level = 'error'
+        label = 'error'
+        reason = 'Sync e poll fora da janela esperada'
+    elif stale_sync or stale_poll:
+        level = 'warning'
+        label = 'warning'
+        reason = 'Sync ou poll fora da janela esperada'
+    else:
+        level = 'online'
+        label = 'online'
+        reason = 'Sync e poll recentes'
+
+    return {
+        'level': level,
+        'label': label,
+        'reason': reason,
+        'grace_minutes': grace_minutes,
+        'sync_lag_minutes': None if sync_lag_minutes is None else round(sync_lag_minutes, 1),
+        'poll_lag_minutes': None if poll_lag_minutes is None else round(poll_lag_minutes, 1),
     }
 
 
@@ -1458,6 +1513,7 @@ def connected_api_detail_page(
     client_data = control.fetch_remote_client(client_id)
     logs = control.fetch_remote_client_logs(client_id, limit=20)
     latest_log = logs[0] if logs else {}
+    client_health = _remote_client_health_snapshot(client_data)
     client_overview = {
         'status': client_data.get('status', '-'),
         'last_seen_at': client_data.get('last_seen_at', '-'),
@@ -1474,6 +1530,7 @@ def connected_api_detail_page(
             'current_user': current_user,
             'client_data': client_data,
             'logs': logs,
+            'client_health': client_health,
             'client_overview': client_overview,
             'pretty_config_snapshot': json.dumps(client_data.get('config_snapshot', {}), indent=2, ensure_ascii=False),
             'pretty_status_snapshot': json.dumps(client_data.get('status_snapshot', {}), indent=2, ensure_ascii=False),

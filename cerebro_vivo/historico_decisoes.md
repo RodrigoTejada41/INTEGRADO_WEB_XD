@@ -324,3 +324,8 @@ Sempre que houver decisao arquitetural, de seguranca, de dados/logs ou de produt
 - Decisao: exibir no topo da tela de detalhe o status, ultimo seen, ultimo sync, ultimo poll e a ultima correlacao observada nos logs.
 - Motivo: a leitura do detalhe precisava ser ainda mais objetiva antes das acoes remotas e dos logs.
 - Impacto: o operador consegue bater o olho e validar a situacao da instancia sem descer para os blocos de JSON e tabela.
+
+### D057 - O detalhe de uma API conectada ganha saude operacional derivada de lags
+- Decisao: acrescentar um card de saude operacional no detalhe com nivel, motivo, janela de referencia e lags de sync e poll calculados a partir do estado recente do cliente.
+- Motivo: o resumo rapido do detalhe ainda exigia interpretacao manual para saber se a instancia estava realmente dentro da janela esperada.
+- Impacto: o operador passa a enxergar de imediato se a instancia esta online, em atencao ou em erro, reduzindo risco de leitura ambigua da tela.
