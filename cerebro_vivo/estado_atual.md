@@ -225,3 +225,4 @@ Na retomada canonica atual, o backlog funcional esta consolidado ate `P20`. `P19
 - A revogacao web do `sync-admin` em `/settings/rotate-tenant-key` agora tem cobertura dedicada, com redirecionamento e aplicacao da chave no arquivo do agente.
 - O contrato de migrations agora valida `target_version` e a contagem de `sync_schema_migrations`, reduzindo o drift entre baseline local e rollback.
 - O cockpit de fontes passou a exibir status vivo por fonte, ultima acao, ultimo disparo e refresh automatico no dashboard.
+- O topo do dashboard agora exibe um resumo compacto da execucao por fonte com fila, em execucao, concluidas e falhas.

@@ -74,6 +74,10 @@
       setText('kpi-last-received', data.summary.last_received);
       setText('kpi-api-status', data.summary.api_status);
       setText('kpi-failed-batches', data.summary.failed_batches);
+      setText('kpi-source-exec-queued', data.source_execution_overview.queued_count);
+      setText('kpi-source-exec-running', data.source_execution_overview.running_count);
+      setText('kpi-source-exec-done', data.source_execution_overview.done_count);
+      setText('kpi-source-exec-failed', data.source_execution_overview.failed_count);
 
       setText('kpi-control-health', data.control.api_health);
       setText('kpi-control-batches', data.control.sync_batches_total);

@@ -304,3 +304,8 @@ Sempre que houver decisao arquitetural, de seguranca, de dados/logs ou de produt
 - Decisao: consolidar no `sync-admin` o estado ao vivo por fonte com `live_status`, ultima acao, ultimo disparo e refresh automatico do dashboard via `dashboard/data`.
 - Motivo: a operacao precisava sair do modo apenas disparo e entrar no modo acompanhar-disparo, reduzindo ambiguidade depois de acionar uma sincronizacao manual ou em lote.
 - Impacto: o painel operacional ganha visibilidade pratica do ciclo por fonte sem depender de reload manual ou consulta separada de jobs.
+
+### D053 - O topo do dashboard recebe um resumo compacto da execucao por fonte
+- Decisao: expor na primeira dobra do dashboard os contadores agregados de fila, em execucao, concluidas e falhas calculados a partir do snapshot por fonte.
+- Motivo: o operador precisava de leitura imediata antes da tabela detalhada, sem perder a fidelidade do estado ao vivo.
+- Impacto: o painel reduz o tempo para diagnostico rapido e melhora a visibilidade operacional sem alterar o contrato da API central.

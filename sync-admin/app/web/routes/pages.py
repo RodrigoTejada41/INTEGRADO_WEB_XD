@@ -321,6 +321,22 @@ def _source_status_snapshot(source_configs: list[dict], sync_jobs: list[dict]) -
     return latest_by_source
 
 
+def _source_execution_overview(source_status_snapshot: dict[str, dict[str, str]]) -> dict[str, int]:
+    overview = {
+        'queued_count': 0,
+        'running_count': 0,
+        'done_count': 0,
+        'failed_count': 0,
+    }
+    for snapshot in source_status_snapshot.values():
+        for key in overview:
+            try:
+                overview[key] += int(snapshot.get(key, 0) or 0)
+            except (TypeError, ValueError):
+                continue
+    return overview
+
+
 def _build_filter_chips(
     *,
     start_date: str | None,
@@ -598,6 +614,7 @@ def dashboard(
         source_configs = control.fetch_source_configs()
         sync_jobs = control.fetch_sync_jobs(limit=50)
         source_status_snapshot = _source_status_snapshot(source_configs, sync_jobs)
+        source_execution_overview = _source_execution_overview(source_status_snapshot)
         source_cycle_summary = control.fetch_source_cycle_summary(source_configs)
         destination_configs = control.fetch_destination_configs()
     else:
@@ -629,6 +646,12 @@ def dashboard(
         source_configs = []
         sync_jobs = []
         source_status_snapshot = {}
+        source_execution_overview = {
+            'queued_count': 0,
+            'running_count': 0,
+            'done_count': 0,
+            'failed_count': 0,
+        }
         source_cycle_summary = SourceCycleSummary(
             empresa_id=empresa_id,
             total_count=0,
@@ -678,6 +701,7 @@ def dashboard(
             'source_configs': source_configs,
             'sync_jobs': sync_jobs,
             'source_status_snapshot': source_status_snapshot,
+            'source_execution_overview': source_execution_overview,
             'source_cycle_summary': source_cycle_summary,
             'destination_configs': destination_configs,
             'recent_errors': recent_errors,
@@ -714,6 +738,7 @@ def dashboard_data(
         source_configs = control_service.fetch_source_configs()
         sync_jobs = control_service.fetch_sync_jobs(limit=50)
         source_status_snapshot = _source_status_snapshot(source_configs, sync_jobs)
+        source_execution_overview = _source_execution_overview(source_status_snapshot)
         source_cycle_summary = control_service.fetch_source_cycle_summary(source_configs)
         destination_configs = control_service.fetch_destination_configs()
     else:
@@ -745,6 +770,12 @@ def dashboard_data(
         source_configs = []
         sync_jobs = []
         source_status_snapshot = {}
+        source_execution_overview = {
+            'queued_count': 0,
+            'running_count': 0,
+            'done_count': 0,
+            'failed_count': 0,
+        }
         source_cycle_summary = SourceCycleSummary(
             empresa_id=empresa_id,
             total_count=0,
@@ -809,6 +840,7 @@ def dashboard_data(
             'source_configs': source_configs,
             'sync_jobs': sync_jobs,
             'source_status_snapshot': source_status_snapshot,
+            'source_execution_overview': source_execution_overview,
         }
     )
 

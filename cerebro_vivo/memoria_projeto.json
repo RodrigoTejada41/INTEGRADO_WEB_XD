@@ -195,6 +195,12 @@
         "item": "Consolidar status vivo do cockpit de fontes",
         "motivo": "Exibir ultimo estado por fonte, ultima acao e ultimo disparo com refresh automatico no dashboard operacional",
         "status": "concluido"
+      },
+      {
+        "ordem": 13,
+        "item": "Adicionar resumo compacto do estado de execucao por fonte no topo do dashboard",
+        "motivo": "Dar leitura imediata de fila, em execucao, concluidas e falhas antes da tabela detalhada",
+        "status": "concluido"
       }
     ],
     "riscos_conhecidos": [

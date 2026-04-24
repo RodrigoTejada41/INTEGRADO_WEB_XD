@@ -32,6 +32,13 @@
 </form>
 
 <div class="row g-3 mb-4">
+  <div class="col-md-3"><div class="card p-3"><small>Na fila</small><h4 id="kpi-source-exec-queued">{{ source_execution_overview.queued_count }}</h4></div></div>
+  <div class="col-md-3"><div class="card p-3"><small>Em execucao</small><h4 id="kpi-source-exec-running">{{ source_execution_overview.running_count }}</h4></div></div>
+  <div class="col-md-3"><div class="card p-3"><small>Concluidas</small><h4 id="kpi-source-exec-done">{{ source_execution_overview.done_count }}</h4></div></div>
+  <div class="col-md-3"><div class="card p-3"><small>Falhas</small><h4 id="kpi-source-exec-failed">{{ source_execution_overview.failed_count }}</h4></div></div>
+</div>
+
+<div class="row g-3 mb-4">
   <div class="col-md-3"><div class="card p-3"><small>Total de registros</small><h4 id="kpi-total-records">{{ summary.total_records }}</h4></div></div>
   <div class="col-md-3"><div class="card p-3"><small>Ultimo recebimento</small><h6 id="kpi-last-received">{{ summary.last_received or "-" }}</h6></div></div>
   <div class="col-md-3"><div class="card p-3"><small>Status API local</small><h5 id="kpi-api-status" class="text-success">{{ summary.api_status }}</h5></div></div>

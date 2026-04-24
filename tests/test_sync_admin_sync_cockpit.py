@@ -237,6 +237,10 @@ def test_sync_admin_dashboard_exposes_source_cycle_cockpit(monkeypatch) -> None:
         assert "Caixa principal" in dashboard_page.text
         assert "Filial backup" in dashboard_page.text
         assert "2026-04-24T10:20:00+00:00" in dashboard_page.text
+        assert "kpi-source-exec-queued" in dashboard_page.text
+        assert "kpi-source-exec-running" in dashboard_page.text
+        assert "kpi-source-exec-done" in dashboard_page.text
+        assert "kpi-source-exec-failed" in dashboard_page.text
         assert "Fontes ativas" in dashboard_page.text
         assert "Sincronizar todas as fontes" in dashboard_page.text
         assert "/dashboard/source-configs/sync-all" in dashboard_page.text
@@ -257,6 +261,10 @@ def test_sync_admin_dashboard_exposes_source_cycle_cockpit(monkeypatch) -> None:
         assert payload["source_status_snapshot"]["src-1"]["live_status"] == "running"
         assert payload["source_status_snapshot"]["src-1"]["running_count"] == "1"
         assert payload["source_status_snapshot"]["src-2"]["done_count"] == "1"
+        assert payload["source_execution_overview"]["queued_count"] == 0
+        assert payload["source_execution_overview"]["running_count"] == 1
+        assert payload["source_execution_overview"]["done_count"] == 1
+        assert payload["source_execution_overview"]["failed_count"] == 0
 
     assert cycle_calls
     assert len(cycle_calls[0]) == 2
@@ -642,6 +650,10 @@ def test_sync_admin_dashboard_triggers_all_source_sync_action(monkeypatch) -> No
 
         dashboard_page = client.get("/dashboard")
         assert dashboard_page.status_code == 200
+        assert "kpi-source-exec-queued" in dashboard_page.text
+        assert "kpi-source-exec-running" in dashboard_page.text
+        assert "kpi-source-exec-done" in dashboard_page.text
+        assert "kpi-source-exec-failed" in dashboard_page.text
         assert "Sincronizar todas as fontes" in dashboard_page.text
         assert "/dashboard/source-configs/sync-all" in dashboard_page.text
         assert "queued" in dashboard_page.text
@@ -666,5 +678,12 @@ def test_sync_admin_dashboard_triggers_all_source_sync_action(monkeypatch) -> No
         )
         assert sync_page.status_code == 200
         assert "Sincronizacao de 2 fontes ativas enfileiradas" in sync_page.text
+        dashboard_data = client.get("/dashboard/data")
+        assert dashboard_data.status_code == 200
+        payload = dashboard_data.json()
+        assert payload["source_execution_overview"]["queued_count"] == 1
+        assert payload["source_execution_overview"]["running_count"] == 0
+        assert payload["source_execution_overview"]["done_count"] == 1
+        assert payload["source_execution_overview"]["failed_count"] == 0
 
     assert sync_all_calls == ["12345678000199"]
