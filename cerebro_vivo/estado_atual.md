@@ -240,3 +240,4 @@ Na retomada canonica atual, o backlog funcional esta consolidado ate `P20`. `P19
 - O console `settings` passou a exibir a saude bidirecional do `remote_agent` com pull, registro e poll.
 - O fluxo bidirecional ganhou cobertura de teste no console principal do sync-admin.
 - O dashboard operacional ganhou uma fila de `Fontes para atencao`, com destaque automatico para fontes atrasadas, em fila, em execucao ou com falha recente.
+- O dashboard operacional ganhou acao direta por fonte, alertas resumidos no topo e um snapshot comercial leve para leitura executiva do periodo atual.

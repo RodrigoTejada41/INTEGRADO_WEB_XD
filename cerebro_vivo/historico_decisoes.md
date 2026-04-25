@@ -354,3 +354,8 @@ Sempre que houver decisao arquitetural, de seguranca, de dados/logs ou de produt
 - Decisao: exibir no dashboard uma lista priorizada de fontes com atraso, fila, execucao ou falha recente, reaproveitando `source_status_snapshot` e `source_cycle_summary`.
 - Motivo: o painel precisava transformar status agregado em acao direta, deixando claro o que exige intervencao imediata.
 - Impacto: o operador visualiza rapidamente quais fontes estao sob risco e recebe o mesmo estado no refresh automatico.
+
+### D063 - O dashboard operacional ganha acao direta e snapshot comercial leve
+- Decisao: adicionar botao de sincronizacao por fonte na fila de atencao, badges resumidos de alerta e um resumo comercial com periodo, valor total, ticket medio e produto lider.
+- Motivo: o painel precisava reduzir o caminho entre detectar risco e agir, ao mesmo tempo em que ganhava visao executiva do negocio sem sair da pagina operacional.
+- Impacto: o dashboard vira uma superficie unica para triagem tecnica e leitura comercial rapida.

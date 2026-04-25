@@ -78,14 +78,18 @@
     const body = document.getElementById('source-attention-body');
     if (!body) return;
     const items = Array.isArray(rows) ? rows : [];
+    const canSync = String(body.dataset.canSync || '0') === '1';
     setText('kpi-source-attention-count', items.length);
     if (items.length === 0) {
-      body.innerHTML = '<tr><td colspan="7" class="text-muted">Nenhuma fonte exige atencao no momento.</td></tr>';
+      body.innerHTML = '<tr><td colspan="8" class="text-muted">Nenhuma fonte exige atencao no momento.</td></tr>';
       return;
     }
     body.innerHTML = items.map((row) => {
       const status = String(row.status || 'pending').toLowerCase();
       const badgeClass = status === 'failed' ? 'text-bg-danger' : (status === 'queued' || status === 'running' ? 'text-bg-warning' : 'text-bg-secondary');
+      const actionCell = canSync
+        ? `<form method="post" action="/dashboard/source-configs/${encodeURIComponent(row.id)}/sync" class="d-inline"><button type="submit" class="btn btn-sm btn-outline-primary">Sincronizar agora</button></form>`
+        : '<span class="text-muted small">Somente leitura</span>';
       return `
         <tr data-source-attention-id="${escapeHtml(row.id)}">
           <td>${escapeHtml(row.nome)}</td>
@@ -95,6 +99,7 @@
           <td>${escapeHtml(row.next_run_at)}</td>
           <td>${escapeHtml(row.last_action_at)}</td>
           <td><code>${escapeHtml(row.last_error)}</code></td>
+          <td>${actionCell}</td>
         </tr>
       `;
     }).join('');
@@ -142,6 +147,21 @@
       setText('kpi-source-next-cycle', data.source_cycle.next_run_at);
       refreshSourceRows(data.source_configs || [], data.source_status_snapshot || {});
       renderAttentionRows(data.source_attention_rows || []);
+      if (data.source_attention_summary) {
+        setText('kpi-source-attention-failed', data.source_attention_summary.failed_count);
+        setText('kpi-source-attention-queued', data.source_attention_summary.queued_count);
+        setText('kpi-source-attention-running', data.source_attention_summary.running_count);
+        setText('kpi-source-attention-overdue', data.source_attention_summary.overdue_count);
+      }
+      if (data.commercial_snapshot) {
+        setText('kpi-commercial-period', `${data.commercial_snapshot.period_start} a ${data.commercial_snapshot.period_end}`);
+        setText('kpi-commercial-total-sales', data.commercial_snapshot.total_sales_value);
+        setText('kpi-commercial-total-records', data.commercial_snapshot.total_records);
+        setText('kpi-commercial-distinct-products', data.commercial_snapshot.distinct_products);
+        setText('kpi-commercial-average-ticket', data.commercial_snapshot.average_ticket);
+        setText('kpi-commercial-top-product', data.commercial_snapshot.top_product);
+        setText('kpi-commercial-top-product-value', data.commercial_snapshot.top_product_value);
+      }
     } catch (_err) {
     }
   }

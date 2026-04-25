@@ -165,3 +165,4 @@ bash infra/scripts/deploy-prod.sh
 - O console `settings` ganhou um bloco de saude bidirecional do `remote_agent` com estado de pull, registro e poll.
 - O teste de `settings` agora cobre o estado bidirecional real do `remote_agent` no fluxo do console.
 - O dashboard operacional ganhou uma fila de `Fontes para atencao` com fontes atrasadas, em fila, em execucao ou com falha recente, exposta tambem no refresh automatico via `/dashboard/data`.
+- O dashboard operacional ganhou uma fila acionavel com botao de `Sincronizar agora` por fonte, badges resumidos de alerta e um resumo comercial leve com periodo atual, valor total, registros, ticket medio e produto lider.

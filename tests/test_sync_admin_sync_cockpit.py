@@ -86,8 +86,42 @@ def test_sync_admin_dashboard_exposes_source_cycle_cockpit(monkeypatch) -> None:
             sync_last_success_lag_seconds=120,
             tenant_scheduler_last_success_lag_seconds=180,
             tenant_queue_last_event_lag_seconds=60,
-            tenant_destination_last_event_lag_seconds=0,
-        )
+                tenant_destination_last_event_lag_seconds=0,
+            )
+
+    def fake_fetch_report_overview(
+        self,
+        *,
+        empresa_id: str | None = None,
+        start_date: str | None = None,
+        end_date: str | None = None,
+        branch_code: str | None = None,
+        terminal_code: str | None = None,
+    ):
+        return {
+            "empresa_id": empresa_id or "12345678000199",
+            "start_date": start_date or "2026-04-01",
+            "end_date": end_date or "2026-04-24",
+            "total_records": 128,
+            "total_sales_value": 4567.89,
+            "distinct_products": 24,
+        }
+
+    def fake_fetch_report_top_products(
+        self,
+        *,
+        empresa_id: str | None = None,
+        start_date: str | None = None,
+        end_date: str | None = None,
+        branch_code: str | None = None,
+        terminal_code: str | None = None,
+        limit: int = 3,
+    ):
+        return {
+            "items": [
+                {"produto": "Produto lider", "total_sales_value": 1234.56},
+            ]
+        }
 
     source_configs = [
         {
@@ -230,6 +264,8 @@ def test_sync_admin_dashboard_exposes_source_cycle_cockpit(monkeypatch) -> None:
     monkeypatch.setattr(ControlService, "fetch_summary", fake_fetch_summary)
     monkeypatch.setattr(ControlService, "fetch_sync_jobs_summary", fake_fetch_sync_jobs_summary)
     monkeypatch.setattr(ControlService, "fetch_tenant_observability", fake_fetch_tenant_observability)
+    monkeypatch.setattr(ControlService, "fetch_report_overview", fake_fetch_report_overview)
+    monkeypatch.setattr(ControlService, "fetch_report_top_products", fake_fetch_report_top_products)
     monkeypatch.setattr(ControlService, "fetch_source_configs", fake_fetch_source_configs)
     monkeypatch.setattr(ControlService, "fetch_sync_jobs", fake_fetch_sync_jobs)
     monkeypatch.setattr(ControlService, "fetch_source_cycle_summary", fake_fetch_source_cycle_summary)
@@ -269,6 +305,7 @@ def test_sync_admin_dashboard_exposes_source_cycle_cockpit(monkeypatch) -> None:
         assert "Saude bidirecional" in dashboard_page.text
         assert "Registro e poll remoto recentes" in dashboard_page.text
         assert "Fontes para atencao" in dashboard_page.text
+        assert "Resumo comercial" in dashboard_page.text
         assert "Fontes ativas" in dashboard_page.text
         assert "Sincronizar todas as fontes" in dashboard_page.text
         assert "/dashboard/source-configs/sync-all" in dashboard_page.text
@@ -295,6 +332,9 @@ def test_sync_admin_dashboard_exposes_source_cycle_cockpit(monkeypatch) -> None:
         assert payload["source_execution_overview"]["failed_count"] == 0
         assert len(payload["source_attention_rows"]) == 2
         assert payload["source_attention_rows"][0]["nome"] == "Caixa principal"
+        assert payload["source_attention_summary"]["total_count"] == 2
+        assert payload["commercial_snapshot"]["total_records"] == 128
+        assert payload["commercial_snapshot"]["top_product"] == "Produto lider"
         assert payload["remote_agent_operational"]["pull_enabled"] is True
         assert payload["remote_agent"]["hostname"] == "sync-admin-host"
 

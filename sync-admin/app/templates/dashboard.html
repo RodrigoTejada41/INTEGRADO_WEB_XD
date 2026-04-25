@@ -162,6 +162,12 @@
         fontes com falha, atraso ou fila ativa
       </small>
     </div>
+    <div class="d-flex flex-wrap gap-2 small">
+      <span class="badge text-bg-danger">Falhas: <span id="kpi-source-attention-failed">{{ source_attention_summary.failed_count }}</span></span>
+      <span class="badge text-bg-warning">Fila: <span id="kpi-source-attention-queued">{{ source_attention_summary.queued_count }}</span></span>
+      <span class="badge text-bg-info">Execucao: <span id="kpi-source-attention-running">{{ source_attention_summary.running_count }}</span></span>
+      <span class="badge text-bg-secondary">Atrasadas: <span id="kpi-source-attention-overdue">{{ source_attention_summary.overdue_count }}</span></span>
+    </div>
   </div>
   <div class="table-responsive">
     <table class="table table-sm table-striped align-middle">
@@ -174,9 +180,10 @@
           <th>Proxima execucao</th>
           <th>Ultima acao</th>
           <th>Erro</th>
+          <th>Acoes</th>
         </tr>
       </thead>
-      <tbody id="source-attention-body">
+      <tbody id="source-attention-body" data-can-sync="{{ '1' if current_user.role == 'admin' else '0' }}">
         {% for source in source_attention_rows %}
         <tr data-source-attention-id="{{ source.id }}">
           <td>{{ source.nome }}</td>
@@ -186,13 +193,42 @@
           <td>{{ source.next_run_at }}</td>
           <td>{{ source.last_action_at }}</td>
           <td><code>{{ source.last_error }}</code></td>
+          <td>
+            {% if current_user.role == 'admin' %}
+            <form method="post" action="/dashboard/source-configs/{{ source.id }}/sync" class="d-inline">
+              <button type="submit" class="btn btn-sm btn-outline-primary">Sincronizar agora</button>
+            </form>
+            {% else %}
+            <span class="text-muted small">Somente leitura</span>
+            {% endif %}
+          </td>
         </tr>
         {% endfor %}
         {% if source_attention_rows|length == 0 %}
-        <tr><td colspan="7" class="text-muted">Nenhuma fonte exige atencao no momento.</td></tr>
+        <tr><td colspan="8" class="text-muted">Nenhuma fonte exige atencao no momento.</td></tr>
         {% endif %}
       </tbody>
     </table>
+  </div>
+</div>
+
+<div class="card mb-4 p-3">
+  <div class="d-flex justify-content-between align-items-center mb-2 flex-wrap gap-2">
+    <div>
+      <h6 class="mb-0">Resumo comercial</h6>
+      <small class="text-muted">Periodo atual: <span id="kpi-commercial-period">{{ commercial_snapshot.period_start }} a {{ commercial_snapshot.period_end }}</span></small>
+    </div>
+    <a class="btn btn-sm btn-outline-primary" href="/reports">Abrir relatorios</a>
+  </div>
+  <div class="row g-3">
+    <div class="col-md-3"><div class="card p-3"><small>Valor total</small><h4 id="kpi-commercial-total-sales">{{ commercial_snapshot.total_sales_value }}</h4></div></div>
+    <div class="col-md-3"><div class="card p-3"><small>Registros</small><h4 id="kpi-commercial-total-records">{{ commercial_snapshot.total_records }}</h4></div></div>
+    <div class="col-md-3"><div class="card p-3"><small>Produtos distintos</small><h4 id="kpi-commercial-distinct-products">{{ commercial_snapshot.distinct_products }}</h4></div></div>
+    <div class="col-md-3"><div class="card p-3"><small>Ticket medio</small><h4 id="kpi-commercial-average-ticket">{{ commercial_snapshot.average_ticket }}</h4></div></div>
+  </div>
+  <div class="mt-3 small text-muted">
+    Produto lider: <strong id="kpi-commercial-top-product">{{ commercial_snapshot.top_product }}</strong>
+    · Valor: <span id="kpi-commercial-top-product-value">{{ commercial_snapshot.top_product_value }}</span>
   </div>
 </div>
 

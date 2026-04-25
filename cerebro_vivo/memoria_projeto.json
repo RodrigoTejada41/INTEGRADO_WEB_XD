@@ -249,6 +249,12 @@
         "item": "Adicionar fila de fontes para atencao no dashboard operacional",
         "motivo": "Priorizar fontes atrasadas, em fila, em execucao ou com falha recente no refresh automatico",
         "status": "concluido"
+      },
+      {
+        "ordem": 22,
+        "item": "Tornar a fila acionavel e adicionar snapshot comercial leve no dashboard",
+        "motivo": "Dar botao de sincronizacao por fonte, alertas resumidos e leitura executiva do periodo atual",
+        "status": "concluido"
       }
     ],
     "riscos_conhecidos": [
@@ -263,5 +269,5 @@
     "pasta_historica": ".cerebro-vivo",
     "regra": "A pasta top-level resume e aponta; a pasta oculta preserva a base operacional detalhada."
   },
-  "atualizado_em": "2026-04-25T20:06:00-03:00"
+  "atualizado_em": "2026-04-25T20:20:00-03:00"
 }

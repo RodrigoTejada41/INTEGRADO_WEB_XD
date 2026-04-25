@@ -427,6 +427,55 @@ def _source_attention_rows(
     return rows[:5]
 
 
+def _source_attention_summary(source_attention_rows: list[dict[str, object]]) -> dict[str, int]:
+    summary = {
+        'total_count': len(source_attention_rows),
+        'failed_count': 0,
+        'queued_count': 0,
+        'running_count': 0,
+        'overdue_count': 0,
+    }
+    now = datetime.now(UTC)
+    for row in source_attention_rows:
+        status = str(row.get('status') or '').lower()
+        reason = str(row.get('reason') or '').lower()
+        if status == 'failed' or 'falha' in reason:
+            summary['failed_count'] += 1
+        elif status == 'running' or 'execucao' in reason:
+            summary['running_count'] += 1
+        elif status == 'queued' or 'fila' in reason:
+            summary['queued_count'] += 1
+        next_run_at = _parse_timestamp(row.get('next_run_at'))
+        if next_run_at is not None and next_run_at <= now:
+            summary['overdue_count'] += 1
+    return summary
+
+
+def _current_month_range() -> tuple[str, str]:
+    today = date.today()
+    start = today.replace(day=1)
+    return start.isoformat(), today.isoformat()
+
+
+def _commercial_snapshot(overview: dict, top_products: dict) -> dict[str, object]:
+    top_items = list(top_products.get('items', [])) if isinstance(top_products, dict) else []
+    top_item = top_items[0] if top_items else {}
+    return {
+        'period_start': overview.get('start_date') or '-',
+        'period_end': overview.get('end_date') or '-',
+        'total_records': int(overview.get('total_records', 0) or 0),
+        'total_sales_value': _format_decimal(_safe_float(overview.get('total_sales_value'))),
+        'distinct_products': int(overview.get('distinct_products', 0) or 0),
+        'average_ticket': _format_decimal(
+            (_safe_float(overview.get('total_sales_value')) / int(overview.get('total_records', 0) or 0))
+            if int(overview.get('total_records', 0) or 0)
+            else 0.0
+        ),
+        'top_product': str(top_item.get('produto') or '-'),
+        'top_product_value': _format_decimal(_safe_float(top_item.get('total_sales_value'))),
+    }
+
+
 def _remote_client_fleet_overview(fleet_summary) -> dict[str, int]:
     total_clients = int(getattr(fleet_summary, 'total_clients', 0) or 0)
     online_clients = int(getattr(fleet_summary, 'online_clients', 0) or 0)
@@ -800,6 +849,36 @@ def dashboard(
     )
     control = ControlService()
     control_summary = control.fetch_summary()
+    current_period_start, current_period_end = _current_month_range()
+    report_empresa_id = company_code or getattr(current_user, 'empresa_id', None) or settings.control_empresa_id
+    try:
+        report_overview = control.fetch_report_overview(
+            empresa_id=report_empresa_id,
+            start_date=current_period_start,
+            end_date=current_period_end,
+            branch_code=branch_code,
+            terminal_code=terminal_code,
+        )
+    except Exception:
+        report_overview = {
+            'start_date': current_period_start,
+            'end_date': current_period_end,
+            'total_records': 0,
+            'total_sales_value': 0.0,
+            'distinct_products': 0,
+        }
+    try:
+        report_top_products = control.fetch_report_top_products(
+            empresa_id=report_empresa_id,
+            start_date=current_period_start,
+            end_date=current_period_end,
+            branch_code=branch_code,
+            terminal_code=terminal_code,
+            limit=3,
+        )
+    except Exception:
+        report_top_products = {'items': []}
+    commercial_snapshot = _commercial_snapshot(report_overview, report_top_products)
     try:
         remote_agent_snapshot = RemoteAgentService(db).build_status_snapshot()
     except Exception:
@@ -826,6 +905,7 @@ def dashboard(
         source_execution_overview = _source_execution_overview(source_status_snapshot)
         source_cycle_summary = control.fetch_source_cycle_summary(source_configs)
         source_attention_rows = _source_attention_rows(source_configs, source_status_snapshot)
+        source_attention_summary = _source_attention_summary(source_attention_rows)
         destination_configs = control.fetch_destination_configs()
     else:
         empresa_id = settings.control_empresa_id
@@ -873,6 +953,13 @@ def dashboard(
             last_success_lag_seconds=0.0,
         )
         source_attention_rows = []
+        source_attention_summary = {
+            'total_count': 0,
+            'failed_count': 0,
+            'queued_count': 0,
+            'running_count': 0,
+            'overdue_count': 0,
+        }
         destination_configs = []
     failed_batches, _ = SyncRepository(db).list_batches(page=1, page_size=10, status='failed')
     recent_errors = control.recent_agent_errors(limit=10)
@@ -915,6 +1002,8 @@ def dashboard(
             'source_execution_overview': source_execution_overview,
             'source_cycle_summary': source_cycle_summary,
             'source_attention_rows': source_attention_rows,
+            'source_attention_summary': source_attention_summary,
+            'commercial_snapshot': commercial_snapshot,
             'remote_agent_snapshot': remote_agent_snapshot,
             'remote_agent_operational': remote_agent_operational,
             'destination_configs': destination_configs,
@@ -945,6 +1034,36 @@ def dashboard_data(
     )
     control_service = ControlService()
     control_summary = control_service.fetch_summary()
+    current_period_start, current_period_end = _current_month_range()
+    report_empresa_id = company_code or settings.control_empresa_id
+    try:
+        report_overview = control_service.fetch_report_overview(
+            empresa_id=report_empresa_id,
+            start_date=current_period_start,
+            end_date=current_period_end,
+            branch_code=branch_code,
+            terminal_code=terminal_code,
+        )
+    except Exception:
+        report_overview = {
+            'start_date': current_period_start,
+            'end_date': current_period_end,
+            'total_records': 0,
+            'total_sales_value': 0.0,
+            'distinct_products': 0,
+        }
+    try:
+        report_top_products = control_service.fetch_report_top_products(
+            empresa_id=report_empresa_id,
+            start_date=current_period_start,
+            end_date=current_period_end,
+            branch_code=branch_code,
+            terminal_code=terminal_code,
+            limit=3,
+        )
+    except Exception:
+        report_top_products = {'items': []}
+    commercial_snapshot = _commercial_snapshot(report_overview, report_top_products)
     try:
         remote_agent_snapshot = RemoteAgentService(db).build_status_snapshot()
     except Exception:
@@ -971,6 +1090,7 @@ def dashboard_data(
         source_execution_overview = _source_execution_overview(source_status_snapshot)
         source_cycle_summary = control_service.fetch_source_cycle_summary(source_configs)
         source_attention_rows = _source_attention_rows(source_configs, source_status_snapshot)
+        source_attention_summary = _source_attention_summary(source_attention_rows)
         destination_configs = control_service.fetch_destination_configs()
     else:
         empresa_id = settings.control_empresa_id
@@ -1018,6 +1138,13 @@ def dashboard_data(
             last_success_lag_seconds=0.0,
         )
         source_attention_rows = []
+        source_attention_summary = {
+            'total_count': 0,
+            'failed_count': 0,
+            'queued_count': 0,
+            'running_count': 0,
+            'overdue_count': 0,
+        }
         destination_configs = []
     return JSONResponse(
         {
@@ -1074,6 +1201,8 @@ def dashboard_data(
             'source_status_snapshot': source_status_snapshot,
             'source_execution_overview': source_execution_overview,
             'source_attention_rows': source_attention_rows,
+            'source_attention_summary': source_attention_summary,
+            'commercial_snapshot': commercial_snapshot,
             'remote_agent': remote_agent_snapshot,
             'remote_agent_operational': remote_agent_operational,
         }
