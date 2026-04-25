@@ -164,3 +164,4 @@ bash infra/scripts/deploy-prod.sh
 - Novo checkpoint de retomada em `2026-04-25`: baseline atual consolidado no commit `f4ce33f`, worktree limpo e suite em `92 passed, 1 skipped`.
 - O console `settings` ganhou um bloco de saude bidirecional do `remote_agent` com estado de pull, registro e poll.
 - O teste de `settings` agora cobre o estado bidirecional real do `remote_agent` no fluxo do console.
+- O dashboard operacional ganhou uma fila de `Fontes para atencao` com fontes atrasadas, em fila, em execucao ou com falha recente, exposta tambem no refresh automatico via `/dashboard/data`.

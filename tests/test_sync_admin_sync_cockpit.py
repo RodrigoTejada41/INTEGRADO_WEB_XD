@@ -268,6 +268,7 @@ def test_sync_admin_dashboard_exposes_source_cycle_cockpit(monkeypatch) -> None:
         assert "kpi-source-exec-failed" in dashboard_page.text
         assert "Saude bidirecional" in dashboard_page.text
         assert "Registro e poll remoto recentes" in dashboard_page.text
+        assert "Fontes para atencao" in dashboard_page.text
         assert "Fontes ativas" in dashboard_page.text
         assert "Sincronizar todas as fontes" in dashboard_page.text
         assert "/dashboard/source-configs/sync-all" in dashboard_page.text
@@ -292,6 +293,8 @@ def test_sync_admin_dashboard_exposes_source_cycle_cockpit(monkeypatch) -> None:
         assert payload["source_execution_overview"]["running_count"] == 1
         assert payload["source_execution_overview"]["done_count"] == 1
         assert payload["source_execution_overview"]["failed_count"] == 0
+        assert len(payload["source_attention_rows"]) == 2
+        assert payload["source_attention_rows"][0]["nome"] == "Caixa principal"
         assert payload["remote_agent_operational"]["pull_enabled"] is True
         assert payload["remote_agent"]["hostname"] == "sync-admin-host"
 

@@ -349,3 +349,8 @@ Sempre que houver decisao arquitetural, de seguranca, de dados/logs ou de produt
 - Decisao: exibir no `settings` um bloco de saude do `remote_agent` com estado de pull, registro e poll, reaproveitando o snapshot local ja existente.
 - Motivo: a operacao bidirecional precisava ficar visivel no console principal para reduzir ambiguidade entre configuracao, ciclo remoto e estado atual.
 - Impacto: o operador passa a ver no mesmo painel a saude do controle remoto e os dados de sync, o que reduz a necessidade de abrir telas separadas para validar o ciclo.
+
+### D062 - O dashboard operacional ganha uma fila de fontes para atencao
+- Decisao: exibir no dashboard uma lista priorizada de fontes com atraso, fila, execucao ou falha recente, reaproveitando `source_status_snapshot` e `source_cycle_summary`.
+- Motivo: o painel precisava transformar status agregado em acao direta, deixando claro o que exige intervencao imediata.
+- Impacto: o operador visualiza rapidamente quais fontes estao sob risco e recebe o mesmo estado no refresh automatico.

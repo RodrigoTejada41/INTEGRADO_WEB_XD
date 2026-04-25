@@ -243,6 +243,12 @@
         "item": "Exibir a saude bidirecional do remote_agent no console principal",
         "motivo": "Dar visibilidade ao pull remoto, registro e poll no painel settings",
         "status": "concluido"
+      },
+      {
+        "ordem": 21,
+        "item": "Adicionar fila de fontes para atencao no dashboard operacional",
+        "motivo": "Priorizar fontes atrasadas, em fila, em execucao ou com falha recente no refresh automatico",
+        "status": "concluido"
       }
     ],
     "riscos_conhecidos": [
@@ -257,5 +263,5 @@
     "pasta_historica": ".cerebro-vivo",
     "regra": "A pasta top-level resume e aponta; a pasta oculta preserva a base operacional detalhada."
   },
-  "atualizado_em": "2026-04-25T13:33:53.7019519-03:00"
+  "atualizado_em": "2026-04-25T20:06:00-03:00"
 }

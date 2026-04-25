@@ -348,6 +348,85 @@ def _source_execution_overview(source_status_snapshot: dict[str, dict[str, str]]
     return overview
 
 
+def _source_attention_rows(
+    source_configs: list[dict],
+    source_status_snapshot: dict[str, dict[str, str]],
+) -> list[dict[str, object]]:
+    now = datetime.now(UTC)
+    rows: list[dict[str, object]] = []
+
+    for source in source_configs:
+        source_id = str(source.get('id') or '')
+        if not source_id:
+            continue
+
+        snapshot = source_status_snapshot.get(source_id, {})
+        live_status = str(source.get('last_status') or snapshot.get('live_status') or 'pending').lower()
+        queued_count = int(snapshot.get('queued_count', 0) or 0)
+        running_count = int(snapshot.get('running_count', 0) or 0)
+        failed_count = int(snapshot.get('failed_count', 0) or 0)
+        next_run_at = _parse_timestamp(source.get('next_run_at'))
+        last_run_at = _parse_timestamp(source.get('last_run_at'))
+
+        reasons: list[str] = []
+        severity = 0
+
+        if failed_count > 0 or live_status in {'failed', 'dead_letter'}:
+            severity += 3
+            reasons.append('falha recente')
+        if next_run_at is not None and next_run_at <= now:
+            severity += 2
+            reasons.append('agendada em atraso')
+        if live_status in {'queued', 'running'} or queued_count > 0 or running_count > 0:
+            severity += 1
+            if live_status == 'running' or running_count > 0:
+                reasons.append('em execucao')
+            else:
+                reasons.append('na fila')
+
+        if severity == 0:
+            continue
+
+        rows.append(
+            {
+                'id': source_id,
+                'nome': str(source.get('nome') or source_id),
+                'connector_type': str(source.get('connector_type') or '-'),
+                'status': live_status,
+                'status_label': str(source.get('last_status') or live_status),
+                'reason': '; '.join(dict.fromkeys(reasons)) or 'atencao operacional',
+                'next_run_at': str(source.get('next_run_at') or '-'),
+                'last_action_at': str(
+                    snapshot.get('last_action_at')
+                    or source.get('last_run_at')
+                    or source.get('last_scheduled_at')
+                    or '-'
+                ),
+                'last_error': str(source.get('last_error') or '-'),
+                'queued_count': queued_count,
+                'running_count': running_count,
+                'failed_count': failed_count,
+                'sort_severity': severity,
+                'sort_next_run_at': (
+                    next_run_at.isoformat() if next_run_at is not None else datetime.max.replace(tzinfo=UTC).isoformat()
+                ),
+                'sort_last_run_at': (
+                    last_run_at.isoformat() if last_run_at is not None else datetime.max.replace(tzinfo=UTC).isoformat()
+                ),
+            }
+        )
+
+    rows.sort(
+        key=lambda item: (
+            -int(item['sort_severity']),
+            item['sort_next_run_at'],
+            item['sort_last_run_at'],
+            str(item['nome']).lower(),
+        )
+    )
+    return rows[:5]
+
+
 def _remote_client_fleet_overview(fleet_summary) -> dict[str, int]:
     total_clients = int(getattr(fleet_summary, 'total_clients', 0) or 0)
     online_clients = int(getattr(fleet_summary, 'online_clients', 0) or 0)
@@ -746,6 +825,7 @@ def dashboard(
         source_status_snapshot = _source_status_snapshot(source_configs, sync_jobs)
         source_execution_overview = _source_execution_overview(source_status_snapshot)
         source_cycle_summary = control.fetch_source_cycle_summary(source_configs)
+        source_attention_rows = _source_attention_rows(source_configs, source_status_snapshot)
         destination_configs = control.fetch_destination_configs()
     else:
         empresa_id = settings.control_empresa_id
@@ -792,6 +872,7 @@ def dashboard(
             last_success_at='-',
             last_success_lag_seconds=0.0,
         )
+        source_attention_rows = []
         destination_configs = []
     failed_batches, _ = SyncRepository(db).list_batches(page=1, page_size=10, status='failed')
     recent_errors = control.recent_agent_errors(limit=10)
@@ -833,6 +914,7 @@ def dashboard(
             'source_status_snapshot': source_status_snapshot,
             'source_execution_overview': source_execution_overview,
             'source_cycle_summary': source_cycle_summary,
+            'source_attention_rows': source_attention_rows,
             'remote_agent_snapshot': remote_agent_snapshot,
             'remote_agent_operational': remote_agent_operational,
             'destination_configs': destination_configs,
@@ -888,6 +970,7 @@ def dashboard_data(
         source_status_snapshot = _source_status_snapshot(source_configs, sync_jobs)
         source_execution_overview = _source_execution_overview(source_status_snapshot)
         source_cycle_summary = control_service.fetch_source_cycle_summary(source_configs)
+        source_attention_rows = _source_attention_rows(source_configs, source_status_snapshot)
         destination_configs = control_service.fetch_destination_configs()
     else:
         empresa_id = settings.control_empresa_id
@@ -934,6 +1017,7 @@ def dashboard_data(
             last_success_at='-',
             last_success_lag_seconds=0.0,
         )
+        source_attention_rows = []
         destination_configs = []
     return JSONResponse(
         {
@@ -989,6 +1073,7 @@ def dashboard_data(
             'sync_jobs': sync_jobs,
             'source_status_snapshot': source_status_snapshot,
             'source_execution_overview': source_execution_overview,
+            'source_attention_rows': source_attention_rows,
             'remote_agent': remote_agent_snapshot,
             'remote_agent_operational': remote_agent_operational,
         }

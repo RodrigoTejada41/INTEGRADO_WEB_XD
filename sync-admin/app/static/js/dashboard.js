@@ -48,6 +48,15 @@
     }
   }
 
+  function escapeHtml(value) {
+    return String(value ?? '')
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  }
+
   function refreshSourceRows(sourceConfigs, sourceStatusSnapshot) {
     const rows = document.querySelectorAll('tr[data-source-id]');
     rows.forEach((row) => {
@@ -63,6 +72,32 @@
       setText(`source-running-count-${sourceId}`, snapshot.running_count || '0');
       setText(`source-failed-count-${sourceId}`, snapshot.failed_count || '0');
     });
+  }
+
+  function renderAttentionRows(rows) {
+    const body = document.getElementById('source-attention-body');
+    if (!body) return;
+    const items = Array.isArray(rows) ? rows : [];
+    setText('kpi-source-attention-count', items.length);
+    if (items.length === 0) {
+      body.innerHTML = '<tr><td colspan="7" class="text-muted">Nenhuma fonte exige atencao no momento.</td></tr>';
+      return;
+    }
+    body.innerHTML = items.map((row) => {
+      const status = String(row.status || 'pending').toLowerCase();
+      const badgeClass = status === 'failed' ? 'text-bg-danger' : (status === 'queued' || status === 'running' ? 'text-bg-warning' : 'text-bg-secondary');
+      return `
+        <tr data-source-attention-id="${escapeHtml(row.id)}">
+          <td>${escapeHtml(row.nome)}</td>
+          <td><code>${escapeHtml(row.connector_type)}</code></td>
+          <td><span class="badge ${badgeClass}">${escapeHtml(row.status_label)}</span></td>
+          <td>${escapeHtml(row.reason)}</td>
+          <td>${escapeHtml(row.next_run_at)}</td>
+          <td>${escapeHtml(row.last_action_at)}</td>
+          <td><code>${escapeHtml(row.last_error)}</code></td>
+        </tr>
+      `;
+    }).join('');
   }
 
   async function refreshDashboard() {
@@ -106,6 +141,7 @@
       setText('kpi-source-overdue', data.source_cycle.overdue_count);
       setText('kpi-source-next-cycle', data.source_cycle.next_run_at);
       refreshSourceRows(data.source_configs || [], data.source_status_snapshot || {});
+      renderAttentionRows(data.source_attention_rows || []);
     } catch (_err) {
     }
   }
