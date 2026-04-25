@@ -161,3 +161,4 @@ bash infra/scripts/deploy-prod.sh
 - O `setup-deploy-user.sh` agora fica coberto por teste para impedir regressao em chaves restritas e comando forcado.
 - O bloco de retencao e migrations ganhou contrato dedicado em `tests/test_retention_migration_contract.py`.
 - A politica padrao de 14 meses e o baseline de migrations passaram a ficar amarrados aos defaults de producao e aos runbooks.
+- Novo checkpoint de retomada em `2026-04-25`: baseline atual consolidado no commit `f4ce33f`, worktree limpo e suite em `92 passed, 1 skipped`.

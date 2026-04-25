@@ -231,6 +231,12 @@
         "item": "Fechar o contrato final de retencao e migrations",
         "motivo": "Amarrar defaults de 14 meses, schema de settings e baseline de migrations em producao",
         "status": "concluido"
+      },
+      {
+        "ordem": 19,
+        "item": "Registrar a retomada limpa de 2026-04-25",
+        "motivo": "Salvar o baseline atual sem abrir nova frente funcional e manter o ponto exato de continuidade",
+        "status": "concluido"
       }
     ],
     "riscos_conhecidos": [
@@ -245,5 +251,5 @@
     "pasta_historica": ".cerebro-vivo",
     "regra": "A pasta top-level resume e aponta; a pasta oculta preserva a base operacional detalhada."
   },
-  "atualizado_em": "2026-04-24T22:47:11.5414730-03:00"
+  "atualizado_em": "2026-04-25T03:28:55.6885774-03:00"
 }

@@ -1,9 +1,14 @@
 # Snapshot local do sync-admin
 
-- Gerado em: -
+- Gerado em: 2026-04-25T03:28:55.6885774-03:00
 - Total de lotes: 0
 - Total de registros: 0
 - Falhas: 0
+- Resumo por execucao: fila 0, em execucao 0, concluidas 0, falhas 0
+- Console administrativo: resumo compacto replicado no topo do `settings`
+- APIs Conectadas: resumo compacto da frota remota com total, online, offline e erro
+- Detalhe da API conectada: saude operacional com status, janela de referencia, lag de sync e lag de poll
+- Retencao e migrations: politica padrao de 14 meses com baseline de schema fixo
 
 ## Ultimos lotes
 
@@ -12,7 +17,7 @@
 
 # Erros recentes
 
-- Gerado em: 2026-04-25T01:51:10.528885+00:00
+- Gerado em: 2026-04-25T03:28:55.6885774-03:00
 - Total de registros: 0
 
 ## Amostra

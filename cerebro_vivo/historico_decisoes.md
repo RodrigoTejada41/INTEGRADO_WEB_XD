@@ -339,3 +339,8 @@ Sempre que houver decisao arquitetural, de seguranca, de dados/logs ou de produt
 - Decisao: alinhar os defaults de retencao do backend, o schema de configuracao e o baseline de migrations em um contrato dedicado.
 - Motivo: a politica de 14 meses precisava ficar validada em code e em documentacao para evitar drift silencioso entre configuracao e execucao.
 - Impacto: o projeto passa a ter uma prova automatizada de que a janela de retenao e o baseline de schema continuam coerentes entre backend, schema e runbook.
+
+### D060 - A retomada de 2026-04-25 consolida o baseline atual sem alterar produto
+- Decisao: registrar o estado atual como checkpoint limpo, mantendo o commit `f4ce33f` como linha de retomada e sem abrir nova frente funcional.
+- Motivo: a continuidade precisava ficar pronta para o proximo acesso sem redescobrir contexto ou perder a posicao exata do trabalho.
+- Impacto: qualquer reabertura futura consegue retomar a partir do baseline consolidado, com suite verde e memoria executiva atualizada.
