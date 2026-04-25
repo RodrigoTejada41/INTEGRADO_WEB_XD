@@ -159,3 +159,5 @@ bash infra/scripts/deploy-prod.sh
 - A validacao final desta rodada passou com `88 passed, 1 skipped`.
 - O endurecimento SSH do deploy passou a ter contrato dedicado em `tests/test_vps_security_contract.py`.
 - O `setup-deploy-user.sh` agora fica coberto por teste para impedir regressao em chaves restritas e comando forcado.
+- O bloco de retencao e migrations ganhou contrato dedicado em `tests/test_retention_migration_contract.py`.
+- A politica padrao de 14 meses e o baseline de migrations passaram a ficar amarrados aos defaults de producao e aos runbooks.

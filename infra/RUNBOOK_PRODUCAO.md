@@ -101,6 +101,13 @@ Regras:
 - executar antes de rollback manual;
 - manter o arquivo de backup fora do controle de versao.
 
+## Retencao de dados
+
+- a politica padrao e manter apenas 14 meses nas tabelas principais;
+- o modo padrao e `archive`, movendo os registros antigos para historico quando aplicavel;
+- nao alterar a janela de retencao sem validar impacto em tenant, auditoria e backup;
+- validar sempre a integracao com `RetentionService` e com o baseline de migrations antes de mudar schema.
+
 ## Restore do banco
 
 ```bash

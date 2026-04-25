@@ -234,3 +234,5 @@ Na retomada canonica atual, o backlog funcional esta consolidado ate `P20`. `P19
 - A suite completa desta sessao fecha em `88 passed, 1 skipped`.
 - A blindagem SSH do deploy ganhou contrato dedicado para o script `setup-deploy-user.sh`.
 - O runbook de producao agora explicita usuario dedicado `deploy` e restricao de chave SSH.
+- A retencao padrao de 14 meses ganhou contrato dedicado com baseline de migrations.
+- Os runbooks passaram a explicitar a politica de retencao e o modo `archive` como default.

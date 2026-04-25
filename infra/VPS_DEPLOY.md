@@ -245,6 +245,8 @@ Riscos que este checklist evita:
 - Segredos em `.env.prod` e GitHub Secrets.
 - Base pronta para HTTPS (arquivo `infra/nginx/ssl-example.conf`).
 - Fluxo preparado para usuario dedicado de deploy com chave SSH restrita por comando.
+- Retencao padrao de 14 meses mantida como contrato de producao para as tabelas principais.
+- Modo padrao de retencao: `archive`.
 
 ## 9. Handoff para outra IA
 

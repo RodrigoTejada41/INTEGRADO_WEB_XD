@@ -334,3 +334,8 @@ Sempre que houver decisao arquitetural, de seguranca, de dados/logs ou de produt
 - Decisao: cobrir o script `setup-deploy-user.sh` com teste explicito para manter restricao de chave, comando forcado e flags de seguranca SSH.
 - Motivo: a trilha de seguranca operacional ainda precisava de uma garantia automatizada para nao regredir quando o deploy fosse ajustado.
 - Impacto: o deploy passa a ter uma barreira de regressao contra chaves soltas e perda das restricoes de acesso no usuario dedicado `deploy`.
+
+### D059 - A retencao de 14 meses ganha contrato final com migrations e defaults
+- Decisao: alinhar os defaults de retencao do backend, o schema de configuracao e o baseline de migrations em um contrato dedicado.
+- Motivo: a politica de 14 meses precisava ficar validada em code e em documentacao para evitar drift silencioso entre configuracao e execucao.
+- Impacto: o projeto passa a ter uma prova automatizada de que a janela de retenao e o baseline de schema continuam coerentes entre backend, schema e runbook.
