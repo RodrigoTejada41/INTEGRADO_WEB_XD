@@ -721,6 +721,22 @@ def dashboard(
     )
     control = ControlService()
     control_summary = control.fetch_summary()
+    try:
+        remote_agent_snapshot = RemoteAgentService(db).build_status_snapshot()
+    except Exception:
+        remote_agent_snapshot = {
+            'service': 'sync-admin',
+            'hostname': '-',
+            'last_sync_at': None,
+            'last_sync_status': '-',
+            'last_sync_reason': '-',
+            'last_registration_at': None,
+            'last_command_poll_at': None,
+            'last_command_origin': '-',
+            'pending_local_batches': 0,
+            'total_local_records': 0,
+        }
+    remote_agent_operational = _remote_agent_operational_snapshot(remote_agent_snapshot)
     control_online = control_summary.api_health == 'online'
     if control_online:
         job_summary = control.fetch_sync_jobs_summary()
@@ -817,6 +833,8 @@ def dashboard(
             'source_status_snapshot': source_status_snapshot,
             'source_execution_overview': source_execution_overview,
             'source_cycle_summary': source_cycle_summary,
+            'remote_agent_snapshot': remote_agent_snapshot,
+            'remote_agent_operational': remote_agent_operational,
             'destination_configs': destination_configs,
             'recent_errors': recent_errors,
             'dead_letter_jobs': dead_letter_jobs,
@@ -845,6 +863,22 @@ def dashboard_data(
     )
     control_service = ControlService()
     control_summary = control_service.fetch_summary()
+    try:
+        remote_agent_snapshot = RemoteAgentService(db).build_status_snapshot()
+    except Exception:
+        remote_agent_snapshot = {
+            'service': 'sync-admin',
+            'hostname': '-',
+            'last_sync_at': None,
+            'last_sync_status': '-',
+            'last_sync_reason': '-',
+            'last_registration_at': None,
+            'last_command_poll_at': None,
+            'last_command_origin': '-',
+            'pending_local_batches': 0,
+            'total_local_records': 0,
+        }
+    remote_agent_operational = _remote_agent_operational_snapshot(remote_agent_snapshot)
     control_online = control_summary.api_health == 'online'
     if control_online:
         job_summary = control_service.fetch_sync_jobs_summary()
@@ -955,6 +989,8 @@ def dashboard_data(
             'sync_jobs': sync_jobs,
             'source_status_snapshot': source_status_snapshot,
             'source_execution_overview': source_execution_overview,
+            'remote_agent': remote_agent_snapshot,
+            'remote_agent_operational': remote_agent_operational,
         }
     )
 

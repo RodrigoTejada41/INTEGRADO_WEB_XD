@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import importlib
 import os
 import sys
 from pathlib import Path
@@ -29,6 +30,11 @@ def _prepare_sync_admin() -> None:
 
 def test_sync_admin_dashboard_exposes_source_cycle_cockpit(monkeypatch) -> None:
     _prepare_sync_admin()
+    os.environ["REMOTE_COMMAND_PULL_ENABLED"] = "true"
+    for module_name in list(sys.modules):
+        if module_name == "app" or module_name.startswith("app."):
+            sys.modules.pop(module_name, None)
+    importlib.invalidate_caches()
 
     from fastapi.testclient import TestClient
 
@@ -40,6 +46,7 @@ def test_sync_admin_dashboard_exposes_source_cycle_cockpit(monkeypatch) -> None:
         SyncJobsSummary,
         TenantObservabilitySummary,
     )
+    from app.services.remote_agent_service import RemoteAgentService
 
     def fake_fetch_summary(self):
         return ControlSummary(
@@ -203,6 +210,23 @@ def test_sync_admin_dashboard_exposes_source_cycle_cockpit(monkeypatch) -> None:
             last_success_lag_seconds=120.0,
         )
 
+    def fake_build_status_snapshot(self):
+        from datetime import UTC, datetime, timedelta
+
+        now = datetime.now(UTC)
+        return {
+            "service": "sync-admin",
+            "hostname": "sync-admin-host",
+            "last_sync_at": (now - timedelta(minutes=1)).isoformat(),
+            "last_sync_status": "success",
+            "last_sync_reason": "remote_command",
+            "last_registration_at": (now - timedelta(minutes=2)).isoformat(),
+            "last_command_poll_at": (now - timedelta(minutes=1)).isoformat(),
+            "last_command_origin": "receiver-api",
+            "pending_local_batches": 2,
+            "total_local_records": 18,
+        }
+
     monkeypatch.setattr(ControlService, "fetch_summary", fake_fetch_summary)
     monkeypatch.setattr(ControlService, "fetch_sync_jobs_summary", fake_fetch_sync_jobs_summary)
     monkeypatch.setattr(ControlService, "fetch_tenant_observability", fake_fetch_tenant_observability)
@@ -212,6 +236,7 @@ def test_sync_admin_dashboard_exposes_source_cycle_cockpit(monkeypatch) -> None:
     monkeypatch.setattr(ControlService, "fetch_destination_configs", lambda self: [])
     monkeypatch.setattr(ControlService, "recent_agent_errors", lambda self, limit=20: [])
     monkeypatch.setattr(ControlService, "fetch_dead_letter_jobs", lambda self, limit=10: [])
+    monkeypatch.setattr(RemoteAgentService, "build_status_snapshot", fake_build_status_snapshot)
     monkeypatch.setattr(
         ControlService,
         "api_error_snapshot",
@@ -241,6 +266,8 @@ def test_sync_admin_dashboard_exposes_source_cycle_cockpit(monkeypatch) -> None:
         assert "kpi-source-exec-running" in dashboard_page.text
         assert "kpi-source-exec-done" in dashboard_page.text
         assert "kpi-source-exec-failed" in dashboard_page.text
+        assert "Saude bidirecional" in dashboard_page.text
+        assert "Registro e poll remoto recentes" in dashboard_page.text
         assert "Fontes ativas" in dashboard_page.text
         assert "Sincronizar todas as fontes" in dashboard_page.text
         assert "/dashboard/source-configs/sync-all" in dashboard_page.text
@@ -265,6 +292,8 @@ def test_sync_admin_dashboard_exposes_source_cycle_cockpit(monkeypatch) -> None:
         assert payload["source_execution_overview"]["running_count"] == 1
         assert payload["source_execution_overview"]["done_count"] == 1
         assert payload["source_execution_overview"]["failed_count"] == 0
+        assert payload["remote_agent_operational"]["pull_enabled"] is True
+        assert payload["remote_agent"]["hostname"] == "sync-admin-host"
 
     assert cycle_calls
     assert len(cycle_calls[0]) == 2

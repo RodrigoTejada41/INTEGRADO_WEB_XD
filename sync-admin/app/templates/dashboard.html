@@ -38,6 +38,24 @@
   <div class="col-md-3"><div class="card p-3"><small>Falhas</small><h4 id="kpi-source-exec-failed">{{ source_execution_overview.failed_count }}</h4></div></div>
 </div>
 
+<div class="card p-3 mb-4">
+  <div class="d-flex justify-content-between align-items-start flex-wrap gap-3">
+    <div>
+      <small class="text-muted">Saude bidirecional</small>
+      <div class="d-flex align-items-center gap-2">
+        <span class="badge text-bg-{{ 'success' if remote_agent_operational.level == 'online' else 'secondary' if remote_agent_operational.level == 'disabled' else 'warning' if remote_agent_operational.level == 'warning' else 'danger' }}" id="kpi-remote-agent-level">{{ remote_agent_operational.label }}</span>
+        <strong id="kpi-remote-agent-reason">{{ remote_agent_operational.reason }}</strong>
+      </div>
+      <small class="text-muted">Janela de referencia: <span id="kpi-remote-agent-grace">{{ remote_agent_operational.grace_minutes }}</span> min</small>
+    </div>
+    <div class="text-muted small">
+      <div>Pull remoto: <span id="kpi-remote-agent-pull">{{ 'habilitado' if remote_agent_operational.pull_enabled else 'desabilitado' }}</span></div>
+      <div>Ultimo registro: <span id="kpi-remote-agent-registration">{{ remote_agent_snapshot.last_registration_at or '-' }}</span></div>
+      <div>Ultimo poll: <span id="kpi-remote-agent-poll">{{ remote_agent_snapshot.last_command_poll_at or '-' }}</span></div>
+    </div>
+  </div>
+</div>
+
 <div class="row g-3 mb-4">
   <div class="col-md-3"><div class="card p-3"><small>Total de registros</small><h4 id="kpi-total-records">{{ summary.total_records }}</h4></div></div>
   <div class="col-md-3"><div class="card p-3"><small>Ultimo recebimento</small><h6 id="kpi-last-received">{{ summary.last_received or "-" }}</h6></div></div>

@@ -78,6 +78,16 @@
       setText('kpi-source-exec-running', data.source_execution_overview.running_count);
       setText('kpi-source-exec-done', data.source_execution_overview.done_count);
       setText('kpi-source-exec-failed', data.source_execution_overview.failed_count);
+      if (data.remote_agent_operational) {
+        setText('kpi-remote-agent-level', data.remote_agent_operational.label);
+        setText('kpi-remote-agent-reason', data.remote_agent_operational.reason);
+        setText('kpi-remote-agent-grace', data.remote_agent_operational.grace_minutes);
+        setText('kpi-remote-agent-pull', data.remote_agent_operational.pull_enabled ? 'habilitado' : 'desabilitado');
+      }
+      if (data.remote_agent) {
+        setText('kpi-remote-agent-registration', data.remote_agent.last_registration_at || '-');
+        setText('kpi-remote-agent-poll', data.remote_agent.last_command_poll_at || '-');
+      }
 
       setText('kpi-control-health', data.control.api_health);
       setText('kpi-control-batches', data.control.sync_batches_total);
