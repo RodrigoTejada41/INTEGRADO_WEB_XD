@@ -237,3 +237,5 @@ Na retomada canonica atual, o backlog funcional esta consolidado ate `P20`. `P19
 - A retencao padrao de 14 meses ganhou contrato dedicado com baseline de migrations.
 - Os runbooks passaram a explicitar a politica de retencao e o modo `archive` como default.
 - Novo checkpoint de retomada em `2026-04-25`: baseline atual no commit `f4ce33f`, worktree limpo, suite em `92 passed, 1 skipped`.
+- O console `settings` passou a exibir a saude bidirecional do `remote_agent` com pull, registro e poll.
+- O fluxo bidirecional ganhou cobertura de teste no console principal do sync-admin.

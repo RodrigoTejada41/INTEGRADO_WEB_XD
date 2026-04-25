@@ -237,6 +237,12 @@
         "item": "Registrar a retomada limpa de 2026-04-25",
         "motivo": "Salvar o baseline atual sem abrir nova frente funcional e manter o ponto exato de continuidade",
         "status": "concluido"
+      },
+      {
+        "ordem": 20,
+        "item": "Exibir a saude bidirecional do remote_agent no console principal",
+        "motivo": "Dar visibilidade ao pull remoto, registro e poll no painel settings",
+        "status": "concluido"
       }
     ],
     "riscos_conhecidos": [
@@ -251,5 +257,5 @@
     "pasta_historica": ".cerebro-vivo",
     "regra": "A pasta top-level resume e aponta; a pasta oculta preserva a base operacional detalhada."
   },
-  "atualizado_em": "2026-04-25T03:28:55.6885774-03:00"
+  "atualizado_em": "2026-04-25T13:33:53.7019519-03:00"
 }

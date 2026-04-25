@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import importlib
 import os
 import sys
 from pathlib import Path
@@ -26,11 +27,17 @@ def _prepare_sync_admin() -> None:
 
 def test_sync_admin_settings_manages_secure_connection_servers(monkeypatch) -> None:
     _prepare_sync_admin()
+    os.environ["REMOTE_COMMAND_PULL_ENABLED"] = "true"
+    for module_name in list(sys.modules):
+        if module_name == "app" or module_name.startswith("app."):
+            sys.modules.pop(module_name, None)
+    importlib.invalidate_caches()
 
     from fastapi.testclient import TestClient
 
     from app.main import app
     from app.services.control_service import ControlService
+    from app.services.remote_agent_service import RemoteAgentService
 
     def fake_get_server_settings(self):
         return {
@@ -99,6 +106,23 @@ def test_sync_admin_settings_manages_secure_connection_servers(monkeypatch) -> N
     def fake_fetch_destination_configs(self):
         return []
 
+    def fake_build_status_snapshot(self):
+        from datetime import UTC, datetime, timedelta
+
+        now = datetime.now(UTC)
+        return {
+            "service": "sync-admin",
+            "hostname": "sync-admin-host",
+            "last_sync_at": (now - timedelta(minutes=1)).isoformat(),
+            "last_sync_status": "success",
+            "last_sync_reason": "remote_command",
+            "last_registration_at": (now - timedelta(minutes=2)).isoformat(),
+            "last_command_poll_at": (now - timedelta(minutes=1)).isoformat(),
+            "last_command_origin": "receiver-api",
+            "pending_local_batches": 2,
+            "total_local_records": 18,
+        }
+
     secure_calls: list[dict] = []
     rotate_calls: list[dict] = []
     update_calls: list[dict] = []
@@ -142,6 +166,7 @@ def test_sync_admin_settings_manages_secure_connection_servers(monkeypatch) -> N
     monkeypatch.setattr(ControlService, "fetch_source_configs", fake_fetch_source_configs)
     monkeypatch.setattr(ControlService, "fetch_sync_jobs", fake_fetch_sync_jobs)
     monkeypatch.setattr(ControlService, "fetch_destination_configs", fake_fetch_destination_configs)
+    monkeypatch.setattr(RemoteAgentService, "build_status_snapshot", fake_build_status_snapshot)
     monkeypatch.setattr(ControlService, "create_secure_connection_config", fake_create_secure_connection_config)
     monkeypatch.setattr(ControlService, "rotate_secure_connection_key", fake_rotate_secure_connection_key)
     monkeypatch.setattr(ControlService, "update_secure_connection_secret", fake_update_secure_connection_secret)
@@ -160,10 +185,15 @@ def test_sync_admin_settings_manages_secure_connection_servers(monkeypatch) -> N
         assert "kpi-source-exec-running" in page.text
         assert "kpi-source-exec-done" in page.text
         assert "kpi-source-exec-failed" in page.text
+        assert "Saude bidirecional" in page.text
+        assert "Registro e poll remoto recentes" in page.text
+        assert "Pull remoto: habilitado" in page.text
         assert "Servidores de conexao seguros" in page.text
         assert "server-ref-1" in page.text
         assert "Rotacionar chave" in page.text
         assert "Atualizar segredo" in page.text
+        assert "Ultimo registro remoto" in page.text
+        assert "Ultimo poll remoto" in page.text
 
         create_resp = client.post(
             "/settings/secure-connection-config",

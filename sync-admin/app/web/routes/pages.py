@@ -24,6 +24,7 @@ from app.services.auth_service import AuthService
 from app.services.client_scope_service import ClientScopeService
 from app.services.control_service import ControlService, SourceCycleSummary, SyncJobsSummary, TenantObservabilitySummary
 from app.services.dashboard_service import DashboardService
+from app.services.remote_agent_service import RemoteAgentService
 from app.services.export_service import (
     audit_to_csv,
     audit_to_markdown,
@@ -402,6 +403,51 @@ def _remote_client_health_snapshot(client_data: dict) -> dict[str, object]:
         'grace_minutes': grace_minutes,
         'sync_lag_minutes': None if sync_lag_minutes is None else round(sync_lag_minutes, 1),
         'poll_lag_minutes': None if poll_lag_minutes is None else round(poll_lag_minutes, 1),
+    }
+
+
+def _remote_agent_operational_snapshot(remote_agent_snapshot: dict[str, object]) -> dict[str, object]:
+    now = datetime.now(UTC)
+    last_registration_at = _parse_timestamp(remote_agent_snapshot.get('last_registration_at'))
+    last_command_poll_at = _parse_timestamp(remote_agent_snapshot.get('last_command_poll_at'))
+    pull_enabled = bool(settings.remote_command_pull_enabled)
+    grace_minutes = max(30, int(settings.remote_command_pull_interval_seconds / 60) * 2 or 30)
+
+    registration_lag_minutes = None
+    poll_lag_minutes = None
+    if last_registration_at is not None:
+        registration_lag_minutes = max(0.0, (now - last_registration_at).total_seconds() / 60.0)
+    if last_command_poll_at is not None:
+        poll_lag_minutes = max(0.0, (now - last_command_poll_at).total_seconds() / 60.0)
+
+    stale_registration = registration_lag_minutes is None or registration_lag_minutes > grace_minutes
+    stale_poll = poll_lag_minutes is None or poll_lag_minutes > grace_minutes
+
+    if not pull_enabled:
+        level = 'disabled'
+        label = 'disabled'
+        reason = 'Pull remoto desabilitado'
+    elif stale_registration and stale_poll:
+        level = 'error'
+        label = 'error'
+        reason = 'Registro e poll remoto fora da janela'
+    elif stale_registration or stale_poll:
+        level = 'warning'
+        label = 'warning'
+        reason = 'Registro ou poll remoto fora da janela'
+    else:
+        level = 'online'
+        label = 'online'
+        reason = 'Registro e poll remoto recentes'
+
+    return {
+        'level': level,
+        'label': label,
+        'reason': reason,
+        'grace_minutes': grace_minutes,
+        'registration_lag_minutes': None if registration_lag_minutes is None else round(registration_lag_minutes, 1),
+        'poll_lag_minutes': None if poll_lag_minutes is None else round(poll_lag_minutes, 1),
+        'pull_enabled': pull_enabled,
     }
 
 
@@ -1624,6 +1670,22 @@ def settings_page(
     sync_jobs = control.fetch_sync_jobs(limit=50)
     source_status_snapshot = _source_status_snapshot(source_configs, sync_jobs)
     source_execution_overview = _source_execution_overview(source_status_snapshot)
+    try:
+        remote_agent_snapshot = RemoteAgentService(db).build_status_snapshot()
+    except Exception:
+        remote_agent_snapshot = {
+            'service': 'sync-admin',
+            'hostname': '-',
+            'last_sync_at': None,
+            'last_sync_status': '-',
+            'last_sync_reason': '-',
+            'last_registration_at': None,
+            'last_command_poll_at': None,
+            'last_command_origin': '-',
+            'pending_local_batches': 0,
+            'total_local_records': 0,
+        }
+    remote_agent_operational = _remote_agent_operational_snapshot(remote_agent_snapshot)
     destination_configs = control.fetch_destination_configs()
     audit_summary = control.fetch_audit_summary()
     audit_events = control.fetch_audit_events(limit=10)
@@ -1650,6 +1712,8 @@ def settings_page(
             'summary': summary,
             'control_summary': control_summary,
             'source_execution_overview': source_execution_overview,
+            'remote_agent_snapshot': remote_agent_snapshot,
+            'remote_agent_operational': remote_agent_operational,
             'flash': flash,
             'error': error,
             'generated_key': generated_key,

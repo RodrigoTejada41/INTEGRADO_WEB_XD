@@ -28,6 +28,24 @@
   <div class="col-md-3"><div class="card p-3"><small>Falhas</small><h4 id="kpi-source-exec-failed">{{ source_execution_overview.failed_count }}</h4></div></div>
 </div>
 
+<div class="card p-3 mb-4">
+  <div class="d-flex justify-content-between align-items-start flex-wrap gap-3">
+    <div>
+      <small class="text-muted">Saude bidirecional</small>
+      <div class="d-flex align-items-center gap-2">
+        <span class="badge text-bg-{{ 'success' if remote_agent_operational.level == 'online' else 'secondary' if remote_agent_operational.level == 'disabled' else 'warning' if remote_agent_operational.level == 'warning' else 'danger' }}">{{ remote_agent_operational.label }}</span>
+        <strong>{{ remote_agent_operational.reason }}</strong>
+      </div>
+      <small class="text-muted">Janela de referencia: {{ remote_agent_operational.grace_minutes }} min</small>
+    </div>
+    <div class="text-muted small">
+      <div>Pull remoto: {{ 'habilitado' if remote_agent_operational.pull_enabled else 'desabilitado' }}</div>
+      <div>Lag registro: {{ remote_agent_operational.registration_lag_minutes if remote_agent_operational.registration_lag_minutes is not none else '-' }} min</div>
+      <div>Lag poll: {{ remote_agent_operational.poll_lag_minutes if remote_agent_operational.poll_lag_minutes is not none else '-' }} min</div>
+    </div>
+  </div>
+</div>
+
 <div class="row g-3">
   <div class="col-md-6">
     <div class="card p-3 h-100">
@@ -35,6 +53,8 @@
       <p><strong>Ultimo recebimento:</strong> {{ summary.last_received or '-' }}</p>
       <p><strong>Total de lotes:</strong> {{ summary.total_batches }}</p>
       <p><strong>Falhas:</strong> {{ summary.failed_batches }}</p>
+      <p><strong>Ultimo sync remoto:</strong> {{ remote_agent_snapshot.last_sync_at or '-' }}</p>
+      <p><strong>Ultimo poll remoto:</strong> {{ remote_agent_snapshot.last_command_poll_at or '-' }}</p>
     </div>
   </div>
   <div class="col-md-6">
@@ -47,6 +67,8 @@
       <p><strong>Falhas app /sync:</strong> {{ control_summary.sync_application_failures_total }}</p>
       <p><strong>Erros conexao/preflight:</strong> {{ control_summary.preflight_connection_errors_total }}</p>
       <p><strong>Retencao processada:</strong> {{ control_summary.retention_processed_total }}</p>
+      <p><strong>Ultimo registro remoto:</strong> {{ remote_agent_snapshot.last_registration_at or '-' }}</p>
+      <p><strong>Origem do ultimo comando:</strong> {{ remote_agent_snapshot.last_command_origin or '-' }}</p>
     </div>
   </div>
 </div>

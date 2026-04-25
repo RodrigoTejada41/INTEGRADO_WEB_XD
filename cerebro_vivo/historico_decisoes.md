@@ -344,3 +344,8 @@ Sempre que houver decisao arquitetural, de seguranca, de dados/logs ou de produt
 - Decisao: registrar o estado atual como checkpoint limpo, mantendo o commit `f4ce33f` como linha de retomada e sem abrir nova frente funcional.
 - Motivo: a continuidade precisava ficar pronta para o proximo acesso sem redescobrir contexto ou perder a posicao exata do trabalho.
 - Impacto: qualquer reabertura futura consegue retomar a partir do baseline consolidado, com suite verde e memoria executiva atualizada.
+
+### D061 - O console principal ganha visibilidade da saude bidirecional do remote_agent
+- Decisao: exibir no `settings` um bloco de saude do `remote_agent` com estado de pull, registro e poll, reaproveitando o snapshot local ja existente.
+- Motivo: a operacao bidirecional precisava ficar visivel no console principal para reduzir ambiguidade entre configuracao, ciclo remoto e estado atual.
+- Impacto: o operador passa a ver no mesmo painel a saude do controle remoto e os dados de sync, o que reduz a necessidade de abrir telas separadas para validar o ciclo.
