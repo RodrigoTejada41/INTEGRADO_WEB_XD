@@ -64,6 +64,6 @@ wait_for_container_health "integrado-nginx" "${HEALTH_TIMEOUT_SECONDS}"
 curl --fail --silent --show-error http://127.0.0.1/healthz >/dev/null
 curl --fail --silent --show-error http://127.0.0.1/readyz/backend >/dev/null
 curl --fail --silent --show-error http://127.0.0.1/readyz/sync-admin >/dev/null
-curl --fail --silent --show-error http://127.0.0.1/api/health/ready >/dev/null
+curl --fail --silent --show-error --insecure https://127.0.0.1/admin/api/health/ready >/dev/null
 
 echo "[deploy] Deploy concluido com sucesso."

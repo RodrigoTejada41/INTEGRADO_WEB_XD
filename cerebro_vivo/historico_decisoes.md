@@ -359,3 +359,8 @@ Sempre que houver decisao arquitetural, de seguranca, de dados/logs ou de produt
 - Decisao: adicionar botao de sincronizacao por fonte na fila de atencao, badges resumidos de alerta e um resumo comercial com periodo, valor total, ticket medio e produto lider.
 - Motivo: o painel precisava reduzir o caminho entre detectar risco e agir, ao mesmo tempo em que ganhava visao executiva do negocio sem sair da pagina operacional.
 - Impacto: o dashboard vira uma superficie unica para triagem tecnica e leitura comercial rapida.
+
+### D064 - O deploy da VPS passa a refletir o contrato HTTPS real do produto
+- Decisao: publicar o dashboard comercial executivo na VPS, exigir `INTEGRATION_API_KEY` no compose, montar `/etc/letsencrypt`, expor `443`, validar `/admin/api/health/ready` via HTTPS e rotear `/admin/` para o `sync-admin`.
+- Motivo: o deploy direto revelou drift entre a configuracao local e a borda real de producao, principalmente em segredos obrigatorios, certificado e mapa de rotas.
+- Impacto: a publicacao volta a ser coerente com o dominio real `https://movisystecnologia.com.br`, com smoke publico aprovado e contrato de producao mais fiel ao ambiente comercial.

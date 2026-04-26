@@ -255,11 +255,16 @@
         "item": "Tornar a fila acionavel e adicionar snapshot comercial leve no dashboard",
         "motivo": "Dar botao de sincronizacao por fonte, alertas resumidos e leitura executiva do periodo atual",
         "status": "concluido"
+      },
+      {
+        "ordem": 23,
+        "item": "Publicar dashboard comercial executivo na VPS",
+        "motivo": "Validar o produto em producao com HTTPS real, smoke publico e contrato de borda alinhado ao dominio",
+        "status": "concluido"
       }
     ],
     "riscos_conhecidos": [
       "API de memoria primaria indisponivel em http://127.0.0.1:8080/health",
-      "Readiness fim a fim da cadeia produtiva ainda pendente de fechamento operacional",
       "Runbooks recorrentes de deploy, rotacao de chaves e recuperacao ainda nao consolidados",
       "Drift local de migracoes e testes em relacao a producao estavel no commit 5a06f1d"
     ]
@@ -269,5 +274,5 @@
     "pasta_historica": ".cerebro-vivo",
     "regra": "A pasta top-level resume e aponta; a pasta oculta preserva a base operacional detalhada."
   },
-  "atualizado_em": "2026-04-25T20:20:00-03:00"
+  "atualizado_em": "2026-04-26T04:31:00-03:00"
 }

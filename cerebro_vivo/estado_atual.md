@@ -241,3 +241,7 @@ Na retomada canonica atual, o backlog funcional esta consolidado ate `P20`. `P19
 - O fluxo bidirecional ganhou cobertura de teste no console principal do sync-admin.
 - O dashboard operacional ganhou uma fila de `Fontes para atencao`, com destaque automatico para fontes atrasadas, em fila, em execucao ou com falha recente.
 - O dashboard operacional ganhou acao direta por fonte, alertas resumidos no topo e um snapshot comercial leve para leitura executiva do periodo atual.
+- O dashboard comercial executivo foi publicado na VPS e validado por smoke publico em `https://movisystecnologia.com.br`.
+- O deploy corrigiu a injecao de `INTEGRATION_API_KEY`, a montagem de certificados Let's Encrypt no container `nginx`, a porta `443` no compose e o roteamento `/admin/` para o `sync-admin`.
+- Certificado Let's Encrypt reemitido para `movisystecnologia.com.br`, valido ate `2026-07-25`.
+- Validacao atual: `py -3 -m pytest -q` com `93 passed, 1 skipped`.

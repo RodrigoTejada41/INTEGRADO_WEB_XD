@@ -166,3 +166,10 @@ bash infra/scripts/deploy-prod.sh
 - O teste de `settings` agora cobre o estado bidirecional real do `remote_agent` no fluxo do console.
 - O dashboard operacional ganhou uma fila de `Fontes para atencao` com fontes atrasadas, em fila, em execucao ou com falha recente, exposta tambem no refresh automatico via `/dashboard/data`.
 - O dashboard operacional ganhou uma fila acionavel com botao de `Sincronizar agora` por fonte, badges resumidos de alerta e um resumo comercial leve com periodo atual, valor total, registros, ticket medio e produto lider.
+
+## Atualizacao de deploy - 2026-04-26
+
+- Deploy VPS concluido em `https://movisystecnologia.com.br` apos publicar o dashboard comercial executivo.
+- Correcoes operacionais aplicadas: `INTEGRATION_API_KEY` passou a ser injetada no `frontend`, `443` e `/etc/letsencrypt` ficaram declarados no compose, `/admin/` voltou a apontar para o `sync-admin` e o smoke de deploy passou a validar `/admin/api/health/ready` via HTTPS.
+- Certificado Let's Encrypt reemitido na VPS para `movisystecnologia.com.br`, com vencimento em `2026-07-25`.
+- Validacao final: `py -3 -m pytest -q` com `93 passed, 1 skipped` e smoke publico `tests/test_release_smoke_contract.py` aprovado contra `https://movisystecnologia.com.br`.

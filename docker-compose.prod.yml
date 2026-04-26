@@ -72,6 +72,7 @@ services:
       DATABASE_URL: sqlite:////app/data/sync_admin.db
       INITIAL_ADMIN_USERNAME: ${INITIAL_ADMIN_USERNAME:-admin}
       INITIAL_ADMIN_PASSWORD: ${INITIAL_ADMIN_PASSWORD:?set INITIAL_ADMIN_PASSWORD in .env.prod}
+      INTEGRATION_API_KEY: ${INTEGRATION_API_KEY:?set INTEGRATION_API_KEY in .env.prod}
       CONTROL_API_BASE_URL: http://backend:8000
       CONTROL_ADMIN_TOKEN: ${ADMIN_TOKEN:?set ADMIN_TOKEN in .env.prod}
       CONTROL_EMPRESA_ID: ${CONTROL_EMPRESA_ID:-12345678000199}
@@ -103,8 +104,10 @@ services:
         condition: service_healthy
     ports:
       - "${NGINX_PUBLIC_PORT:-80}:80"
+      - "${NGINX_HTTPS_PORT:-443}:443"
     volumes:
       - ./infra/nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+      - /etc/letsencrypt:/etc/letsencrypt:ro
     healthcheck:
       test:
         [

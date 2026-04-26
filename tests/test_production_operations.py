@@ -35,7 +35,7 @@ def test_deploy_script_waits_for_runtime_health_before_edge_checks() -> None:
     assert 'wait_for_container_health "integrado-backend"' in deploy_script
     assert 'wait_for_container_health "integrado-frontend"' in deploy_script
     assert 'wait_for_container_health "integrado-nginx"' in deploy_script
-    assert "http://127.0.0.1/api/health/ready" in deploy_script
+    assert "--insecure https://127.0.0.1/admin/api/health/ready" in deploy_script
     assert "http://127.0.0.1/readyz/backend" in deploy_script
     assert "http://127.0.0.1/readyz/sync-admin" in deploy_script
 
@@ -61,6 +61,8 @@ def test_nginx_exposes_explicit_backend_and_sync_admin_readiness_routes() -> Non
     assert "proxy_pass http://frontend_upstream/health/ready;" in nginx_config
     assert "location /admin/api/" in nginx_config
     assert "rewrite ^/admin/api/(.*)$ /$1 break;" in nginx_config
+    assert "location /admin/ {" in nginx_config
+    assert "proxy_pass http://frontend_upstream;" in nginx_config
 
 
 def test_production_runbook_documents_the_operational_flow() -> None:
@@ -88,6 +90,16 @@ def test_production_compose_exposes_only_nginx_publicly() -> None:
     assert 'container_name: integrado-nginx' in compose_content
     assert compose_content.count("ports:") == 1
     assert '${NGINX_PUBLIC_PORT:-80}:80' in compose_content
+    assert '${NGINX_HTTPS_PORT:-443}:443' in compose_content
+    assert '/etc/letsencrypt:/etc/letsencrypt:ro' in compose_content
     assert 'backend:\n    build:' in compose_content
     assert 'frontend:\n    build:' in compose_content
     assert 'db:\n    image: postgres:16-alpine' in compose_content
+
+
+def test_production_compose_injects_sync_admin_required_secrets() -> None:
+    compose_content = (ROOT / "docker-compose.prod.yml").read_text(encoding="utf-8")
+    env_example = (ROOT / ".env.prod.example").read_text(encoding="utf-8")
+
+    assert "INTEGRATION_API_KEY: ${INTEGRATION_API_KEY:?set INTEGRATION_API_KEY in .env.prod}" in compose_content
+    assert "INTEGRATION_API_KEY=change-this-integration-api-key" in env_example
