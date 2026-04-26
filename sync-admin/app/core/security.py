@@ -1,6 +1,7 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 
 import hashlib
+import hmac
 import secrets
 from datetime import datetime, timedelta, timezone
 
@@ -40,6 +41,11 @@ def verify_access_token(token: str) -> str:
 
 def hash_api_key(raw_key: str) -> str:
     return hashlib.sha256(raw_key.encode('utf-8')).hexdigest()
+
+
+def verify_api_key(raw_key: str, expected_hash: str) -> bool:
+    candidate_hash = hash_api_key(raw_key)
+    return hmac.compare_digest(candidate_hash, expected_hash)
 
 
 def make_key_prefix(raw_key: str) -> str:

@@ -40,16 +40,19 @@ jobs:
             cd "$APP_DIR"
             git fetch origin "$BRANCH"
             git checkout "$BRANCH"
-            # Evita falha de pull quando houver ajuste manual tracked na VPS.
-            git restore .
-            git reset --hard HEAD
             git pull --ff-only origin "$BRANCH"
 
             chmod +x infra/scripts/*.sh
             APP_DIR="$APP_DIR" REPO_URL="$REPO_URL" BRANCH="$BRANCH" APP_USER="$USER" bash infra/scripts/setup-vps.sh
             APP_DIR="$APP_DIR" BRANCH="$BRANCH" bash infra/scripts/update.sh
-            APP_DIR="$APP_DIR" bash infra/scripts/install-monitoring-cron.sh
-            APP_DIR="$APP_DIR" bash infra/scripts/install-backup-cron.sh
+
+            if [ -f "infra/scripts/install-monitoring-cron.sh" ]; then
+              APP_DIR="$APP_DIR" bash infra/scripts/install-monitoring-cron.sh
+            fi
+
+            if [ -f "infra/scripts/install-backup-cron.sh" ]; then
+              APP_DIR="$APP_DIR" bash infra/scripts/install-backup-cron.sh
+            fi
 
             if [ -n "${{ secrets.DOMAIN }}" ] && [ -n "${{ secrets.LETSENCRYPT_EMAIL }}" ]; then
               if grep -q '^DOMAIN=' .env.prod; then
@@ -69,11 +72,22 @@ jobs:
                   echo "ENABLE_WWW_DOMAIN=${{ secrets.ENABLE_WWW_DOMAIN }}" >> .env.prod
                 fi
               fi
-              APP_DIR="$APP_DIR" bash infra/scripts/enable-https.sh || APP_DIR="$APP_DIR" bash infra/scripts/renew-certificates.sh
-              APP_DIR="$APP_DIR" bash infra/scripts/install-https-cron.sh
+
+              if [ -f "infra/scripts/enable-https.sh" ]; then
+                APP_DIR="$APP_DIR" bash infra/scripts/enable-https.sh || APP_DIR="$APP_DIR" bash infra/scripts/renew-certificates.sh
+              elif [ -f "infra/scripts/renew-certificates.sh" ]; then
+                APP_DIR="$APP_DIR" bash infra/scripts/renew-certificates.sh
+              fi
+
+              if [ -f "infra/scripts/install-https-cron.sh" ]; then
+                APP_DIR="$APP_DIR" bash infra/scripts/install-https-cron.sh
+              fi
             fi
 
       - name: Validate application endpoint
         shell: bash
         run: |
           curl -fsS "http://${{ secrets.VPS_HOST }}/healthz"
+          curl -fsS "http://${{ secrets.VPS_HOST }}/readyz/backend"
+          curl -fsS "http://${{ secrets.VPS_HOST }}/readyz/sync-admin"
+          curl -fsS "http://${{ secrets.VPS_HOST }}/api/health/ready"

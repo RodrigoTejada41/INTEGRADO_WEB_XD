@@ -1,0 +1,109 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <div>
+    <h3 class="mb-0">{{ client_data.hostname }}</h3>
+    <small class="text-muted">
+      <code>{{ client_data.id }}</code>
+      Â· {{ client_data.empresa_nome or 'Empresa sem nome' }}
+      Â· CNPJ <code>{{ client_data.empresa_id }}</code>
+    </small>
+  </div>
+  <div class="d-flex gap-2">
+    <a class="btn btn-outline-secondary" href="/reports?empresa_id={{ client_data.empresa_id }}">Abrir relatorios</a>
+    <a class="btn btn-outline-secondary" href="/connected-apis">Voltar</a>
+  </div>
+</div>
+
+{% if request.query_params.get('flash') %}
+<div class="alert alert-success">{{ request.query_params.get('flash') }}</div>
+{% endif %}
+{% if request.query_params.get('error') %}
+<div class="alert alert-danger">{{ request.query_params.get('error') }}</div>
+{% endif %}
+
+<div class="card p-3 mb-4">
+  <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
+    <div>
+      <small class="text-muted">Saude operacional</small>
+      <div class="d-flex align-items-center gap-2">
+        <span class="badge text-bg-{{ 'success' if client_health.level == 'online' else 'warning' if client_health.level == 'warning' else 'danger' }}">{{ client_health.label }}</span>
+        <strong>{{ client_health.reason }}</strong>
+      </div>
+      <small class="text-muted">Janela de referencia: {{ client_health.grace_minutes }} min</small>
+    </div>
+    <div class="text-muted small">
+      <div>Lag sync: {{ client_health.sync_lag_minutes if client_health.sync_lag_minutes is not none else '-' }} min</div>
+      <div>Lag poll: {{ client_health.poll_lag_minutes if client_health.poll_lag_minutes is not none else '-' }} min</div>
+    </div>
+  </div>
+</div>
+
+<div class="row g-3 mb-4">
+  <div class="col-md-3"><div class="card p-3"><small>Status</small><h5>{{ client_overview.status }}</h5></div></div>
+  <div class="col-md-3"><div class="card p-3"><small>Ultimo seen</small><h6>{{ client_overview.last_seen_at or '-' }}</h6></div></div>
+  <div class="col-md-3"><div class="card p-3"><small>Ultimo sync</small><h6>{{ client_overview.last_sync_at or '-' }}</h6></div></div>
+  <div class="col-md-3"><div class="card p-3"><small>Ultimo poll</small><h6>{{ client_overview.last_command_poll_at or '-' }}</h6></div></div>
+</div>
+
+<div class="row g-3 mb-4">
+  <div class="col-md-3"><div class="card p-3"><small>Endpoint</small><h6>{{ client_data.endpoint_url or '-' }}</h6></div></div>
+  <div class="col-md-3"><div class="card p-3"><small>CNPJ</small><h6><code>{{ client_data.empresa_id }}</code></h6></div></div>
+  <div class="col-md-3"><div class="card p-3"><small>Ultimo evento</small><h6>{{ client_overview.last_event_type or '-' }}</h6></div></div>
+  <div class="col-md-3"><div class="card p-3"><small>Correlacao</small><h6><code>{{ client_overview.last_correlation_id or '-' }}</code></h6></div></div>
+</div>
+
+<div class="row g-3 mb-4">
+  <div class="col-lg-6">
+    <div class="card p-3 h-100">
+      <h6>Acoes remotas</h6>
+      {% if current_user.role == 'admin' %}
+      <form method="post" action="/connected-apis/{{ client_data.id }}/sync" class="mb-3">
+        <button class="btn btn-primary">Forcar sincronizacao</button>
+      </form>
+      <form method="post" action="/connected-apis/{{ client_data.id }}/config">
+        <label class="form-label">Atualizar configuracao remota (JSON)</label>
+        <textarea class="form-control font-monospace" name="config_payload" rows="12">{{ pretty_config_snapshot }}</textarea>
+        <button class="btn btn-outline-primary mt-3">Enviar atualizacao</button>
+      </form>
+      {% else %}
+      <p class="text-muted mb-0">Seu perfil possui acesso de visualizacao. Acoes remotas exigem perfil admin.</p>
+      {% endif %}
+    </div>
+  </div>
+  <div class="col-lg-6">
+    <div class="card p-3 h-100">
+      <h6>Status snapshot</h6>
+      <pre class="bg-light rounded p-3 small mb-0"><code>{{ pretty_status_snapshot }}</code></pre>
+    </div>
+  </div>
+</div>
+
+<div class="card p-3 mb-4">
+  <h6>Config snapshot</h6>
+  <pre class="bg-light rounded p-3 small mb-0"><code>{{ pretty_config_snapshot }}</code></pre>
+</div>
+
+<div class="card p-3">
+  <h6>Logs recentes</h6>
+  <div class="table-responsive">
+    <table class="table table-sm table-striped align-middle">
+      <thead><tr><th>Quando</th><th>Evento</th><th>Status</th><th>Correlacao</th><th>Detalhe</th></tr></thead>
+      <tbody>
+        {% for log in logs %}
+        <tr>
+          <td>{{ log.created_at }}</td>
+          <td>{{ log.event_type }}</td>
+          <td>{{ log.status }}</td>
+          <td><code>{{ log.correlation_id or '-' }}</code></td>
+          <td><code>{{ log.detail }}</code></td>
+        </tr>
+        {% endfor %}
+        {% if logs|length == 0 %}
+        <tr><td colspan="5" class="text-muted">Sem logs recentes para esta API.</td></tr>
+        {% endif %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}
