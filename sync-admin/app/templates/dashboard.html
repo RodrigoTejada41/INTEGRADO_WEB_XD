@@ -230,6 +230,45 @@
     Produto lider: <strong id="kpi-commercial-top-product">{{ commercial_snapshot.top_product }}</strong>
     · Valor: <span id="kpi-commercial-top-product-value">{{ commercial_snapshot.top_product_value }}</span>
   </div>
+  <div class="card mt-3 p-3 bg-light border-0">
+    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+      <div>
+        <strong>Comparacao com periodo anterior</strong>
+        {% if commercial_comparison %}
+        <div class="small text-muted">
+          <span id="kpi-commercial-comparison-period">{{ commercial_comparison.previous_start_date }} a {{ commercial_comparison.previous_end_date }}</span>
+        </div>
+        {% else %}
+        <div class="small text-muted">Sem periodo anterior comparavel para o recorte atual.</div>
+        {% endif %}
+      </div>
+      {% if commercial_comparison %}
+      <div class="small d-flex flex-wrap gap-2">
+        <span class="badge text-bg-secondary">Registros previos: <span id="kpi-commercial-previous-records">{{ commercial_comparison.previous_total_records }}</span></span>
+        <span class="badge text-bg-secondary">Valor previo: <span id="kpi-commercial-previous-value">{{ commercial_comparison.previous_total_sales_value }}</span></span>
+        <span class="badge text-bg-{{ 'success' if commercial_comparison.delta_total_records >= 0 else 'danger' }}">Delta registros: <span id="kpi-commercial-delta-records">{{ commercial_comparison.delta_total_records }}</span></span>
+        <span class="badge text-bg-{{ 'success' if commercial_comparison.delta_total_sales_value.startswith('+') else 'danger' }}">Delta valor: <span id="kpi-commercial-delta-value">{{ commercial_comparison.delta_total_sales_value }}</span></span>
+        {% if commercial_comparison.delta_total_records_pct %}
+        <span class="badge text-bg-{{ 'success' if commercial_comparison.delta_total_records_pct.startswith('+') else 'danger' }}">Registros %: <span id="kpi-commercial-delta-records-pct">{{ commercial_comparison.delta_total_records_pct }}%</span></span>
+        {% endif %}
+        {% if commercial_comparison.delta_total_sales_value_pct %}
+        <span class="badge text-bg-{{ 'success' if commercial_comparison.delta_total_sales_value_pct.startswith('+') else 'danger' }}">Valor %: <span id="kpi-commercial-delta-value-pct">{{ commercial_comparison.delta_total_sales_value_pct }}%</span></span>
+        {% endif %}
+      </div>
+      {% endif %}
+    </div>
+  </div>
+  <div class="row g-3 mt-1">
+    {% for card in commercial_highlight_cards %}
+    <div class="col-md-3">
+      <div class="card p-3 h-100">
+        <small>{{ card.label }}</small>
+        <h5 class="mb-1" data-commercial-highlight-value="{{ card.label }}">{{ card.value }}</h5>
+        <div class="text-muted small" data-commercial-highlight-hint="{{ card.label }}">{{ card.hint }}</div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
 </div>
 
 <div class="card mb-4 p-3">

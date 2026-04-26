@@ -28,6 +28,92 @@ def _prepare_sync_admin() -> None:
         sys.path.insert(0, str(sync_admin_root))
 
 
+def _patch_commercial_reports(monkeypatch, control_service_cls) -> None:
+    def fake_fetch_report_overview(
+        self,
+        *,
+        empresa_id: str | None = None,
+        start_date: str | None = None,
+        end_date: str | None = None,
+        branch_code: str | None = None,
+        terminal_code: str | None = None,
+    ):
+        if start_date and str(start_date)[5:7] == "03":
+            return {
+                "empresa_id": empresa_id or "12345678000199",
+                "start_date": start_date,
+                "end_date": end_date or "2026-03-31",
+                "total_records": 96,
+                "total_sales_value": 3210.0,
+                "distinct_products": 18,
+            }
+        return {
+            "empresa_id": empresa_id or "12345678000199",
+            "start_date": start_date or "2026-04-01",
+            "end_date": end_date or "2026-04-26",
+            "total_records": 128,
+            "total_sales_value": 4567.89,
+            "distinct_products": 24,
+        }
+
+    def fake_fetch_report_daily_sales(
+        self,
+        *,
+        empresa_id: str | None = None,
+        start_date: str | None = None,
+        end_date: str | None = None,
+        branch_code: str | None = None,
+        terminal_code: str | None = None,
+    ):
+        return {
+            "items": [
+                {"day": "2026-04-01", "total_sales_value": 1000.0},
+                {"day": "2026-04-02", "total_sales_value": 2000.0},
+                {"day": "2026-04-03", "total_sales_value": 1500.0},
+            ]
+        }
+
+    def fake_fetch_report_top_products(
+        self,
+        *,
+        empresa_id: str | None = None,
+        start_date: str | None = None,
+        end_date: str | None = None,
+        branch_code: str | None = None,
+        terminal_code: str | None = None,
+        limit: int = 3,
+    ):
+        return {
+            "items": [
+                {"produto": "Produto lider", "total_sales_value": 1234.56},
+                {"produto": "Produto B", "total_sales_value": 987.65},
+                {"produto": "Produto C", "total_sales_value": 654.32},
+            ][:limit]
+        }
+
+    def fake_fetch_report_recent_sales(
+        self,
+        *,
+        empresa_id: str | None = None,
+        start_date: str | None = None,
+        end_date: str | None = None,
+        branch_code: str | None = None,
+        terminal_code: str | None = None,
+        limit: int = 5,
+    ):
+        return {
+            "items": [
+                {"day": "2026-04-26", "total_sales_value": 250.0},
+                {"day": "2026-04-25", "total_sales_value": 180.0},
+            ][:limit]
+        }
+
+    monkeypatch.setattr(control_service_cls, "fetch_report_overview", fake_fetch_report_overview)
+    monkeypatch.setattr(control_service_cls, "fetch_report_daily_sales", fake_fetch_report_daily_sales)
+    monkeypatch.setattr(control_service_cls, "fetch_report_top_products", fake_fetch_report_top_products)
+    monkeypatch.setattr(control_service_cls, "fetch_report_recent_sales", fake_fetch_report_recent_sales)
+
+
 def test_sync_admin_dashboard_exposes_source_cycle_cockpit(monkeypatch) -> None:
     _prepare_sync_admin()
     os.environ["REMOTE_COMMAND_PULL_ENABLED"] = "true"
@@ -88,40 +174,6 @@ def test_sync_admin_dashboard_exposes_source_cycle_cockpit(monkeypatch) -> None:
             tenant_queue_last_event_lag_seconds=60,
                 tenant_destination_last_event_lag_seconds=0,
             )
-
-    def fake_fetch_report_overview(
-        self,
-        *,
-        empresa_id: str | None = None,
-        start_date: str | None = None,
-        end_date: str | None = None,
-        branch_code: str | None = None,
-        terminal_code: str | None = None,
-    ):
-        return {
-            "empresa_id": empresa_id or "12345678000199",
-            "start_date": start_date or "2026-04-01",
-            "end_date": end_date or "2026-04-24",
-            "total_records": 128,
-            "total_sales_value": 4567.89,
-            "distinct_products": 24,
-        }
-
-    def fake_fetch_report_top_products(
-        self,
-        *,
-        empresa_id: str | None = None,
-        start_date: str | None = None,
-        end_date: str | None = None,
-        branch_code: str | None = None,
-        terminal_code: str | None = None,
-        limit: int = 3,
-    ):
-        return {
-            "items": [
-                {"produto": "Produto lider", "total_sales_value": 1234.56},
-            ]
-        }
 
     source_configs = [
         {
@@ -264,8 +316,7 @@ def test_sync_admin_dashboard_exposes_source_cycle_cockpit(monkeypatch) -> None:
     monkeypatch.setattr(ControlService, "fetch_summary", fake_fetch_summary)
     monkeypatch.setattr(ControlService, "fetch_sync_jobs_summary", fake_fetch_sync_jobs_summary)
     monkeypatch.setattr(ControlService, "fetch_tenant_observability", fake_fetch_tenant_observability)
-    monkeypatch.setattr(ControlService, "fetch_report_overview", fake_fetch_report_overview)
-    monkeypatch.setattr(ControlService, "fetch_report_top_products", fake_fetch_report_top_products)
+    _patch_commercial_reports(monkeypatch, ControlService)
     monkeypatch.setattr(ControlService, "fetch_source_configs", fake_fetch_source_configs)
     monkeypatch.setattr(ControlService, "fetch_sync_jobs", fake_fetch_sync_jobs)
     monkeypatch.setattr(ControlService, "fetch_source_cycle_summary", fake_fetch_source_cycle_summary)
@@ -306,6 +357,7 @@ def test_sync_admin_dashboard_exposes_source_cycle_cockpit(monkeypatch) -> None:
         assert "Registro e poll remoto recentes" in dashboard_page.text
         assert "Fontes para atencao" in dashboard_page.text
         assert "Resumo comercial" in dashboard_page.text
+        assert "Comparacao com periodo anterior" in dashboard_page.text
         assert "Fontes ativas" in dashboard_page.text
         assert "Sincronizar todas as fontes" in dashboard_page.text
         assert "/dashboard/source-configs/sync-all" in dashboard_page.text
@@ -331,10 +383,15 @@ def test_sync_admin_dashboard_exposes_source_cycle_cockpit(monkeypatch) -> None:
         assert payload["source_execution_overview"]["done_count"] == 1
         assert payload["source_execution_overview"]["failed_count"] == 0
         assert len(payload["source_attention_rows"]) == 2
-        assert payload["source_attention_rows"][0]["nome"] == "Caixa principal"
+        assert payload["source_attention_rows"][0]["nome"] == "Filial backup"
+        assert payload["source_attention_rows"][1]["nome"] == "Caixa principal"
         assert payload["source_attention_summary"]["total_count"] == 2
+        assert payload["source_attention_summary"]["failed_count"] == 1
+        assert payload["source_attention_summary"]["overdue_count"] == 2
         assert payload["commercial_snapshot"]["total_records"] == 128
         assert payload["commercial_snapshot"]["top_product"] == "Produto lider"
+        assert payload["commercial_comparison"]["delta_total_records"] == 32
+        assert len(payload["commercial_highlight_cards"]) == 4
         assert payload["remote_agent_operational"]["pull_enabled"] is True
         assert payload["remote_agent"]["hostname"] == "sync-admin-host"
 
@@ -486,6 +543,7 @@ def test_sync_admin_dashboard_triggers_source_sync_action(monkeypatch) -> None:
     monkeypatch.setattr(ControlService, "fetch_summary", fake_fetch_summary)
     monkeypatch.setattr(ControlService, "fetch_sync_jobs_summary", fake_fetch_sync_jobs_summary)
     monkeypatch.setattr(ControlService, "fetch_tenant_observability", fake_fetch_tenant_observability)
+    _patch_commercial_reports(monkeypatch, ControlService)
     monkeypatch.setattr(ControlService, "fetch_source_configs", fake_fetch_source_configs)
     monkeypatch.setattr(ControlService, "fetch_sync_jobs", fake_fetch_sync_jobs)
     monkeypatch.setattr(ControlService, "fetch_source_cycle_summary", fake_fetch_source_cycle_summary)
@@ -694,6 +752,7 @@ def test_sync_admin_dashboard_triggers_all_source_sync_action(monkeypatch) -> No
     monkeypatch.setattr(ControlService, "fetch_summary", fake_fetch_summary)
     monkeypatch.setattr(ControlService, "fetch_sync_jobs_summary", fake_fetch_sync_jobs_summary)
     monkeypatch.setattr(ControlService, "fetch_tenant_observability", fake_fetch_tenant_observability)
+    _patch_commercial_reports(monkeypatch, ControlService)
     monkeypatch.setattr(ControlService, "fetch_source_configs", fake_fetch_source_configs)
     monkeypatch.setattr(ControlService, "fetch_sync_jobs", fake_fetch_sync_jobs)
     monkeypatch.setattr(ControlService, "fetch_source_cycle_summary", fake_fetch_source_cycle_summary)

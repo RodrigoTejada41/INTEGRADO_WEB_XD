@@ -367,11 +367,12 @@ def _source_attention_rows(
         failed_count = int(snapshot.get('failed_count', 0) or 0)
         next_run_at = _parse_timestamp(source.get('next_run_at'))
         last_run_at = _parse_timestamp(source.get('last_run_at'))
+        last_error = str(source.get('last_error') or '').strip()
 
         reasons: list[str] = []
         severity = 0
 
-        if failed_count > 0 or live_status in {'failed', 'dead_letter'}:
+        if failed_count > 0 or live_status in {'failed', 'dead_letter', 'retrying'} or last_error:
             severity += 3
             reasons.append('falha recente')
         if next_run_at is not None and next_run_at <= now:
@@ -402,7 +403,7 @@ def _source_attention_rows(
                     or source.get('last_scheduled_at')
                     or '-'
                 ),
-                'last_error': str(source.get('last_error') or '-'),
+                'last_error': last_error or '-',
                 'queued_count': queued_count,
                 'running_count': running_count,
                 'failed_count': failed_count,
@@ -852,33 +853,35 @@ def dashboard(
     current_period_start, current_period_end = _current_month_range()
     report_empresa_id = company_code or getattr(current_user, 'empresa_id', None) or settings.control_empresa_id
     try:
-        report_overview = control.fetch_report_overview(
+        commercial_payload = _build_report_payload(
             empresa_id=report_empresa_id,
             start_date=current_period_start,
             end_date=current_period_end,
             branch_code=branch_code,
             terminal_code=terminal_code,
+            top_limit=3,
+            recent_limit=5,
         )
     except Exception:
-        report_overview = {
-            'start_date': current_period_start,
-            'end_date': current_period_end,
-            'total_records': 0,
-            'total_sales_value': 0.0,
-            'distinct_products': 0,
+        commercial_payload = {
+            'overview': {
+                'start_date': current_period_start,
+                'end_date': current_period_end,
+                'total_records': 0,
+                'total_sales_value': 0.0,
+                'distinct_products': 0,
+            },
+            'daily_items': [],
+            'top_items': [],
+            'recent_items': [],
+            'comparison': None,
+            'highlight_cards': [],
+            'filter_chips': [],
         }
-    try:
-        report_top_products = control.fetch_report_top_products(
-            empresa_id=report_empresa_id,
-            start_date=current_period_start,
-            end_date=current_period_end,
-            branch_code=branch_code,
-            terminal_code=terminal_code,
-            limit=3,
-        )
-    except Exception:
-        report_top_products = {'items': []}
-    commercial_snapshot = _commercial_snapshot(report_overview, report_top_products)
+    commercial_snapshot = _commercial_snapshot(
+        commercial_payload['overview'],
+        {'items': commercial_payload.get('top_items', [])},
+    )
     try:
         remote_agent_snapshot = RemoteAgentService(db).build_status_snapshot()
     except Exception:
@@ -1004,6 +1007,8 @@ def dashboard(
             'source_attention_rows': source_attention_rows,
             'source_attention_summary': source_attention_summary,
             'commercial_snapshot': commercial_snapshot,
+            'commercial_comparison': commercial_payload.get('comparison'),
+            'commercial_highlight_cards': commercial_payload.get('highlight_cards', []),
             'remote_agent_snapshot': remote_agent_snapshot,
             'remote_agent_operational': remote_agent_operational,
             'destination_configs': destination_configs,
@@ -1037,33 +1042,35 @@ def dashboard_data(
     current_period_start, current_period_end = _current_month_range()
     report_empresa_id = company_code or settings.control_empresa_id
     try:
-        report_overview = control_service.fetch_report_overview(
+        commercial_payload = _build_report_payload(
             empresa_id=report_empresa_id,
             start_date=current_period_start,
             end_date=current_period_end,
             branch_code=branch_code,
             terminal_code=terminal_code,
+            top_limit=3,
+            recent_limit=5,
         )
     except Exception:
-        report_overview = {
-            'start_date': current_period_start,
-            'end_date': current_period_end,
-            'total_records': 0,
-            'total_sales_value': 0.0,
-            'distinct_products': 0,
+        commercial_payload = {
+            'overview': {
+                'start_date': current_period_start,
+                'end_date': current_period_end,
+                'total_records': 0,
+                'total_sales_value': 0.0,
+                'distinct_products': 0,
+            },
+            'daily_items': [],
+            'top_items': [],
+            'recent_items': [],
+            'comparison': None,
+            'highlight_cards': [],
+            'filter_chips': [],
         }
-    try:
-        report_top_products = control_service.fetch_report_top_products(
-            empresa_id=report_empresa_id,
-            start_date=current_period_start,
-            end_date=current_period_end,
-            branch_code=branch_code,
-            terminal_code=terminal_code,
-            limit=3,
-        )
-    except Exception:
-        report_top_products = {'items': []}
-    commercial_snapshot = _commercial_snapshot(report_overview, report_top_products)
+    commercial_snapshot = _commercial_snapshot(
+        commercial_payload['overview'],
+        {'items': commercial_payload.get('top_items', [])},
+    )
     try:
         remote_agent_snapshot = RemoteAgentService(db).build_status_snapshot()
     except Exception:
@@ -1203,6 +1210,8 @@ def dashboard_data(
             'source_attention_rows': source_attention_rows,
             'source_attention_summary': source_attention_summary,
             'commercial_snapshot': commercial_snapshot,
+            'commercial_comparison': commercial_payload.get('comparison'),
+            'commercial_highlight_cards': commercial_payload.get('highlight_cards', []),
             'remote_agent': remote_agent_snapshot,
             'remote_agent_operational': remote_agent_operational,
         }

@@ -1,11 +1,9 @@
 # Snapshot local do sync-admin
 
-- Gerado em: 2026-04-25T20:20:00+00:00
+- Gerado em: -
 - Total de lotes: 0
 - Total de registros: 0
 - Falhas: 0
-
-- Console principal: fila de `Fontes para atencao` com acao direta por fonte e snapshot comercial leve no dashboard.
 
 ## Ultimos lotes
 
@@ -14,7 +12,7 @@
 
 # Erros recentes
 
-- Gerado em: 2026-04-25T22:51:11.073546+00:00
+- Gerado em: 2026-04-26T03:44:12.818785+00:00
 - Total de registros: 0
 
 ## Amostra

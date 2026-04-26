@@ -105,6 +105,39 @@
     }).join('');
   }
 
+  function renderCommercialSnapshot(snapshot, comparison, highlightCards) {
+    if (snapshot) {
+      setText('kpi-commercial-period', `${snapshot.period_start} a ${snapshot.period_end}`);
+      setText('kpi-commercial-total-sales', snapshot.total_sales_value);
+      setText('kpi-commercial-total-records', snapshot.total_records);
+      setText('kpi-commercial-distinct-products', snapshot.distinct_products);
+      setText('kpi-commercial-average-ticket', snapshot.average_ticket);
+      setText('kpi-commercial-top-product', snapshot.top_product);
+      setText('kpi-commercial-top-product-value', snapshot.top_product_value);
+    }
+    if (comparison) {
+      setText('kpi-commercial-comparison-period', `${comparison.previous_start_date} a ${comparison.previous_end_date}`);
+      setText('kpi-commercial-previous-records', comparison.previous_total_records);
+      setText('kpi-commercial-previous-value', comparison.previous_total_sales_value);
+      setText('kpi-commercial-delta-records', comparison.delta_total_records);
+      setText('kpi-commercial-delta-value', comparison.delta_total_sales_value);
+      if (comparison.delta_total_records_pct !== null && comparison.delta_total_records_pct !== undefined) {
+        setText('kpi-commercial-delta-records-pct', `${comparison.delta_total_records_pct}%`);
+      }
+      if (comparison.delta_total_sales_value_pct !== null && comparison.delta_total_sales_value_pct !== undefined) {
+        setText('kpi-commercial-delta-value-pct', `${comparison.delta_total_sales_value_pct}%`);
+      }
+    }
+    if (Array.isArray(highlightCards)) {
+      highlightCards.forEach((card) => {
+        const valueEl = document.querySelector(`[data-commercial-highlight-value="${CSS.escape(card.label)}"]`);
+        const hintEl = document.querySelector(`[data-commercial-highlight-hint="${CSS.escape(card.label)}"]`);
+        if (valueEl) valueEl.textContent = String(card.value ?? '-');
+        if (hintEl) hintEl.textContent = String(card.hint ?? '-');
+      });
+    }
+  }
+
   async function refreshDashboard() {
     try {
       const resp = await fetch('/dashboard/data', { headers: { 'Accept': 'application/json' } });
@@ -162,6 +195,11 @@
         setText('kpi-commercial-top-product', data.commercial_snapshot.top_product);
         setText('kpi-commercial-top-product-value', data.commercial_snapshot.top_product_value);
       }
+      renderCommercialSnapshot(
+        data.commercial_snapshot || null,
+        data.commercial_comparison || null,
+        data.commercial_highlight_cards || [],
+      );
     } catch (_err) {
     }
   }
