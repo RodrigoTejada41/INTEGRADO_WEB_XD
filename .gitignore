@@ -4,6 +4,9 @@ __pycache__/
 *.pyd
 *.pyo
 .pytest_cache/
+.pytest-work/
+.pytest-basetemp/
+pytest_basetemp/
 .mypy_cache/
 .ruff_cache/
 
@@ -11,33 +14,21 @@ __pycache__/
 .venv/
 venv/
 env/
-!infra/env/
-!infra/env/.env.prod.example
 
 # Local configuration and secrets
 .env
 .env.prod
-.secrets/
-infra/keys/
-*.pem
-*.key
-*.ppk
-id_ed25519
-id_ed25519.pub
 
 # Generated databases and runtime artifacts
 output/
 logs/
 runtime/
+.pytest-tmp/
 release-artifacts/
 nexus-manifests/
 obsidian-vault/
 input/
-infra/logs/
-infra/nginx/certbot/*
-!infra/nginx/certbot/.gitkeep
-infra/nginx/certs/*
-!infra/nginx/certs/.gitkeep
+infra/client-agent/releases/
 
 # Build / package artifacts
 dist/

@@ -2,7 +2,58 @@
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-3">
   <h3 class="mb-0">Dashboard</h3>
-  <a class="btn btn-outline-secondary btn-sm" href="/dashboard/audit.csv">Exportar auditoria CSV</a>
+  <div class="d-flex gap-2 flex-wrap">
+    <a class="btn btn-outline-secondary btn-sm" href="/dashboard/audit.csv">CSV</a>
+    <a class="btn btn-outline-secondary btn-sm" href="/dashboard/audit.xlsx">XLSX</a>
+    <a class="btn btn-outline-secondary btn-sm" href="/dashboard/audit.pdf">PDF</a>
+    <a class="btn btn-outline-primary btn-sm" href="/dashboard/export.md?company_code={{ company_code }}&branch_code={{ branch_code }}&terminal_code={{ terminal_code }}">Markdown</a>
+  </div>
+</div>
+
+<form method="get" class="card p-3 mb-4">
+  <div class="row g-2 align-items-end">
+    <div class="col-md-3">
+      <label class="form-label">Empresa</label>
+      <input class="form-control" type="text" name="company_code" value="{{ company_code }}" placeholder="Company code" />
+    </div>
+    <div class="col-md-3">
+      <label class="form-label">Filial</label>
+      <input class="form-control" type="text" name="branch_code" value="{{ branch_code }}" placeholder="Branch code" />
+    </div>
+    <div class="col-md-3">
+      <label class="form-label">Terminal</label>
+      <input class="form-control" type="text" name="terminal_code" value="{{ terminal_code }}" placeholder="Terminal code" />
+    </div>
+    <div class="col-md-3 d-flex gap-2">
+      <button class="btn btn-primary" type="submit">Aplicar filtro</button>
+      <a class="btn btn-outline-secondary" href="/dashboard">Limpar</a>
+    </div>
+  </div>
+</form>
+
+<div class="row g-3 mb-4">
+  <div class="col-md-3"><div class="card p-3"><small>Na fila</small><h4 id="kpi-source-exec-queued">{{ source_execution_overview.queued_count }}</h4></div></div>
+  <div class="col-md-3"><div class="card p-3"><small>Em execucao</small><h4 id="kpi-source-exec-running">{{ source_execution_overview.running_count }}</h4></div></div>
+  <div class="col-md-3"><div class="card p-3"><small>Concluidas</small><h4 id="kpi-source-exec-done">{{ source_execution_overview.done_count }}</h4></div></div>
+  <div class="col-md-3"><div class="card p-3"><small>Falhas</small><h4 id="kpi-source-exec-failed">{{ source_execution_overview.failed_count }}</h4></div></div>
+</div>
+
+<div class="card p-3 mb-4">
+  <div class="d-flex justify-content-between align-items-start flex-wrap gap-3">
+    <div>
+      <small class="text-muted">Saude bidirecional</small>
+      <div class="d-flex align-items-center gap-2">
+        <span class="badge text-bg-{{ 'success' if remote_agent_operational.level == 'online' else 'secondary' if remote_agent_operational.level == 'disabled' else 'warning' if remote_agent_operational.level == 'warning' else 'danger' }}" id="kpi-remote-agent-level">{{ remote_agent_operational.label }}</span>
+        <strong id="kpi-remote-agent-reason">{{ remote_agent_operational.reason }}</strong>
+      </div>
+      <small class="text-muted">Janela de referencia: <span id="kpi-remote-agent-grace">{{ remote_agent_operational.grace_minutes }}</span> min</small>
+    </div>
+    <div class="text-muted small">
+      <div>Pull remoto: <span id="kpi-remote-agent-pull">{{ 'habilitado' if remote_agent_operational.pull_enabled else 'desabilitado' }}</span></div>
+      <div>Ultimo registro: <span id="kpi-remote-agent-registration">{{ remote_agent_snapshot.last_registration_at or '-' }}</span></div>
+      <div>Ultimo poll: <span id="kpi-remote-agent-poll">{{ remote_agent_snapshot.last_command_poll_at or '-' }}</span></div>
+    </div>
+  </div>
 </div>
 
 <div class="row g-3 mb-4">
@@ -45,6 +96,267 @@
       <small>DLQ</small>
       <h6 id="kpi-queue-dlq">{{ job_summary.dead_letter_count }}</h6>
     </div>
+  </div>
+</div>
+
+<div class="card mb-4 p-3">
+  <div class="d-flex justify-content-between align-items-center mb-2">
+    <h6 class="mb-0">Observabilidade avancada por tenant</h6>
+    <small class="text-muted">Empresa {{ tenant_observability.empresa_id }}</small>
+  </div>
+  <div class="table-responsive">
+    <table class="table table-sm table-striped align-middle">
+      <thead><tr><th>Metrica</th><th>Valor</th></tr></thead>
+      <tbody>
+        <tr><td>Lotes de sync (tenant)</td><td>{{ tenant_observability.sync_batches_total }}</td></tr>
+        <tr><td>Falhas de sync (tenant)</td><td>{{ tenant_observability.sync_failures_total }}</td></tr>
+        <tr><td>Execucoes scheduler (tenant)</td><td>{{ tenant_observability.tenant_scheduler_runs_total }}</td></tr>
+        <tr><td>Fila processada (tenant)</td><td>{{ tenant_observability.tenant_queue_processed_total }}</td></tr>
+        <tr><td>Fila falha (tenant)</td><td>{{ tenant_observability.tenant_queue_failed_total }}</td></tr>
+        <tr><td>Fila retry (tenant)</td><td>{{ tenant_observability.tenant_queue_retried_total }}</td></tr>
+        <tr><td>Fila DLQ (tenant)</td><td>{{ tenant_observability.tenant_queue_dead_letter_total }}</td></tr>
+        <tr><td>Destino entregue (tenant)</td><td>{{ tenant_observability.tenant_destination_delivery_total }}</td></tr>
+        <tr><td>Destino falha (tenant)</td><td>{{ tenant_observability.tenant_destination_delivery_failed_total }}</td></tr>
+        <tr><td>Lag ultimo sync (s)</td><td>{{ tenant_observability.sync_last_success_lag_seconds }}</td></tr>
+        <tr><td>Lag scheduler (s)</td><td>{{ tenant_observability.tenant_scheduler_last_success_lag_seconds }}</td></tr>
+        <tr><td>Lag fila (s)</td><td>{{ tenant_observability.tenant_queue_last_event_lag_seconds }}</td></tr>
+        <tr><td>Lag destination (s)</td><td>{{ tenant_observability.tenant_destination_last_event_lag_seconds }}</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="row g-3 mb-4">
+  <div class="col-md-3">
+    <div class="card p-3">
+      <small>Fontes ativas</small>
+      <h4 id="kpi-source-active">{{ source_cycle_summary.active_count }}</h4>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="card p-3">
+      <small>Fontes prontas</small>
+      <h4 id="kpi-source-due">{{ source_cycle_summary.due_count }}</h4>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="card p-3">
+      <small>Fontes atrasadas</small>
+      <h4 id="kpi-source-overdue">{{ source_cycle_summary.overdue_count }}</h4>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="card p-3">
+      <small>Proximo ciclo</small>
+      <h6 id="kpi-source-next-cycle">{{ source_cycle_summary.next_run_at }}</h6>
+    </div>
+  </div>
+</div>
+
+<div class="card mb-4 p-3">
+  <div class="d-flex justify-content-between align-items-center mb-2">
+    <div>
+      <h6 class="mb-0">Fontes para atencao</h6>
+      <small class="text-muted">
+        <span id="kpi-source-attention-count">{{ source_attention_rows|length }}</span>
+        fontes com falha, atraso ou fila ativa
+      </small>
+    </div>
+    <div class="d-flex flex-wrap gap-2 small">
+      <span class="badge text-bg-danger">Falhas: <span id="kpi-source-attention-failed">{{ source_attention_summary.failed_count }}</span></span>
+      <span class="badge text-bg-warning">Fila: <span id="kpi-source-attention-queued">{{ source_attention_summary.queued_count }}</span></span>
+      <span class="badge text-bg-info">Execucao: <span id="kpi-source-attention-running">{{ source_attention_summary.running_count }}</span></span>
+      <span class="badge text-bg-secondary">Atrasadas: <span id="kpi-source-attention-overdue">{{ source_attention_summary.overdue_count }}</span></span>
+    </div>
+  </div>
+  <div class="table-responsive">
+    <table class="table table-sm table-striped align-middle">
+      <thead>
+        <tr>
+          <th>Fonte</th>
+          <th>Tipo</th>
+          <th>Status</th>
+          <th>Motivo</th>
+          <th>Proxima execucao</th>
+          <th>Ultima acao</th>
+          <th>Erro</th>
+          <th>Acoes</th>
+        </tr>
+      </thead>
+      <tbody id="source-attention-body" data-can-sync="{{ '1' if current_user.role == 'admin' else '0' }}">
+        {% for source in source_attention_rows %}
+        <tr data-source-attention-id="{{ source.id }}">
+          <td>{{ source.nome }}</td>
+          <td><code>{{ source.connector_type }}</code></td>
+          <td><span class="badge text-bg-{{ 'danger' if source.status == 'failed' else 'warning' if source.status in ['queued', 'running'] else 'secondary' }}">{{ source.status_label }}</span></td>
+          <td>{{ source.reason }}</td>
+          <td>{{ source.next_run_at }}</td>
+          <td>{{ source.last_action_at }}</td>
+          <td><code>{{ source.last_error }}</code></td>
+          <td>
+            {% if current_user.role == 'admin' %}
+            <form method="post" action="/dashboard/source-configs/{{ source.id }}/sync" class="d-inline">
+              <button type="submit" class="btn btn-sm btn-outline-primary">Sincronizar agora</button>
+            </form>
+            {% else %}
+            <span class="text-muted small">Somente leitura</span>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+        {% if source_attention_rows|length == 0 %}
+        <tr><td colspan="8" class="text-muted">Nenhuma fonte exige atencao no momento.</td></tr>
+        {% endif %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="card mb-4 p-3">
+  <div class="d-flex justify-content-between align-items-center mb-2 flex-wrap gap-2">
+    <div>
+      <h6 class="mb-0">Resumo comercial</h6>
+      <small class="text-muted">Periodo atual: <span id="kpi-commercial-period">{{ commercial_snapshot.period_start }} a {{ commercial_snapshot.period_end }}</span></small>
+    </div>
+    <a class="btn btn-sm btn-outline-primary" href="/reports">Abrir relatorios</a>
+  </div>
+  <div class="row g-3">
+    <div class="col-md-3"><div class="card p-3"><small>Valor total</small><h4 id="kpi-commercial-total-sales">{{ commercial_snapshot.total_sales_value }}</h4></div></div>
+    <div class="col-md-3"><div class="card p-3"><small>Registros</small><h4 id="kpi-commercial-total-records">{{ commercial_snapshot.total_records }}</h4></div></div>
+    <div class="col-md-3"><div class="card p-3"><small>Produtos distintos</small><h4 id="kpi-commercial-distinct-products">{{ commercial_snapshot.distinct_products }}</h4></div></div>
+    <div class="col-md-3"><div class="card p-3"><small>Ticket medio</small><h4 id="kpi-commercial-average-ticket">{{ commercial_snapshot.average_ticket }}</h4></div></div>
+  </div>
+  <div class="mt-3 small text-muted">
+    Produto lider: <strong id="kpi-commercial-top-product">{{ commercial_snapshot.top_product }}</strong>
+    · Valor: <span id="kpi-commercial-top-product-value">{{ commercial_snapshot.top_product_value }}</span>
+  </div>
+  <div class="card mt-3 p-3 bg-light border-0">
+    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+      <div>
+        <strong>Comparacao com periodo anterior</strong>
+        {% if commercial_comparison %}
+        <div class="small text-muted">
+          <span id="kpi-commercial-comparison-period">{{ commercial_comparison.previous_start_date }} a {{ commercial_comparison.previous_end_date }}</span>
+        </div>
+        {% else %}
+        <div class="small text-muted">Sem periodo anterior comparavel para o recorte atual.</div>
+        {% endif %}
+      </div>
+      {% if commercial_comparison %}
+      <div class="small d-flex flex-wrap gap-2">
+        <span class="badge text-bg-secondary">Registros previos: <span id="kpi-commercial-previous-records">{{ commercial_comparison.previous_total_records }}</span></span>
+        <span class="badge text-bg-secondary">Valor previo: <span id="kpi-commercial-previous-value">{{ commercial_comparison.previous_total_sales_value }}</span></span>
+        <span class="badge text-bg-{{ 'success' if commercial_comparison.delta_total_records >= 0 else 'danger' }}">Delta registros: <span id="kpi-commercial-delta-records">{{ commercial_comparison.delta_total_records }}</span></span>
+        <span class="badge text-bg-{{ 'success' if commercial_comparison.delta_total_sales_value.startswith('+') else 'danger' }}">Delta valor: <span id="kpi-commercial-delta-value">{{ commercial_comparison.delta_total_sales_value }}</span></span>
+        {% if commercial_comparison.delta_total_records_pct %}
+        <span class="badge text-bg-{{ 'success' if commercial_comparison.delta_total_records_pct.startswith('+') else 'danger' }}">Registros %: <span id="kpi-commercial-delta-records-pct">{{ commercial_comparison.delta_total_records_pct }}%</span></span>
+        {% endif %}
+        {% if commercial_comparison.delta_total_sales_value_pct %}
+        <span class="badge text-bg-{{ 'success' if commercial_comparison.delta_total_sales_value_pct.startswith('+') else 'danger' }}">Valor %: <span id="kpi-commercial-delta-value-pct">{{ commercial_comparison.delta_total_sales_value_pct }}%</span></span>
+        {% endif %}
+      </div>
+      {% endif %}
+    </div>
+  </div>
+  <div class="row g-3 mt-1">
+    {% for card in commercial_highlight_cards %}
+    <div class="col-md-3">
+      <div class="card p-3 h-100">
+        <small>{{ card.label }}</small>
+        <h5 class="mb-1" data-commercial-highlight-value="{{ card.label }}">{{ card.value }}</h5>
+        <div class="text-muted small" data-commercial-highlight-hint="{{ card.label }}">{{ card.hint }}</div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+
+<div class="card mb-4 p-3">
+  <div class="d-flex justify-content-between align-items-center mb-2">
+    <div>
+      <h6 class="mb-0">Ciclo de sincronizacao por fonte</h6>
+      <small class="text-muted">
+        Ultimo sucesso: {{ source_cycle_summary.last_success_at }}
+        · Lag: {{ source_cycle_summary.last_success_lag_seconds }} s
+      </small>
+    </div>
+    {% if current_user.role == 'admin' %}
+    <form method="post" action="/dashboard/source-configs/sync-all" class="d-inline">
+      <button type="submit" class="btn btn-sm btn-outline-primary">
+        Sincronizar todas as fontes
+      </button>
+    </form>
+    {% endif %}
+  </div>
+  <div class="table-responsive">
+    <table class="table table-sm table-striped align-middle">
+      <thead>
+        <tr>
+          <th>Fonte</th>
+          <th>Tipo</th>
+          <th>Intervalo</th>
+          <th>Status</th>
+          <th>Status vivo</th>
+          <th>Fila</th>
+          <th>Execucao</th>
+          <th>Falhas</th>
+          <th>Ultimo agendamento</th>
+          <th>Ultima acao</th>
+          <th>Proxima execucao</th>
+          <th>Ultimo sucesso</th>
+          <th>Ultimo disparo</th>
+          <th>Erro</th>
+          <th>Acoes</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for source in source_configs %}
+        {% set source_state = source_status_snapshot.get(source.id, {}) %}
+        <tr data-source-id="{{ source.id }}">
+          <td>{{ source.nome }}</td>
+          <td><code>{{ source.connector_type }}</code></td>
+          <td>{{ source.sync_interval_minutes }} min</td>
+          <td>
+            {% if source.last_status == 'ok' %}
+            <span class="badge text-bg-success">{{ source.last_status }}</span>
+            {% elif source.last_status == 'failed' %}
+            <span class="badge text-bg-danger">{{ source.last_status }}</span>
+            {% elif source.last_status == 'retrying' %}
+            <span class="badge text-bg-warning">{{ source.last_status }}</span>
+            {% else %}
+            <span class="badge text-bg-secondary">{{ source.last_status }}</span>
+            {% endif %}
+          </td>
+          <td class="source-live-status">
+            <span id="source-live-status-{{ source.id }}" class="badge text-bg-secondary" data-status="{{ source_state.live_status or source.last_status }}">{{ source_state.live_status or source.last_status }}</span>
+          </td>
+          <td id="source-queued-count-{{ source.id }}">{{ source_state.queued_count or '0' }}</td>
+          <td id="source-running-count-{{ source.id }}">{{ source_state.running_count or '0' }}</td>
+          <td id="source-failed-count-{{ source.id }}">{{ source_state.failed_count or '0' }}</td>
+          <td>{{ source.last_scheduled_at or '-' }}</td>
+          <td id="source-last-action-{{ source.id }}">{{ source_state.last_action or source.last_status or '-' }}</td>
+          <td>{{ source.next_run_at or '-' }}</td>
+          <td>{{ source.last_run_at or '-' }}</td>
+          <td id="source-last-action-at-{{ source.id }}">{{ source_state.last_action_at or source.last_run_at or '-' }}</td>
+          <td><code>{{ source.last_error or '-' }}</code></td>
+          <td>
+            {% if current_user.role == 'admin' %}
+            <form method="post" action="/dashboard/source-configs/{{ source.id }}/sync" class="d-inline">
+              <button type="submit" class="btn btn-sm btn-outline-primary" {% if not source.ativo %}disabled{% endif %}>
+                Sincronizar agora
+              </button>
+            </form>
+            {% else %}
+            <span class="text-muted">Sem acesso</span>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+        {% if source_configs|length == 0 %}
+        <tr><td colspan="15" class="text-muted">Sem fontes de sincronizacao cadastradas.</td></tr>
+        {% endif %}
+      </tbody>
+    </table>
   </div>
 </div>
 
@@ -177,6 +489,9 @@
           <td>{{ b.received_at }}</td>
         </tr>
         {% endfor %}
+        {% if summary.latest_batches|length == 0 %}
+        <tr><td colspan="7" class="text-muted">Sem sincronizacoes no filtro atual.</td></tr>
+        {% endif %}
       </tbody>
     </table>
   </div>

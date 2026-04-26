@@ -5,6 +5,8 @@ from sqlalchemy.orm import Session
 
 from app.models.user import User
 
+_UNSET = object()
+
 
 class UserRepository:
     def __init__(self, db: Session):
@@ -21,8 +23,23 @@ class UserRepository:
         stmt = select(User).order_by(User.role.asc(), User.username.asc())
         return list(self.db.scalars(stmt).all())
 
-    def create(self, username: str, full_name: str, password_hash: str, role: str = 'admin') -> User:
-        user = User(username=username, full_name=full_name, password_hash=password_hash, role=role)
+    def create(
+        self,
+        username: str,
+        full_name: str,
+        password_hash: str,
+        role: str = 'admin',
+        empresa_id: str | None = None,
+        scope_type: str | None = None,
+    ) -> User:
+        user = User(
+            username=username,
+            full_name=full_name,
+            password_hash=password_hash,
+            role=role,
+            empresa_id=empresa_id,
+            scope_type=scope_type,
+        )
         self.db.add(user)
         self.db.commit()
         self.db.refresh(user)
@@ -32,21 +49,27 @@ class UserRepository:
         self,
         user_id: int,
         *,
-        full_name: str | None = None,
-        role: str | None = None,
-        is_active: bool | None = None,
-        password_hash: str | None = None,
+        full_name: str | None | object = _UNSET,
+        role: str | None | object = _UNSET,
+        empresa_id: str | None | object = _UNSET,
+        scope_type: str | None | object = _UNSET,
+        is_active: bool | None | object = _UNSET,
+        password_hash: str | None | object = _UNSET,
     ) -> User | None:
         user = self.by_id(user_id)
         if not user:
             return None
-        if full_name is not None:
+        if full_name is not _UNSET:
             user.full_name = full_name
-        if role is not None:
+        if role is not _UNSET:
             user.role = role
-        if is_active is not None:
+        if empresa_id is not _UNSET:
+            user.empresa_id = empresa_id
+        if scope_type is not _UNSET:
+            user.scope_type = scope_type
+        if is_active is not _UNSET:
             user.is_active = is_active
-        if password_hash is not None:
+        if password_hash is not _UNSET:
             user.password_hash = password_hash
         self.db.flush()
         return user

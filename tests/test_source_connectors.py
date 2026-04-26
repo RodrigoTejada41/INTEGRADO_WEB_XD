@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import shutil
 from datetime import UTC, datetime
 from pathlib import Path
 
@@ -63,9 +64,12 @@ def test_source_connector_registry_and_file_connector() -> None:
     assert result.records[0]["produto"] == "Produto arquivo"
 
 
-def test_connector_discovery_loads_plugins_from_package(tmp_path, monkeypatch) -> None:
-    package_dir = tmp_path / "sample_plugins"
-    package_dir.mkdir()
+def test_connector_discovery_loads_plugins_from_package(monkeypatch) -> None:
+    plugin_root = Path("output/test_connector_plugins")
+    shutil.rmtree(plugin_root, ignore_errors=True)
+
+    package_dir = plugin_root / "sample_plugins"
+    package_dir.mkdir(parents=True)
     (package_dir / "__init__.py").write_text("", encoding="utf-8")
     (package_dir / "custom_source.py").write_text(
         """
@@ -96,7 +100,7 @@ class CustomDestinationConnector(DestinationConnector):
         encoding="utf-8",
     )
 
-    monkeypatch.syspath_prepend(str(tmp_path))
+    monkeypatch.syspath_prepend(str(plugin_root))
 
     source_plugins = discover_connector_classes("sample_plugins", SourceConnector)
     destination_plugins = discover_connector_classes("sample_plugins", DestinationConnector)
