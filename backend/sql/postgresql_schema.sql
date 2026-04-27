@@ -55,6 +55,8 @@ CREATE TABLE IF NOT EXISTS vendas (
     uuid VARCHAR(128) NOT NULL,
     empresa_id VARCHAR(32) NOT NULL REFERENCES tenants (empresa_id) ON DELETE RESTRICT,
     produto VARCHAR(255) NOT NULL,
+    branch_code VARCHAR(50) NULL,
+    terminal_code VARCHAR(50) NULL,
     valor NUMERIC(14,2) NOT NULL,
     data DATE NOT NULL,
     data_atualizacao TIMESTAMPTZ NOT NULL,
@@ -69,11 +71,25 @@ CREATE INDEX IF NOT EXISTS ix_vendas_empresa_data
 CREATE INDEX IF NOT EXISTS ix_vendas_empresa_data_atualizacao
     ON vendas (empresa_id, data_atualizacao);
 
+ALTER TABLE vendas
+    ADD COLUMN IF NOT EXISTS branch_code VARCHAR(50);
+
+ALTER TABLE vendas
+    ADD COLUMN IF NOT EXISTS terminal_code VARCHAR(50);
+
+CREATE INDEX IF NOT EXISTS ix_vendas_empresa_branch
+    ON vendas (empresa_id, branch_code);
+
+CREATE INDEX IF NOT EXISTS ix_vendas_empresa_terminal
+    ON vendas (empresa_id, terminal_code);
+
 CREATE TABLE IF NOT EXISTS vendas_historico (
     id BIGSERIAL PRIMARY KEY,
     uuid VARCHAR(128) NOT NULL,
     empresa_id VARCHAR(32) NOT NULL,
     produto VARCHAR(255) NOT NULL,
+    branch_code VARCHAR(50) NULL,
+    terminal_code VARCHAR(50) NULL,
     valor NUMERIC(14,2) NOT NULL,
     data DATE NOT NULL,
     data_atualizacao TIMESTAMPTZ NOT NULL,
@@ -85,3 +101,9 @@ CREATE INDEX IF NOT EXISTS ix_vendas_hist_empresa_data
 
 CREATE INDEX IF NOT EXISTS ix_vendas_hist_arquivado_em
     ON vendas_historico (arquivado_em);
+
+ALTER TABLE vendas_historico
+    ADD COLUMN IF NOT EXISTS branch_code VARCHAR(50);
+
+ALTER TABLE vendas_historico
+    ADD COLUMN IF NOT EXISTS terminal_code VARCHAR(50);

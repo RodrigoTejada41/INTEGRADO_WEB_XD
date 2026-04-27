@@ -4,6 +4,8 @@
 
 O projeto e uma plataforma de sincronizacao de dados multi-tenant com memoria local-first em `.cerebro-vivo/` e uma camada executiva visivel em `cerebro_vivo/` para coordenacao multi-agentes.
 
+Checkpoint mais recente em 2026-04-27: producao foi corrigida para as telas `APIs Conectadas` e `Relatorios`. O problema inicial era roteamento Nginx ausente para caminhos absolutos do `sync-admin`. Em seguida foi identificado erro backend por schema antigo de `vendas` sem `branch_code` e `terminal_code`. A VPS ja recebeu a correcao operacional e as mudancas locais estao staged na branch `codex/fix-connected-apis-nginx`, mas ainda sem commit final porque a sessao foi interrompida.
+
 Na governanca oficial atual, `backend/`, `agent_local/`, `sync-admin/` e `infra/` sao as fontes canonicas operacionais. `backend/src`, `frontend`, `database`, `devops` e `docker-compose.yml` na raiz permanecem como camadas de compatibilidade e onboarding.
 
 Na retomada canonica mais recente, o backlog funcional estava concluido ate `P18`. Considerando o estado corrente desta sessao, `P19` foi concluido com governanca conservadora de segredos e auditoria expandida nas rotas administrativas do backend, `P20` foi concluido com endurecimento operacional do deploy de producao, o backlog pos-`P20` ja teve a regra critica de retencao de 14 meses convertida em evidencia automatizada, e agora existe uma trilha funcional inicial de controle bidirecional entre `sync-admin` e `receiver-api`, acompanhada da nova camada de escopo de acesso do portal cliente.
@@ -17,6 +19,10 @@ Na retomada canonica mais recente, o backlog funcional estava concluido ate `P18
 
 ## Estado consolidado encontrado
 
+- Branch local atual: `codex/fix-connected-apis-nginx`
+- Estado Git ao pausar: arquivos staged, sem commit final da ultima correcao de relatorios/schema
+- Producao atual: Nginx recarregado e PostgreSQL migrado manualmente com `ADD COLUMN IF NOT EXISTS`
+- Validacao mais recente: `py -3 -m pytest -q` com `26 passed, 1 skipped`
 - Checkpoint canonico de retomada: backlog concluido ate P18
 - Estado corrente desta sessao: P20 concluido + backlog pos-P20 em execucao
 - Ultima entrega funcional consolidada: registro de instancias locais, fila de comandos remotos pull, endpoints protegidos de configuracao/status no `sync-admin`, controle central no `receiver-api` e portal cliente com escopo formal por empresa ou conjunto de filiais
@@ -51,16 +57,29 @@ Na retomada canonica mais recente, o backlog funcional estava concluido ate `P18
 24. Auditoria local de identidade adicionada ao `sync-admin`: alteracoes de usuarios e de escopo agora geram eventos proprios em tabela local, separados da auditoria central de tenant/configuracoes
 25. Legibilidade da auditoria local melhorada: a tela `settings` do `sync-admin` agora resume alteracoes de usuario por campo (`antes -> depois`) para empresa, escopo, filiais, perfil, nome e status, com fallback para JSON bruto apenas quando necessario
 26. Auditoria local com severidade visual: a tela `settings` agora classifica eventos de acesso como `critico`, `atencao` ou `informativo` e destaca sinais como troca de empresa, troca de perfil, desativacao de usuario, mudanca de escopo e reducao de filiais autorizadas
+27. Hotfix operacional de producao: Nginx passou a rotear `/connected-apis`, `/reports` e `/client/reports` para o `sync-admin`, eliminando 404 nas telas administrativas.
+28. Schema de vendas alinhado aos relatorios: `vendas` e `vendas_historico` passaram a incluir `branch_code` e `terminal_code`, com persistencia no upsert e indices para filtros por filial/terminal.
 
 ## Proximos passos mapeados
 
-1. Priorizar backlog pos-P20 com foco em risco operacional, seguranca e continuidade do produto
-2. Revisar apenas itens residuais fora do escopo conservador de P20, se ainda houver necessidade operacional
-3. Para continuar a frente web de relatorios e portais, usar `cerebro_vivo/retomada_2026-04-20_relatorios_e_portais.md` como handoff direto da ultima sessao
-4. Consolidar melhorias de UX e governanca no painel admin, incluindo refinamento visual da edicao de usuarios e eventual ampliacao visual da auditoria local de acessos
+1. Criar commit com as mudancas staged: `fix: restore reports route and sales branch schema`
+2. Fazer push da branch `codex/fix-connected-apis-nginx`
+3. Abrir/atualizar PR para `main`, porque `main` esta protegida
+4. Depois do merge, confirmar que a VPS continua em estado convergente com o repositorio
+5. Priorizar backlog pos-P20 com foco em risco operacional, seguranca e continuidade do produto
+6. Revisar apenas itens residuais fora do escopo conservador de P20, se ainda houver necessidade operacional
+7. Consolidar melhorias de UX e governanca no painel admin, incluindo refinamento visual da edicao de usuarios e eventual ampliacao visual da auditoria local de acessos
 
 ## Atualizacao desta continuidade
 
+- Em 2026-04-27, foram corrigidas em producao as rotas `APIs Conectadas` e `Relatorios` no Nginx.
+- O 404 de `/connected-apis` foi resolvido com rota compativel para o `sync-admin`.
+- O 404 de `/reports` e `/client/reports` foi resolvido com rotas compativeis adicionais.
+- O 500 da tela de relatorios foi rastreado ate o backend central, causado por ausencia de `branch_code` e `terminal_code` na tabela `vendas`.
+- A VPS recebeu migracao SQL idempotente para `vendas` e `vendas_historico`, incluindo indices por `empresa_id + branch_code` e `empresa_id + terminal_code`.
+- Validacao autenticada em producao confirmou `200` para `/connected-apis`, `/admin/connected-apis`, `/reports` e `/admin/reports`.
+- O codigo local foi atualizado para refletir a producao: modelo ORM, payload de sync, upsert, schema SQL e testes.
+- As mudancas estao staged na branch `codex/fix-connected-apis-nginx`; falta apenas commit, push e PR.
 - A frente de relatorios do `sync-admin` passou a usar um dashboard visual compartilhado entre admin e cliente.
 - As metricas executivas derivadas (`ticket medio`, `media diaria`, `melhor dia`, `produto lider`) agora sao calculadas no servidor web, reduzindo logica espalhada em template.
 - O comparativo com o periodo anterior agora exibe tambem a variacao percentual.

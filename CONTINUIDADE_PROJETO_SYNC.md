@@ -267,3 +267,52 @@ Você pediu uma nova fase de produto para uma API comercial multi-tenant com con
   - database_name
   - username
   - password
+
+## 11) Checkpoint de hotfix produção - 2026-04-27
+
+### 11.1 Estado operacional
+
+- Branch local: `codex/fix-connected-apis-nginx`.
+- Produção VPS já corrigida manualmente:
+  - Nginx recarregado com rotas para `/connected-apis`, `/reports` e `/client/reports`.
+  - PostgreSQL recebeu `branch_code` e `terminal_code` em `vendas` e `vendas_historico`.
+- Validação pública autenticada:
+  - `/connected-apis` -> `200`
+  - `/admin/connected-apis` -> `200`
+  - `/reports` -> `200`
+  - `/admin/reports` -> `200`
+- Validação local:
+  - `py -3 -m pytest -q` -> `26 passed, 1 skipped`
+
+### 11.2 Estado Git
+
+- Mudanças locais estão staged.
+- Commit final ainda não foi criado porque a execução foi interrompida.
+- Mensagem sugerida:
+  - `fix: restore reports route and sales branch schema`
+- Depois:
+  - `git push -u origin codex/fix-connected-apis-nginx`
+  - abrir PR para `main`
+- `main` está protegida; não usar push direto.
+
+### 11.3 Arquivos staged
+
+- `backend/models/venda.py`
+- `backend/repositories/venda_repository.py`
+- `backend/schemas/sync.py`
+- `backend/sql/postgresql_schema.sql`
+- `infra/nginx/default.conf`
+- `tests/test_production_operations.py`
+- `tests/test_sync_upsert.py`
+- `RETOMADA_EXATA.md`
+- `cerebro_vivo/estado_atual.md`
+- `REGISTRO_DE_MUDANCAS.md`
+- `CONTINUIDADE_PROJETO_SYNC.md`
+
+### 11.4 Proximo comando recomendado
+
+```powershell
+git add RETOMADA_EXATA.md cerebro_vivo/estado_atual.md REGISTRO_DE_MUDANCAS.md CONTINUIDADE_PROJETO_SYNC.md
+git commit -m "fix: restore reports route and sales branch schema"
+git push -u origin codex/fix-connected-apis-nginx
+```

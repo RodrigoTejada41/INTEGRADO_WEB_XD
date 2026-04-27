@@ -21,6 +21,8 @@ class Venda(Base):
         String(32), ForeignKey("tenants.empresa_id", ondelete="RESTRICT"), nullable=False
     )
     produto: Mapped[str] = mapped_column(String(255), nullable=False)
+    branch_code: Mapped[str | None] = mapped_column(String(50), nullable=True)
+    terminal_code: Mapped[str | None] = mapped_column(String(50), nullable=True)
     valor: Mapped[Decimal] = mapped_column(Numeric(14, 2), nullable=False)
     data: Mapped[date] = mapped_column(Date, nullable=False)
     data_atualizacao: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
@@ -41,6 +43,8 @@ class VendaHistorico(Base):
     uuid: Mapped[str] = mapped_column(String(128), nullable=False)
     empresa_id: Mapped[str] = mapped_column(String(32), nullable=False)
     produto: Mapped[str] = mapped_column(String(255), nullable=False)
+    branch_code: Mapped[str | None] = mapped_column(String(50), nullable=True)
+    terminal_code: Mapped[str | None] = mapped_column(String(50), nullable=True)
     valor: Mapped[Decimal] = mapped_column(Numeric(14, 2), nullable=False)
     data: Mapped[date] = mapped_column(Date, nullable=False)
     data_atualizacao: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)

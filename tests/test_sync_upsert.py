@@ -41,6 +41,8 @@ def test_bulk_upsert_insert() -> None:
     records = [
         {
             "uuid": "11111111-1111-1111-1111-111111111111",
+            "branch_code": "0001",
+            "terminal_code": "PDV-01",
             "produto": "Produto A",
             "valor": Decimal("10.00"),
             "data": date(2026, 4, 16),
@@ -54,6 +56,9 @@ def test_bulk_upsert_insert() -> None:
     assert inserted == 1
     assert updated == 0
     assert session.query(Venda).count() == 1
+    venda = session.query(Venda).one()
+    assert venda.branch_code == "0001"
+    assert venda.terminal_code == "PDV-01"
 
 
 def test_bulk_upsert_update() -> None:
@@ -62,6 +67,8 @@ def test_bulk_upsert_update() -> None:
     first = [
         {
             "uuid": "22222222-2222-2222-2222-222222222222",
+            "branch_code": "0001",
+            "terminal_code": "PDV-01",
             "produto": "Produto B",
             "valor": Decimal("50.00"),
             "data": date(2026, 4, 16),
@@ -74,6 +81,8 @@ def test_bulk_upsert_update() -> None:
     second = [
         {
             "uuid": "22222222-2222-2222-2222-222222222222",
+            "branch_code": "0002",
+            "terminal_code": "PDV-02",
             "produto": "Produto B - atualizado",
             "valor": Decimal("55.00"),
             "data": date(2026, 4, 16),
@@ -94,6 +103,8 @@ def test_bulk_upsert_update() -> None:
     assert inserted == 0
     assert updated == 1
     assert venda.produto == "Produto B - atualizado"
+    assert venda.branch_code == "0002"
+    assert venda.terminal_code == "PDV-02"
     assert venda.valor == Decimal("55.00")
 
 
@@ -128,4 +139,3 @@ def test_bulk_upsert_tenant_isolation() -> None:
     count_b = session.query(Venda).filter(Venda.empresa_id == "22222222000102").count()
     assert count_a == 1
     assert count_b == 1
-

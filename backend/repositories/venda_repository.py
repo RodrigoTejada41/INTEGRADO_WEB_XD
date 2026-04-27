@@ -30,6 +30,8 @@ class VendaRepository:
                 {
                     "uuid": item["uuid"],
                     "empresa_id": empresa_id,
+                    "branch_code": item.get("branch_code"),
+                    "terminal_code": item.get("terminal_code"),
                     "produto": item["produto"],
                     "valor": item["valor"],
                     "data": item["data"],
@@ -45,6 +47,8 @@ class VendaRepository:
                 index_elements=["empresa_id", "uuid"],
                 set_={
                     "produto": stmt.excluded.produto,
+                    "branch_code": stmt.excluded.branch_code,
+                    "terminal_code": stmt.excluded.terminal_code,
                     "valor": stmt.excluded.valor,
                     "data": stmt.excluded.data,
                     "data_atualizacao": stmt.excluded.data_atualizacao,
@@ -58,6 +62,8 @@ class VendaRepository:
                 index_elements=["empresa_id", "uuid"],
                 set_={
                     "produto": stmt.excluded.produto,
+                    "branch_code": stmt.excluded.branch_code,
+                    "terminal_code": stmt.excluded.terminal_code,
                     "valor": stmt.excluded.valor,
                     "data": stmt.excluded.data,
                     "data_atualizacao": stmt.excluded.data_atualizacao,
@@ -83,11 +89,23 @@ class VendaRepository:
 
         if mode == "archive":
             archive_stmt = insert(VendaHistorico).from_select(
-                ["uuid", "empresa_id", "produto", "valor", "data", "data_atualizacao", "arquivado_em"],
+                [
+                    "uuid",
+                    "empresa_id",
+                    "produto",
+                    "branch_code",
+                    "terminal_code",
+                    "valor",
+                    "data",
+                    "data_atualizacao",
+                    "arquivado_em",
+                ],
                 select(
                     Venda.uuid,
                     Venda.empresa_id,
                     Venda.produto,
+                    Venda.branch_code,
+                    Venda.terminal_code,
                     Venda.valor,
                     Venda.data,
                     Venda.data_atualizacao,
