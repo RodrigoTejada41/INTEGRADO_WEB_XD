@@ -142,14 +142,14 @@
         <table class="table table-sm table-striped align-middle">
           <thead><tr><th>Grupo</th><th>Registros</th><th>Valor</th></tr></thead>
           <tbody>
-            {% for item in section.items %}
+            {% for item in section['items'] %}
             <tr>
               <td>{{ item.label }}</td>
               <td>{{ item.total_records }}</td>
               <td>{{ item.total_sales_value }}</td>
             </tr>
             {% endfor %}
-            {% if section.items|length == 0 %}
+            {% if section['items']|length == 0 %}
             <tr><td colspan="3" class="text-muted">Sem dados no filtro atual.</td></tr>
             {% endif %}
           </tbody>
