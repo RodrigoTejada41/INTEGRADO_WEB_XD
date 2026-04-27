@@ -21,7 +21,7 @@ from app.repositories.user_branch_permission_repository import UserBranchPermiss
 from app.repositories.sync_repository import SyncRepository
 from app.repositories.user_repository import UserRepository
 from app.services.auth_service import AuthService
-from app.services.client_scope_service import ClientScopeService
+from app.services.client_scope_service import ClientReportScope, ClientScopeService
 from app.services.control_service import ControlService, SourceCycleSummary, SyncJobsSummary, TenantObservabilitySummary
 from app.services.dashboard_service import DashboardService
 from app.services.remote_agent_service import RemoteAgentService
@@ -40,7 +40,7 @@ from app.services.export_service import (
 )
 from app.services.user_service import UserService
 from app.schemas.users import UserCreateRequest, UserUpdateRequest
-from app.web.deps import require_client_user, require_web_permission
+from app.web.deps import require_client_portal_access, require_web_permission
 
 router = APIRouter(tags=['web'])
 BASE_DIR = Path(__file__).resolve().parents[2]
@@ -1411,23 +1411,65 @@ def reports_page(
     )
 
 
+def _resolve_client_portal_scope(
+    *,
+    current_user: User,
+    db: Session,
+    requested_empresa_id: str | None,
+    requested_branch_code: str | None,
+    start_date: str | None,
+    end_date: str | None,
+    terminal_code: str | None,
+) -> ClientReportScope:
+    control = ControlService()
+    if current_user.role == 'admin':
+        empresa_id = requested_empresa_id or settings.control_empresa_id
+        if not empresa_id:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail='Informe empresa_id para visualizar o portal do cliente como admin.',
+            )
+        allowed_branch_codes = control.fetch_report_branch_options(
+            empresa_id=empresa_id,
+            start_date=start_date,
+            end_date=end_date,
+            terminal_code=terminal_code,
+        )
+        return ClientReportScope(
+            empresa_id=empresa_id,
+            allowed_branch_codes=allowed_branch_codes,
+            selected_branch_code=requested_branch_code or None,
+        )
+
+    return ClientScopeService(
+        control,
+        UserBranchPermissionRepository(db),
+    ).resolve(
+        user=current_user,
+        requested_branch_code=requested_branch_code,
+        start_date=start_date,
+        end_date=end_date,
+        terminal_code=terminal_code,
+    )
+
+
 @router.get('/client/dashboard', response_class=HTMLResponse)
 def client_dashboard_page(
     request: Request,
+    empresa_id: str | None = None,
     start_date: str | None = None,
     end_date: str | None = None,
     start_time: str | None = None,
     end_time: str | None = None,
     branch_code: str | None = None,
     terminal_code: str | None = None,
-    current_user: User = Depends(require_client_user),
+    current_user: User = Depends(require_client_portal_access),
     db: Session = Depends(get_db),
 ):
-    scope = ClientScopeService(
-        ControlService(),
-        UserBranchPermissionRepository(db),
-    ).resolve(
-        user=current_user,
+    scope = _resolve_client_portal_scope(
+        current_user=current_user,
+        db=db,
+        requested_empresa_id=empresa_id,
         requested_branch_code=branch_code,
         start_date=start_date,
         end_date=end_date,
@@ -1459,6 +1501,8 @@ def client_dashboard_page(
         {
             'request': request,
             'current_user': current_user,
+            'selected_empresa_id': scope.empresa_id,
+            'is_admin_client_preview': current_user.role == 'admin',
             'overview': overview,
             'recent_items': list(recent_sales.get('items', [])),
             'allowed_branch_codes': scope.allowed_branch_codes,
@@ -1475,6 +1519,7 @@ def client_dashboard_page(
 @router.get('/client/reports', response_class=HTMLResponse)
 def client_reports_page(
     request: Request,
+    empresa_id: str | None = None,
     period_preset: str | None = None,
     start_date: str | None = None,
     end_date: str | None = None,
@@ -1484,14 +1529,13 @@ def client_reports_page(
     terminal_code: str | None = None,
     top_limit: int = 10,
     recent_limit: int = 20,
-    current_user: User = Depends(require_client_user),
+    current_user: User = Depends(require_client_portal_access),
     db: Session = Depends(get_db),
 ):
-    scope = ClientScopeService(
-        ControlService(),
-        UserBranchPermissionRepository(db),
-    ).resolve(
-        user=current_user,
+    scope = _resolve_client_portal_scope(
+        current_user=current_user,
+        db=db,
+        requested_empresa_id=empresa_id,
         requested_branch_code=branch_code,
         start_date=start_date,
         end_date=end_date,
@@ -1515,6 +1559,8 @@ def client_reports_page(
         {
             'request': request,
             'current_user': current_user,
+            'selected_empresa_id': scope.empresa_id,
+            'is_admin_client_preview': current_user.role == 'admin',
             'allowed_branch_codes': scope.allowed_branch_codes,
             'branch_code': scope.selected_branch_code or '',
             **payload,
@@ -1636,6 +1682,7 @@ def export_reports_pdf(
 
 @router.get('/client/reports/export.csv')
 def export_client_reports_csv(
+    empresa_id: str | None = None,
     period_preset: str | None = None,
     start_date: str | None = None,
     end_date: str | None = None,
@@ -1644,14 +1691,13 @@ def export_client_reports_csv(
     branch_code: str | None = None,
     terminal_code: str | None = None,
     recent_limit: int = 50,
-    current_user: User = Depends(require_client_user),
+    current_user: User = Depends(require_client_portal_access),
     db: Session = Depends(get_db),
 ):
-    scope = ClientScopeService(
-        ControlService(),
-        UserBranchPermissionRepository(db),
-    ).resolve(
-        user=current_user,
+    scope = _resolve_client_portal_scope(
+        current_user=current_user,
+        db=db,
+        requested_empresa_id=empresa_id,
         requested_branch_code=branch_code,
         start_date=start_date,
         end_date=end_date,
@@ -1679,6 +1725,7 @@ def export_client_reports_csv(
 
 @router.get('/client/reports/export.xlsx')
 def export_client_reports_xlsx(
+    empresa_id: str | None = None,
     period_preset: str | None = None,
     start_date: str | None = None,
     end_date: str | None = None,
@@ -1688,14 +1735,13 @@ def export_client_reports_xlsx(
     terminal_code: str | None = None,
     top_limit: int = 10,
     recent_limit: int = 50,
-    current_user: User = Depends(require_client_user),
+    current_user: User = Depends(require_client_portal_access),
     db: Session = Depends(get_db),
 ):
-    scope = ClientScopeService(
-        ControlService(),
-        UserBranchPermissionRepository(db),
-    ).resolve(
-        user=current_user,
+    scope = _resolve_client_portal_scope(
+        current_user=current_user,
+        db=db,
+        requested_empresa_id=empresa_id,
         requested_branch_code=branch_code,
         start_date=start_date,
         end_date=end_date,
@@ -1728,6 +1774,7 @@ def export_client_reports_xlsx(
 
 @router.get('/client/reports/export.pdf')
 def export_client_reports_pdf(
+    empresa_id: str | None = None,
     period_preset: str | None = None,
     start_date: str | None = None,
     end_date: str | None = None,
@@ -1737,14 +1784,13 @@ def export_client_reports_pdf(
     terminal_code: str | None = None,
     top_limit: int = 10,
     recent_limit: int = 50,
-    current_user: User = Depends(require_client_user),
+    current_user: User = Depends(require_client_portal_access),
     db: Session = Depends(get_db),
 ):
-    scope = ClientScopeService(
-        ControlService(),
-        UserBranchPermissionRepository(db),
-    ).resolve(
-        user=current_user,
+    scope = _resolve_client_portal_scope(
+        current_user=current_user,
+        db=db,
+        requested_empresa_id=empresa_id,
         requested_branch_code=branch_code,
         start_date=start_date,
         end_date=end_date,
