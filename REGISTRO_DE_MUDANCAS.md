@@ -54,6 +54,7 @@
   - Novas dimensões de venda: tipo de venda, forma de pagamento e família do produto.
   - Novos gráficos por tipo, pagamento, produto, família e série diária.
   - Validação local completa: `py -3 -m pytest -q` com `27 passed, 1 skipped`.
+  - Deploy validado na VPS no commit `fd8fb8b`, com migração `v005` aplicada e smoke `reports=200`.
 
 ### Planejado
 - Multiempresa completa com isolamento por empresa, filial e terminal.

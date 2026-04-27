@@ -188,3 +188,10 @@ Na retomada canonica mais recente, o backlog funcional estava concluido ate `P18
   - intervalo de datas X a Y;
   - intervalo de horario X a Y baseado em `data_atualizacao`.
 - Validacao local completa: `py -3 -m pytest -q` com `27 passed, 1 skipped`.
+- Deploy final na VPS:
+  - branch: `codex/restore-backend-reporting-contract`;
+  - commit: `fd8fb8b`;
+  - migracao: `current_version=5`;
+  - smoke autenticado: `health=200`, `ready=200`, `login=302`, `reports=200`, `connected_apis=200`.
+- Pendente obrigatorio:
+  - mergear essa branch em `main` antes de qualquer deploy automatico de `main`.

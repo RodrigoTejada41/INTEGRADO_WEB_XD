@@ -245,3 +245,17 @@ Este arquivo e o ponto de entrada para retomar o projeto sem redescobrir context
     - familia de produto
 - Validacao:
   - `py -3 -m pytest -q` -> `27 passed, 1 skipped`.
+- Deploy final:
+  - branch em producao: `codex/restore-backend-reporting-contract`;
+  - commit em producao: `fd8fb8b`;
+  - migracao aplicada na VPS: `current_version=5`;
+  - containers saudaveis: `integrado-backend`, `integrado-frontend`, `integrado-nginx`, `integrado-db`;
+  - smoke autenticado na VPS:
+    - `health=200`
+    - `ready=200`
+    - `login=302`
+    - `reports=200`
+    - `connected_apis=200`
+- Pendente critico:
+  - abrir/mergear PR da branch `codex/restore-backend-reporting-contract` em `main`;
+  - nao fazer deploy automatico de `main` antes do merge, para nao perder a evolucao dos relatorios.
