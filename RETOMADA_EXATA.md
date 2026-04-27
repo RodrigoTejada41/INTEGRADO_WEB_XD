@@ -214,3 +214,34 @@ Este arquivo e o ponto de entrada para retomar o projeto sem redescobrir context
 - Regra operacional:
   - nao alinhar VPS com `main` sem validar antes se as funcionalidades existentes em producao estao versionadas;
   - qualquer hotfix manual em VPS deve virar commit/PR antes de novo reset/redeploy.
+
+## Evolucao de relatorios cliente/admin - 2026-04-27
+- Decisao de produto:
+  - relatorios saem da navegacao principal do admin;
+  - admin mantem `/reports` apenas como tela tecnica de teste/validacao;
+  - uso operacional principal fica no portal cliente em `/client/reports`.
+- Backend:
+  - venda canonica agora aceita dimensoes opcionais:
+    - `tipo_venda`
+    - `forma_pagamento`
+    - `familia_produto`
+  - adicionada migracao `v005_sales_report_dimensions`;
+  - relatorios ganharam filtro por horario (`start_time`, `end_time`) usando `data_atualizacao`;
+  - novo endpoint: `/admin/tenants/{empresa_id}/reports/breakdown` com `group_by` em `tipo_venda`, `forma_pagamento` ou `familia_produto`.
+- Painel:
+  - filtros adicionados:
+    - vendas do dia
+    - mensal
+    - trimestral
+    - semestral
+    - anual
+    - datas X a Y
+    - horario X a Y
+  - graficos separados:
+    - serie diaria
+    - top produtos
+    - tipo de venda
+    - forma de pagamento
+    - familia de produto
+- Validacao:
+  - `py -3 -m pytest -q` -> `27 passed, 1 skipped`.

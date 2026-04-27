@@ -1,4 +1,4 @@
-from datetime import date
+from datetime import date, time
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
@@ -39,6 +39,8 @@ from backend.schemas.tenant_reports import (
     TenantRecentSaleResponse,
     TenantRecentSalesResponse,
     TenantReportOverviewResponse,
+    TenantSalesBreakdownItemResponse,
+    TenantSalesBreakdownResponse,
     TenantTopProductResponse,
     TenantTopProductsResponse,
 )
@@ -989,6 +991,8 @@ def get_report_overview(
     end_date: date | None = None,
     branch_code: str | None = None,
     terminal_code: str | None = None,
+    start_time: time | None = None,
+    end_time: time | None = None,
     session: Session = Depends(get_session),
 ) -> TenantReportOverviewResponse:
     service = _tenant_report_service(session)
@@ -998,6 +1002,8 @@ def get_report_overview(
         end_date=end_date,
         branch_code=branch_code,
         terminal_code=terminal_code,
+        start_time=start_time,
+        end_time=end_time,
     )
     return TenantReportOverviewResponse(
         empresa_id=empresa_id,
@@ -1005,6 +1011,8 @@ def get_report_overview(
         end_date=end_date,
         branch_code=branch_code,
         terminal_code=terminal_code,
+        start_time=start_time.isoformat(timespec="minutes") if start_time else None,
+        end_time=end_time.isoformat(timespec="minutes") if end_time else None,
         **snapshot,
     )
 
@@ -1020,6 +1028,8 @@ def get_daily_sales_report(
     end_date: date | None = None,
     branch_code: str | None = None,
     terminal_code: str | None = None,
+    start_time: time | None = None,
+    end_time: time | None = None,
     session: Session = Depends(get_session),
 ) -> TenantDailySalesResponse:
     service = _tenant_report_service(session)
@@ -1029,6 +1039,8 @@ def get_daily_sales_report(
         end_date=end_date,
         branch_code=branch_code,
         terminal_code=terminal_code,
+        start_time=start_time,
+        end_time=end_time,
     )
     return TenantDailySalesResponse(
         empresa_id=empresa_id,
@@ -1036,6 +1048,8 @@ def get_daily_sales_report(
         end_date=end_date,
         branch_code=branch_code,
         terminal_code=terminal_code,
+        start_time=start_time.isoformat(timespec="minutes") if start_time else None,
+        end_time=end_time.isoformat(timespec="minutes") if end_time else None,
         items=items,
     )
 
@@ -1052,6 +1066,8 @@ def get_top_products_report(
     end_date: date | None = None,
     branch_code: str | None = None,
     terminal_code: str | None = None,
+    start_time: time | None = None,
+    end_time: time | None = None,
     session: Session = Depends(get_session),
 ) -> TenantTopProductsResponse:
     service = _tenant_report_service(session)
@@ -1062,6 +1078,8 @@ def get_top_products_report(
         end_date=end_date,
         branch_code=branch_code,
         terminal_code=terminal_code,
+        start_time=start_time,
+        end_time=end_time,
     )
     return TenantTopProductsResponse(
         empresa_id=empresa_id,
@@ -1069,8 +1087,54 @@ def get_top_products_report(
         end_date=end_date,
         branch_code=branch_code,
         terminal_code=terminal_code,
+        start_time=start_time.isoformat(timespec="minutes") if start_time else None,
+        end_time=end_time.isoformat(timespec="minutes") if end_time else None,
         limit=max(1, min(limit, 100)),
         items=[TenantTopProductResponse(**item) for item in items],
+    )
+
+
+@router.get(
+    "/tenants/{empresa_id}/reports/breakdown",
+    response_model=TenantSalesBreakdownResponse,
+    dependencies=[Depends(require_admin_token)],
+)
+def get_sales_breakdown_report(
+    empresa_id: str,
+    group_by: str,
+    limit: int = 10,
+    start_date: date | None = None,
+    end_date: date | None = None,
+    branch_code: str | None = None,
+    terminal_code: str | None = None,
+    start_time: time | None = None,
+    end_time: time | None = None,
+    session: Session = Depends(get_session),
+) -> TenantSalesBreakdownResponse:
+    bounded_limit = max(1, min(limit, 100))
+    service = _tenant_report_service(session)
+    items = service.get_sales_breakdown(
+        empresa_id=empresa_id,
+        group_by=group_by,
+        limit=bounded_limit,
+        start_date=start_date,
+        end_date=end_date,
+        branch_code=branch_code,
+        terminal_code=terminal_code,
+        start_time=start_time,
+        end_time=end_time,
+    )
+    return TenantSalesBreakdownResponse(
+        empresa_id=empresa_id,
+        group_by=group_by,
+        start_date=start_date,
+        end_date=end_date,
+        branch_code=branch_code,
+        terminal_code=terminal_code,
+        start_time=start_time.isoformat(timespec="minutes") if start_time else None,
+        end_time=end_time.isoformat(timespec="minutes") if end_time else None,
+        limit=bounded_limit,
+        items=[TenantSalesBreakdownItemResponse(**item) for item in items],
     )
 
 
@@ -1086,6 +1150,8 @@ def get_recent_sales_report(
     end_date: date | None = None,
     branch_code: str | None = None,
     terminal_code: str | None = None,
+    start_time: time | None = None,
+    end_time: time | None = None,
     session: Session = Depends(get_session),
 ) -> TenantRecentSalesResponse:
     service = _tenant_report_service(session)
@@ -1097,6 +1163,8 @@ def get_recent_sales_report(
         end_date=end_date,
         branch_code=branch_code,
         terminal_code=terminal_code,
+        start_time=start_time,
+        end_time=end_time,
     )
     return TenantRecentSalesResponse(
         empresa_id=empresa_id,
@@ -1104,6 +1172,8 @@ def get_recent_sales_report(
         end_date=end_date,
         branch_code=branch_code,
         terminal_code=terminal_code,
+        start_time=start_time.isoformat(timespec="minutes") if start_time else None,
+        end_time=end_time.isoformat(timespec="minutes") if end_time else None,
         limit=bounded_limit,
         items=[TenantRecentSaleResponse.model_validate(item) for item in items],
     )

@@ -40,6 +40,11 @@ class SyncService:
             records.append(
                 {
                     "uuid": str(record.uuid),
+                    "branch_code": record.branch_code,
+                    "terminal_code": record.terminal_code,
+                    "tipo_venda": record.tipo_venda,
+                    "forma_pagamento": record.forma_pagamento,
+                    "familia_produto": record.familia_produto,
                     "produto": record.produto,
                     "valor": record.valor,
                     "data": record.data,

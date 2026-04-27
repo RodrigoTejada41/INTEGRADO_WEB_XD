@@ -171,3 +171,20 @@ Na retomada canonica mais recente, o backlog funcional estava concluido ate `P18
 - O backend avancado foi restaurado para cobrir relatorios por tenant, APIs conectadas, pareamento por codigo, readiness, auditoria correlacionada, metricas e scheduler/worker com retry/DLQ.
 - Validacao local completa: `py -3 -m pytest -q` com `26 passed, 1 skipped`.
 - Proximo movimento seguro: commit, push, PR para `main`, merge aprovado e deploy na VPS com validacao autenticada de `/admin/reports` e `/admin/connected-apis`.
+
+## Atualizacao de produto - relatorios - 2026-04-27
+
+- Relatorios foram reposicionados:
+  - cliente: uso principal em `/client/reports`;
+  - admin: acesso a `/reports` apenas para teste tecnico/diagnostico.
+- A navegacao principal do admin nao deve tratar relatorios como modulo operacional.
+- O modelo canonico de venda passou a aceitar dimensoes opcionais para analise comercial:
+  - tipo de venda;
+  - forma de pagamento;
+  - familia do produto.
+- Filtros novos:
+  - vendas do dia;
+  - mensal, trimestral, semestral e anual;
+  - intervalo de datas X a Y;
+  - intervalo de horario X a Y baseado em `data_atualizacao`.
+- Validacao local completa: `py -3 -m pytest -q` com `27 passed, 1 skipped`.

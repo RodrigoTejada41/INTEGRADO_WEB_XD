@@ -78,6 +78,38 @@ def _parse_date(value: str | None) -> date | None:
         return None
 
 
+def _resolve_report_period(period_preset: str | None, start_date: str | None, end_date: str | None) -> tuple[str | None, str | None, str]:
+    if start_date or end_date:
+        return start_date, end_date, period_preset or "custom"
+
+    today = date.today()
+    preset = period_preset or ""
+    if preset == "today":
+        return today.isoformat(), today.isoformat(), preset
+    if preset == "month":
+        return today.replace(day=1).isoformat(), today.isoformat(), preset
+    if preset == "quarter":
+        quarter_month = ((today.month - 1) // 3) * 3 + 1
+        return today.replace(month=quarter_month, day=1).isoformat(), today.isoformat(), preset
+    if preset == "semester":
+        semester_month = 1 if today.month <= 6 else 7
+        return today.replace(month=semester_month, day=1).isoformat(), today.isoformat(), preset
+    if preset == "year":
+        return today.replace(month=1, day=1).isoformat(), today.isoformat(), preset
+    return start_date, end_date, "custom"
+
+
+def _period_label(period_preset: str) -> str:
+    return {
+        "today": "Vendas do dia",
+        "month": "Mensal",
+        "quarter": "Trimestral",
+        "semester": "Semestral",
+        "year": "Anual",
+        "custom": "Personalizado",
+    }.get(period_preset, "Personalizado")
+
+
 def _format_local_user_audit_value(field: str, value: object) -> str:
     if isinstance(value, list):
         return ', '.join(str(item) for item in value) if value else '-'
@@ -582,8 +614,11 @@ def _remote_agent_operational_snapshot(remote_agent_snapshot: dict[str, object])
 
 def _build_filter_chips(
     *,
+    period_preset: str,
     start_date: str | None,
     end_date: str | None,
+    start_time: str | None,
+    end_time: str | None,
     branch_code: str | None,
     terminal_code: str | None,
     top_limit: int,
@@ -598,7 +633,9 @@ def _build_filter_chips(
         period_value = f'Ate {end_date}'
 
     return [
+        {'label': 'Atalho', 'value': _period_label(period_preset)},
         {'label': 'Periodo', 'value': period_value},
+        {'label': 'Horario', 'value': f'{start_time or "00:00"} ate {end_time or "23:59"}'},
         {'label': 'Filial', 'value': branch_code or 'Todas'},
         {'label': 'Terminal', 'value': terminal_code or 'Todos'},
         {'label': 'Top produtos', 'value': str(top_limit)},
@@ -691,8 +728,11 @@ def _build_comparison(
 def _build_report_payload(
     *,
     empresa_id: str | None,
+    period_preset: str | None = None,
     start_date: str | None,
     end_date: str | None,
+    start_time: str | None = None,
+    end_time: str | None = None,
     branch_code: str | None,
     terminal_code: str | None,
     top_limit: int,
@@ -701,12 +741,15 @@ def _build_report_payload(
     control = ControlService()
     normalized_top_limit = max(1, min(top_limit, 20))
     normalized_recent_limit = max(1, min(recent_limit, 50))
+    start_date, end_date, normalized_period_preset = _resolve_report_period(period_preset, start_date, end_date)
     overview = control.fetch_report_overview(
         empresa_id=empresa_id,
         start_date=start_date,
         end_date=end_date,
         branch_code=branch_code,
         terminal_code=terminal_code,
+        start_time=start_time,
+        end_time=end_time,
     )
     daily_sales = control.fetch_report_daily_sales(
         empresa_id=empresa_id,
@@ -714,6 +757,8 @@ def _build_report_payload(
         end_date=end_date,
         branch_code=branch_code,
         terminal_code=terminal_code,
+        start_time=start_time,
+        end_time=end_time,
     )
     top_products = control.fetch_report_top_products(
         empresa_id=empresa_id,
@@ -721,6 +766,41 @@ def _build_report_payload(
         end_date=end_date,
         branch_code=branch_code,
         terminal_code=terminal_code,
+        start_time=start_time,
+        end_time=end_time,
+        limit=normalized_top_limit,
+    )
+    sales_by_type = control.fetch_report_breakdown(
+        empresa_id=empresa_id,
+        group_by='tipo_venda',
+        start_date=start_date,
+        end_date=end_date,
+        branch_code=branch_code,
+        terminal_code=terminal_code,
+        start_time=start_time,
+        end_time=end_time,
+        limit=normalized_top_limit,
+    )
+    sales_by_payment = control.fetch_report_breakdown(
+        empresa_id=empresa_id,
+        group_by='forma_pagamento',
+        start_date=start_date,
+        end_date=end_date,
+        branch_code=branch_code,
+        terminal_code=terminal_code,
+        start_time=start_time,
+        end_time=end_time,
+        limit=normalized_top_limit,
+    )
+    sales_by_family = control.fetch_report_breakdown(
+        empresa_id=empresa_id,
+        group_by='familia_produto',
+        start_date=start_date,
+        end_date=end_date,
+        branch_code=branch_code,
+        terminal_code=terminal_code,
+        start_time=start_time,
+        end_time=end_time,
         limit=normalized_top_limit,
     )
     recent_sales = control.fetch_report_recent_sales(
@@ -729,10 +809,15 @@ def _build_report_payload(
         end_date=end_date,
         branch_code=branch_code,
         terminal_code=terminal_code,
+        start_time=start_time,
+        end_time=end_time,
         limit=normalized_recent_limit,
     )
     daily_items = list(daily_sales.get('items', []))
     top_items = list(top_products.get('items', []))
+    type_items = list(sales_by_type.get('items', []))
+    payment_items = list(sales_by_payment.get('items', []))
+    family_items = list(sales_by_family.get('items', []))
     recent_items = list(recent_sales.get('items', []))
     previous_period = _compute_previous_period(start_date, end_date)
     previous_overview = None
@@ -743,6 +828,8 @@ def _build_report_payload(
             end_date=previous_period[1],
             branch_code=branch_code,
             terminal_code=terminal_code,
+            start_time=start_time,
+            end_time=end_time,
         )
     comparison = _build_comparison(
         current_overview=overview,
@@ -755,8 +842,11 @@ def _build_report_payload(
         top_items=top_items,
     )
     filter_chips = _build_filter_chips(
+        period_preset=normalized_period_preset,
         start_date=start_date,
         end_date=end_date,
+        start_time=start_time,
+        end_time=end_time,
         branch_code=branch_code,
         terminal_code=terminal_code,
         top_limit=normalized_top_limit,
@@ -766,12 +856,18 @@ def _build_report_payload(
         'overview': overview,
         'daily_items': daily_items,
         'top_items': top_items,
+        'type_items': type_items,
+        'payment_items': payment_items,
+        'family_items': family_items,
         'recent_items': recent_items,
         'comparison': comparison,
         'highlight_cards': highlight_cards,
         'filter_chips': filter_chips,
+        'period_preset': normalized_period_preset,
         'start_date': start_date or '',
         'end_date': end_date or '',
+        'start_time': start_time or '',
+        'end_time': end_time or '',
         'branch_code': branch_code or '',
         'terminal_code': terminal_code or '',
         'top_limit': normalized_top_limit,
@@ -783,6 +879,18 @@ def _build_report_payload(
         'top_chart_labels': json.dumps([item.get('produto', '-') for item in top_items]),
         'top_chart_values': json.dumps(
             [float(item.get('total_sales_value', 0) or 0) for item in top_items]
+        ),
+        'type_chart_labels': json.dumps([item.get('label', '-') for item in type_items]),
+        'type_chart_values': json.dumps(
+            [float(item.get('total_sales_value', 0) or 0) for item in type_items]
+        ),
+        'payment_chart_labels': json.dumps([item.get('label', '-') for item in payment_items]),
+        'payment_chart_values': json.dumps(
+            [float(item.get('total_sales_value', 0) or 0) for item in payment_items]
+        ),
+        'family_chart_labels': json.dumps([item.get('label', '-') for item in family_items]),
+        'family_chart_values': json.dumps(
+            [float(item.get('total_sales_value', 0) or 0) for item in family_items]
         ),
     }
 
@@ -1268,8 +1376,11 @@ def records_page(
 def reports_page(
     request: Request,
     empresa_id: str | None = None,
+    period_preset: str | None = None,
     start_date: str | None = None,
     end_date: str | None = None,
+    start_time: str | None = None,
+    end_time: str | None = None,
     branch_code: str | None = None,
     terminal_code: str | None = None,
     top_limit: int = 10,
@@ -1278,8 +1389,11 @@ def reports_page(
 ):
     payload = _build_report_payload(
         empresa_id=empresa_id,
+        period_preset=period_preset,
         start_date=start_date,
         end_date=end_date,
+        start_time=start_time,
+        end_time=end_time,
         branch_code=branch_code,
         terminal_code=terminal_code,
         top_limit=top_limit,
@@ -1302,6 +1416,8 @@ def client_dashboard_page(
     request: Request,
     start_date: str | None = None,
     end_date: str | None = None,
+    start_time: str | None = None,
+    end_time: str | None = None,
     branch_code: str | None = None,
     terminal_code: str | None = None,
     current_user: User = Depends(require_client_user),
@@ -1324,6 +1440,8 @@ def client_dashboard_page(
         end_date=end_date,
         branch_code=scope.selected_branch_code,
         terminal_code=terminal_code,
+        start_time=start_time,
+        end_time=end_time,
     )
     recent_sales = control.fetch_report_recent_sales(
         empresa_id=scope.empresa_id,
@@ -1331,6 +1449,8 @@ def client_dashboard_page(
         end_date=end_date,
         branch_code=scope.selected_branch_code,
         terminal_code=terminal_code,
+        start_time=start_time,
+        end_time=end_time,
         limit=10,
     )
     return templates.TemplateResponse(
@@ -1346,6 +1466,8 @@ def client_dashboard_page(
             'end_date': end_date or '',
             'branch_code': scope.selected_branch_code or '',
             'terminal_code': terminal_code or '',
+            'start_time': start_time or '',
+            'end_time': end_time or '',
         },
     )
 
@@ -1353,8 +1475,11 @@ def client_dashboard_page(
 @router.get('/client/reports', response_class=HTMLResponse)
 def client_reports_page(
     request: Request,
+    period_preset: str | None = None,
     start_date: str | None = None,
     end_date: str | None = None,
+    start_time: str | None = None,
+    end_time: str | None = None,
     branch_code: str | None = None,
     terminal_code: str | None = None,
     top_limit: int = 10,
@@ -1374,8 +1499,11 @@ def client_reports_page(
     )
     payload = _build_report_payload(
         empresa_id=scope.empresa_id,
+        period_preset=period_preset,
         start_date=start_date,
         end_date=end_date,
+        start_time=start_time,
+        end_time=end_time,
         branch_code=scope.selected_branch_code,
         terminal_code=terminal_code,
         top_limit=top_limit,
@@ -1397,8 +1525,11 @@ def client_reports_page(
 @router.get('/reports/export.csv')
 def export_reports_csv(
     empresa_id: str | None = None,
+    period_preset: str | None = None,
     start_date: str | None = None,
     end_date: str | None = None,
+    start_time: str | None = None,
+    end_time: str | None = None,
     branch_code: str | None = None,
     terminal_code: str | None = None,
     recent_limit: int = 50,
@@ -1406,8 +1537,11 @@ def export_reports_csv(
 ):
     payload = _build_report_payload(
         empresa_id=empresa_id,
+        period_preset=period_preset,
         start_date=start_date,
         end_date=end_date,
+        start_time=start_time,
+        end_time=end_time,
         branch_code=branch_code,
         terminal_code=terminal_code,
         top_limit=10,
@@ -1424,8 +1558,11 @@ def export_reports_csv(
 @router.get('/reports/export.xlsx')
 def export_reports_xlsx(
     empresa_id: str | None = None,
+    period_preset: str | None = None,
     start_date: str | None = None,
     end_date: str | None = None,
+    start_time: str | None = None,
+    end_time: str | None = None,
     branch_code: str | None = None,
     terminal_code: str | None = None,
     top_limit: int = 10,
@@ -1434,8 +1571,11 @@ def export_reports_xlsx(
 ):
     payload = _build_report_payload(
         empresa_id=empresa_id,
+        period_preset=period_preset,
         start_date=start_date,
         end_date=end_date,
+        start_time=start_time,
+        end_time=end_time,
         branch_code=branch_code,
         terminal_code=terminal_code,
         top_limit=top_limit,
@@ -1457,8 +1597,11 @@ def export_reports_xlsx(
 @router.get('/reports/export.pdf')
 def export_reports_pdf(
     empresa_id: str | None = None,
+    period_preset: str | None = None,
     start_date: str | None = None,
     end_date: str | None = None,
+    start_time: str | None = None,
+    end_time: str | None = None,
     branch_code: str | None = None,
     terminal_code: str | None = None,
     top_limit: int = 10,
@@ -1467,8 +1610,11 @@ def export_reports_pdf(
 ):
     payload = _build_report_payload(
         empresa_id=empresa_id,
+        period_preset=period_preset,
         start_date=start_date,
         end_date=end_date,
+        start_time=start_time,
+        end_time=end_time,
         branch_code=branch_code,
         terminal_code=terminal_code,
         top_limit=top_limit,
@@ -1490,8 +1636,11 @@ def export_reports_pdf(
 
 @router.get('/client/reports/export.csv')
 def export_client_reports_csv(
+    period_preset: str | None = None,
     start_date: str | None = None,
     end_date: str | None = None,
+    start_time: str | None = None,
+    end_time: str | None = None,
     branch_code: str | None = None,
     terminal_code: str | None = None,
     recent_limit: int = 50,
@@ -1510,8 +1659,11 @@ def export_client_reports_csv(
     )
     payload = _build_report_payload(
         empresa_id=scope.empresa_id,
+        period_preset=period_preset,
         start_date=start_date,
         end_date=end_date,
+        start_time=start_time,
+        end_time=end_time,
         branch_code=scope.selected_branch_code,
         terminal_code=terminal_code,
         top_limit=10,
@@ -1527,8 +1679,11 @@ def export_client_reports_csv(
 
 @router.get('/client/reports/export.xlsx')
 def export_client_reports_xlsx(
+    period_preset: str | None = None,
     start_date: str | None = None,
     end_date: str | None = None,
+    start_time: str | None = None,
+    end_time: str | None = None,
     branch_code: str | None = None,
     terminal_code: str | None = None,
     top_limit: int = 10,
@@ -1548,8 +1703,11 @@ def export_client_reports_xlsx(
     )
     payload = _build_report_payload(
         empresa_id=scope.empresa_id,
+        period_preset=period_preset,
         start_date=start_date,
         end_date=end_date,
+        start_time=start_time,
+        end_time=end_time,
         branch_code=scope.selected_branch_code,
         terminal_code=terminal_code,
         top_limit=top_limit,
@@ -1570,8 +1728,11 @@ def export_client_reports_xlsx(
 
 @router.get('/client/reports/export.pdf')
 def export_client_reports_pdf(
+    period_preset: str | None = None,
     start_date: str | None = None,
     end_date: str | None = None,
+    start_time: str | None = None,
+    end_time: str | None = None,
     branch_code: str | None = None,
     terminal_code: str | None = None,
     top_limit: int = 10,
@@ -1591,8 +1752,11 @@ def export_client_reports_pdf(
     )
     payload = _build_report_payload(
         empresa_id=scope.empresa_id,
+        period_preset=period_preset,
         start_date=start_date,
         end_date=end_date,
+        start_time=start_time,
+        end_time=end_time,
         branch_code=scope.selected_branch_code,
         terminal_code=terminal_code,
         top_limit=top_limit,

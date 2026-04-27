@@ -12,6 +12,8 @@ class TenantReportOverviewResponse(BaseModel):
     end_date: date | None = None
     branch_code: str | None = None
     terminal_code: str | None = None
+    start_time: str | None = None
+    end_time: str | None = None
     total_records: int
     total_sales_value: Decimal
     distinct_products: int
@@ -33,12 +35,21 @@ class TenantTopProductResponse(BaseModel):
     total_sales_value: Decimal
 
 
+class TenantSalesBreakdownItemResponse(BaseModel):
+    label: str
+    total_records: int
+    total_sales_value: Decimal
+
+
 class TenantRecentSaleResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     uuid: str
     branch_code: str | None = None
     terminal_code: str | None = None
+    tipo_venda: str | None = None
+    forma_pagamento: str | None = None
+    familia_produto: str | None = None
     produto: str
     valor: Decimal
     data: date
@@ -51,6 +62,8 @@ class TenantDailySalesResponse(BaseModel):
     end_date: date | None = None
     branch_code: str | None = None
     terminal_code: str | None = None
+    start_time: str | None = None
+    end_time: str | None = None
     items: list[TenantDailySalesPointResponse] = Field(default_factory=list)
 
 
@@ -60,8 +73,23 @@ class TenantTopProductsResponse(BaseModel):
     end_date: date | None = None
     branch_code: str | None = None
     terminal_code: str | None = None
+    start_time: str | None = None
+    end_time: str | None = None
     limit: int
     items: list[TenantTopProductResponse] = Field(default_factory=list)
+
+
+class TenantSalesBreakdownResponse(BaseModel):
+    empresa_id: str
+    group_by: str
+    start_date: date | None = None
+    end_date: date | None = None
+    branch_code: str | None = None
+    terminal_code: str | None = None
+    start_time: str | None = None
+    end_time: str | None = None
+    limit: int
+    items: list[TenantSalesBreakdownItemResponse] = Field(default_factory=list)
 
 
 class TenantRecentSalesResponse(BaseModel):
@@ -70,6 +98,8 @@ class TenantRecentSalesResponse(BaseModel):
     end_date: date | None = None
     branch_code: str | None = None
     terminal_code: str | None = None
+    start_time: str | None = None
+    end_time: str | None = None
     limit: int
     items: list[TenantRecentSaleResponse] = Field(default_factory=list)
 

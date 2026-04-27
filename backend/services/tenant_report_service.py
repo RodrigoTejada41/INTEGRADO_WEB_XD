@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import date
+from datetime import date, time
 
 from fastapi import HTTPException, status
 
@@ -26,6 +26,14 @@ class TenantReportService:
                 detail="end_date deve ser maior ou igual a start_date.",
             )
 
+    @staticmethod
+    def validate_time_range(start_time: time | None, end_time: time | None) -> None:
+        if start_time and end_time and end_time < start_time:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="end_time deve ser maior ou igual a start_time.",
+            )
+
     def get_overview(
         self,
         *,
@@ -34,15 +42,20 @@ class TenantReportService:
         end_date: date | None = None,
         branch_code: str | None = None,
         terminal_code: str | None = None,
+        start_time: time | None = None,
+        end_time: time | None = None,
     ) -> dict[str, object]:
         self.ensure_tenant_exists(empresa_id)
         self.validate_date_range(start_date, end_date)
+        self.validate_time_range(start_time, end_time)
         return self.venda_repository.report_overview(
             empresa_id=empresa_id,
             start_date=start_date,
             end_date=end_date,
             branch_code=branch_code,
             terminal_code=terminal_code,
+            start_time=start_time,
+            end_time=end_time,
         )
 
     def get_daily_sales(
@@ -53,15 +66,20 @@ class TenantReportService:
         end_date: date | None = None,
         branch_code: str | None = None,
         terminal_code: str | None = None,
+        start_time: time | None = None,
+        end_time: time | None = None,
     ) -> list[dict[str, object]]:
         self.ensure_tenant_exists(empresa_id)
         self.validate_date_range(start_date, end_date)
+        self.validate_time_range(start_time, end_time)
         return self.venda_repository.report_daily_sales(
             empresa_id=empresa_id,
             start_date=start_date,
             end_date=end_date,
             branch_code=branch_code,
             terminal_code=terminal_code,
+            start_time=start_time,
+            end_time=end_time,
         )
 
     def get_top_products(
@@ -73,9 +91,12 @@ class TenantReportService:
         end_date: date | None = None,
         branch_code: str | None = None,
         terminal_code: str | None = None,
+        start_time: time | None = None,
+        end_time: time | None = None,
     ) -> list[dict[str, object]]:
         self.ensure_tenant_exists(empresa_id)
         self.validate_date_range(start_date, end_date)
+        self.validate_time_range(start_time, end_time)
         return self.venda_repository.report_top_products(
             empresa_id=empresa_id,
             limit=limit,
@@ -83,6 +104,41 @@ class TenantReportService:
             end_date=end_date,
             branch_code=branch_code,
             terminal_code=terminal_code,
+            start_time=start_time,
+            end_time=end_time,
+        )
+
+    def get_sales_breakdown(
+        self,
+        *,
+        empresa_id: str,
+        group_by: str,
+        limit: int,
+        start_date: date | None = None,
+        end_date: date | None = None,
+        branch_code: str | None = None,
+        terminal_code: str | None = None,
+        start_time: time | None = None,
+        end_time: time | None = None,
+    ) -> list[dict[str, object]]:
+        if group_by not in {"tipo_venda", "forma_pagamento", "familia_produto"}:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="group_by invalido para relatorio.",
+            )
+        self.ensure_tenant_exists(empresa_id)
+        self.validate_date_range(start_date, end_date)
+        self.validate_time_range(start_time, end_time)
+        return self.venda_repository.report_sales_breakdown(
+            empresa_id=empresa_id,
+            group_by=group_by,
+            limit=limit,
+            start_date=start_date,
+            end_date=end_date,
+            branch_code=branch_code,
+            terminal_code=terminal_code,
+            start_time=start_time,
+            end_time=end_time,
         )
 
     def get_recent_sales(
@@ -94,9 +150,12 @@ class TenantReportService:
         end_date: date | None = None,
         branch_code: str | None = None,
         terminal_code: str | None = None,
+        start_time: time | None = None,
+        end_time: time | None = None,
     ):
         self.ensure_tenant_exists(empresa_id)
         self.validate_date_range(start_date, end_date)
+        self.validate_time_range(start_time, end_time)
         return self.venda_repository.report_recent_sales(
             empresa_id=empresa_id,
             limit=limit,
@@ -104,6 +163,8 @@ class TenantReportService:
             end_date=end_date,
             branch_code=branch_code,
             terminal_code=terminal_code,
+            start_time=start_time,
+            end_time=end_time,
         )
 
     def get_branch_codes(

@@ -37,6 +37,7 @@ def _patch_commercial_reports(monkeypatch, control_service_cls) -> None:
         end_date: str | None = None,
         branch_code: str | None = None,
         terminal_code: str | None = None,
+        **_: object,
     ):
         if start_date and str(start_date)[5:7] == "03":
             return {
@@ -64,6 +65,7 @@ def _patch_commercial_reports(monkeypatch, control_service_cls) -> None:
         end_date: str | None = None,
         branch_code: str | None = None,
         terminal_code: str | None = None,
+        **_: object,
     ):
         return {
             "items": [
@@ -82,6 +84,7 @@ def _patch_commercial_reports(monkeypatch, control_service_cls) -> None:
         branch_code: str | None = None,
         terminal_code: str | None = None,
         limit: int = 3,
+        **_: object,
     ):
         return {
             "items": [
@@ -100,6 +103,7 @@ def _patch_commercial_reports(monkeypatch, control_service_cls) -> None:
         branch_code: str | None = None,
         terminal_code: str | None = None,
         limit: int = 5,
+        **_: object,
     ):
         return {
             "items": [
@@ -108,9 +112,23 @@ def _patch_commercial_reports(monkeypatch, control_service_cls) -> None:
             ][:limit]
         }
 
+    def fake_fetch_report_breakdown(self, *, group_by: str, limit: int = 3, **_: object):
+        labels = {
+            "tipo_venda": ["presencial", "delivery"],
+            "forma_pagamento": ["pix", "cartao"],
+            "familia_produto": ["bebidas", "lanches"],
+        }.get(group_by, ["Nao informado"])
+        return {
+            "items": [
+                {"label": label, "total_records": index + 1, "total_sales_value": float((index + 1) * 100)}
+                for index, label in enumerate(labels[:limit])
+            ]
+        }
+
     monkeypatch.setattr(control_service_cls, "fetch_report_overview", fake_fetch_report_overview)
     monkeypatch.setattr(control_service_cls, "fetch_report_daily_sales", fake_fetch_report_daily_sales)
     monkeypatch.setattr(control_service_cls, "fetch_report_top_products", fake_fetch_report_top_products)
+    monkeypatch.setattr(control_service_cls, "fetch_report_breakdown", fake_fetch_report_breakdown)
     monkeypatch.setattr(control_service_cls, "fetch_report_recent_sales", fake_fetch_report_recent_sales)
 
 

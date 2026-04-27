@@ -564,6 +564,8 @@ class ControlService:
         end_date: str | None = None,
         branch_code: str | None = None,
         terminal_code: str | None = None,
+        start_time: str | None = None,
+        end_time: str | None = None,
     ) -> dict:
         params = {
             key: value
@@ -572,6 +574,8 @@ class ControlService:
                 'end_date': end_date,
                 'branch_code': branch_code,
                 'terminal_code': terminal_code,
+                'start_time': start_time,
+                'end_time': end_time,
             }.items()
             if value
         }
@@ -592,6 +596,8 @@ class ControlService:
         end_date: str | None = None,
         branch_code: str | None = None,
         terminal_code: str | None = None,
+        start_time: str | None = None,
+        end_time: str | None = None,
     ) -> dict:
         params = {
             key: value
@@ -600,6 +606,8 @@ class ControlService:
                 'end_date': end_date,
                 'branch_code': branch_code,
                 'terminal_code': terminal_code,
+                'start_time': start_time,
+                'end_time': end_time,
             }.items()
             if value
         }
@@ -620,6 +628,8 @@ class ControlService:
         end_date: str | None = None,
         branch_code: str | None = None,
         terminal_code: str | None = None,
+        start_time: str | None = None,
+        end_time: str | None = None,
         limit: int = 10,
     ) -> dict:
         params = {
@@ -629,6 +639,8 @@ class ControlService:
                 'end_date': end_date,
                 'branch_code': branch_code,
                 'terminal_code': terminal_code,
+                'start_time': start_time,
+                'end_time': end_time,
                 'limit': limit,
             }.items()
             if value is not None and value != ''
@@ -636,6 +648,42 @@ class ControlService:
         with httpx.Client(timeout=20.0) as client:
             response = client.get(
                 f'{self.base_url}/admin/tenants/{empresa_id or settings.control_empresa_id}/reports/top-products',
+                headers=self.admin_headers,
+                params=params,
+            )
+            response.raise_for_status()
+            return response.json()
+
+    def fetch_report_breakdown(
+        self,
+        *,
+        group_by: str,
+        empresa_id: str | None = None,
+        start_date: str | None = None,
+        end_date: str | None = None,
+        branch_code: str | None = None,
+        terminal_code: str | None = None,
+        start_time: str | None = None,
+        end_time: str | None = None,
+        limit: int = 10,
+    ) -> dict:
+        params = {
+            key: value
+            for key, value in {
+                'group_by': group_by,
+                'start_date': start_date,
+                'end_date': end_date,
+                'branch_code': branch_code,
+                'terminal_code': terminal_code,
+                'start_time': start_time,
+                'end_time': end_time,
+                'limit': limit,
+            }.items()
+            if value is not None and value != ''
+        }
+        with httpx.Client(timeout=20.0) as client:
+            response = client.get(
+                f'{self.base_url}/admin/tenants/{empresa_id or settings.control_empresa_id}/reports/breakdown',
                 headers=self.admin_headers,
                 params=params,
             )
@@ -650,6 +698,8 @@ class ControlService:
         end_date: str | None = None,
         branch_code: str | None = None,
         terminal_code: str | None = None,
+        start_time: str | None = None,
+        end_time: str | None = None,
         limit: int = 20,
     ) -> dict:
         params = {
@@ -659,6 +709,8 @@ class ControlService:
                 'end_date': end_date,
                 'branch_code': branch_code,
                 'terminal_code': terminal_code,
+                'start_time': start_time,
+                'end_time': end_time,
                 'limit': limit,
             }.items()
             if value is not None and value != ''
