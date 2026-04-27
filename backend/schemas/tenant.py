@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from pydantic import BaseModel, ConfigDict, Field
 
 
@@ -12,22 +14,14 @@ class TenantProvisionResponse(BaseModel):
     empresa_id: str
     nome: str
     api_key: str
+    api_key_last_rotated_at: datetime | None
+    api_key_expires_at: datetime | None
     status: str
 
 
 class TenantRotateKeyResponse(BaseModel):
     empresa_id: str
     api_key: str
+    api_key_last_rotated_at: datetime | None
+    api_key_expires_at: datetime | None
     status: str
-
-
-class TenantListItemResponse(BaseModel):
-    empresa_id: str
-    nome: str
-    ativo: bool
-
-
-class TenantDeactivateResponse(BaseModel):
-    empresa_id: str
-    status: str
-

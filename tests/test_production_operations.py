@@ -8,8 +8,10 @@ ROOT = Path(__file__).resolve().parents[1]
 
 def test_production_compose_uses_sync_admin_readiness() -> None:
     compose_content = (ROOT / "docker-compose.prod.yml").read_text(encoding="utf-8")
+    backend_health = (ROOT / "backend" / "api" / "routes" / "health.py").read_text(encoding="utf-8")
 
     assert "http://localhost:8000/health/ready" in compose_content
+    assert '@router.get("/health/ready")' in backend_health
     assert "http://localhost:8000/health/live" not in compose_content
     assert "http://127.0.0.1/readyz/backend" in compose_content
     assert "http://127.0.0.1/readyz/sync-admin" in compose_content

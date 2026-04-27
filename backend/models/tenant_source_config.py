@@ -17,10 +17,12 @@ class TenantSourceConfig(Base):
     empresa_id: Mapped[str] = mapped_column(String(32), nullable=False)
     nome: Mapped[str] = mapped_column(String(120), nullable=False)
     connector_type: Mapped[str] = mapped_column(String(32), nullable=False)
-    sync_interval_minutes: Mapped[int] = mapped_column(Integer, nullable=False, default=15)
+    sync_interval_minutes: Mapped[int] = mapped_column(Integer, nullable=False, default=16)
     settings_json: Mapped[str] = mapped_column(Text, nullable=False, default="{}")
     ativo: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
     last_run_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    last_scheduled_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    next_run_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     last_status: Mapped[str] = mapped_column(String(32), nullable=False, default="pending")
     last_error: Mapped[str | None] = mapped_column(Text, nullable=True)
     created_at: Mapped[datetime] = mapped_column(

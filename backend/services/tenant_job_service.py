@@ -51,6 +51,11 @@ class TenantJobService:
         jobs = self.repository.list_by_empresa_id(empresa_id, statuses=["dead_letter"], limit=limit)
         return [self._to_response(job) for job in jobs]
 
+    def list_jobs(self, empresa_id: str, limit: int = 20) -> list[TenantJobResponse]:
+        self._ensure_empresa_id(empresa_id)
+        jobs = self.repository.list_by_empresa_id(empresa_id, limit=limit)
+        return [self._to_response(job) for job in jobs]
+
     def retry_job(self, empresa_id: str, job_id: str) -> TenantJobRetryResponse:
         self._ensure_empresa_id(empresa_id)
         job = self.repository.get_by_id(job_id)

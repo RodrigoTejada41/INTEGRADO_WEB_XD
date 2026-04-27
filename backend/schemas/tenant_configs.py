@@ -8,7 +8,7 @@ class TenantConfigCreateRequest(BaseModel):
 
     nome: str = Field(min_length=1, max_length=120)
     connector_type: str = Field(min_length=2, max_length=32)
-    sync_interval_minutes: int = Field(default=15, ge=1, le=1440)
+    sync_interval_minutes: int = Field(default=16, ge=1, le=1440)
     settings: dict[str, str] = Field(default_factory=dict)
 
 
@@ -31,6 +31,8 @@ class TenantConfigResponse(BaseModel):
     settings: dict[str, str]
     ativo: bool
     last_run_at: datetime | None
+    last_scheduled_at: datetime | None
+    next_run_at: datetime | None
     last_status: str
     last_error: str | None
     created_at: datetime

@@ -23,7 +23,11 @@ class TenantAuditRepository:
         resource_type: str,
         resource_id: str | None = None,
         status: str = "success",
-        detail: dict[str, str] | None = None,
+        correlation_id: str | None = None,
+        request_path: str | None = None,
+        actor_ip: str | None = None,
+        user_agent: str | None = None,
+        detail: dict[str, object] | None = None,
     ) -> TenantAuditEvent:
         item = TenantAuditEvent(
             id=str(uuid4()),
@@ -33,6 +37,10 @@ class TenantAuditRepository:
             resource_type=resource_type,
             resource_id=resource_id,
             status=status,
+            correlation_id=correlation_id,
+            request_path=request_path,
+            actor_ip=actor_ip,
+            user_agent=user_agent,
             detail_json=json.dumps(detail or {}, ensure_ascii=False, sort_keys=True),
             created_at=datetime.now(UTC),
         )

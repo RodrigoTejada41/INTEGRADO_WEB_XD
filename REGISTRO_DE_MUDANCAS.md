@@ -42,6 +42,11 @@
   - VPS já recebeu migração SQL idempotente e validação autenticada retornou `200` para `connected-apis` e `reports`.
   - Código local está staged na branch `codex/fix-connected-apis-nginx`, faltando commit/push/PR final.
   - Validação local mais recente: `py -3 -m pytest -q` com `26 passed, 1 skipped`.
+- Convergência backend/VPS registrada em 2026-04-27:
+  - Deploy de `origin/main` na VPS revelou downgrade porque produção possuía endpoints avançados ainda não versionados no `main`.
+  - Restaurado contrato backend avançado em `codex/restore-backend-reporting-contract`.
+  - Relatórios por tenant, APIs conectadas, pareamento por código, readiness, auditoria correlacionada, métricas HTTP e scheduler/worker avançados voltaram a compor o código versionado.
+  - Validação local completa: `py -3 -m pytest -q` com `26 passed, 1 skipped`.
 
 ### Planejado
 - Multiempresa completa com isolamento por empresa, filial e terminal.

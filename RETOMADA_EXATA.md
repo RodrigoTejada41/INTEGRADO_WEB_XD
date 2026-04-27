@@ -192,3 +192,25 @@ Este arquivo e o ponto de entrada para retomar o projeto sem redescobrir context
 1. Fazer push do commit `34d467f` e merge em `main` para manter convergencia repo <-> VPS.
 2. Executar deploy via GitHub Actions em `main` e validar rotas publicas novamente.
 3. Opcional tecnico: migrar docs da API para `docs_url='/admin/docs'` + `root_path='/admin'` no FastAPI para eliminar dependencia do alias `/openapi.json`.
+
+## Checkpoint de convergencia backend/VPS - 2026-04-27
+- Problema confirmado:
+  - a VPS tinha funcionalidades avancadas em arquivos locais/dirty que nao estavam no `main` oficial;
+  - ao alinhar a VPS com `origin/main`, houve downgrade funcional do backend;
+  - sintomas em producao: `/reports` autenticado retornava `500` por endpoints backend ausentes (`/admin/tenants/{empresa_id}/reports/overview`, `/api/v1/clients`, `/api/v1/clients/summary`).
+- Correcao aplicada em branch isolada:
+  - branch local: `codex/restore-backend-reporting-contract`;
+  - restaurado o contrato backend avancado a partir de `origin/codex/vps-https-deploy-contract`;
+  - incluidos endpoints de relatorios por tenant, APIs remotas conectadas, pareamento por codigo, health/readiness avancado, auditoria com `correlation_id`, metricas HTTP e fila/scheduler avancados;
+  - corrigido o wiring do `tenant_pairing_router` no FastAPI;
+  - ajustada politica de retry do worker para nao enviar falhas permanentes para DLQ na primeira tentativa.
+- Validacao local:
+  - `py -3 -m pytest tests/test_production_operations.py tests/test_sync_upsert.py tests/test_api_integration.py -q` -> `13 passed`;
+  - `py -3 -m pytest tests/test_tenant_scheduler.py -q` -> `3 passed`;
+  - `py -3 -m pytest -q` -> `26 passed, 1 skipped`.
+- Estado Git esperado:
+  - commit pendente na branch `codex/restore-backend-reporting-contract`;
+  - depois do commit: push, PR para `main`, merge aprovado e deploy na VPS.
+- Regra operacional:
+  - nao alinhar VPS com `main` sem validar antes se as funcionalidades existentes em producao estao versionadas;
+  - qualquer hotfix manual em VPS deve virar commit/PR antes de novo reset/redeploy.
