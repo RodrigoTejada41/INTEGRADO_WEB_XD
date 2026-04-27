@@ -316,3 +316,61 @@ git add RETOMADA_EXATA.md cerebro_vivo/estado_atual.md REGISTRO_DE_MUDANCAS.md C
 git commit -m "fix: restore reports route and sales branch schema"
 git push -u origin codex/fix-connected-apis-nginx
 ```
+
+## 12) Checkpoint de convergencia backend/VPS - 2026-04-27
+
+### 12.1 Diagnostico
+
+- A VPS foi alinhada com `origin/main` para remover drift manual.
+- O alinhamento confirmou um risco real: parte do backend avancado existia na VPS/branch antiga, mas nao estava no `main`.
+- O downgrade quebrou `/reports` no painel porque o frontend chamava endpoints backend ausentes no `main`.
+- Sintomas observados:
+  - `/healthz`, `/readyz/backend` e `/admin/api/health/ready` estavam `200`.
+  - `/connected-apis` estava `200`.
+  - `/reports` autenticado retornava `500`.
+  - logs do `sync-admin` indicavam `404` no backend para relatorios e resumo/listagem de clientes.
+
+### 12.2 Correcao em andamento
+
+- Branch local: `codex/restore-backend-reporting-contract`.
+- Restaurado o contrato backend avancado a partir de `origin/codex/vps-https-deploy-contract`.
+- Componentes restaurados:
+  - rotas de relatorios por tenant;
+  - rotas de clientes remotos/APIs conectadas;
+  - rotas de pareamento por codigo;
+  - schemas, services e repositories correlatos;
+  - migrations e runner de banco;
+  - readiness avancado;
+  - auditoria com `correlation_id`;
+  - metricas HTTP/fila/scheduler;
+  - scheduler/worker avancados com retry e DLQ.
+- Ajuste tecnico local:
+  - `tenant_pairing_router` registrado no `backend/main.py` e em `backend/api/routes/__init__.py`;
+  - politica de retry do worker ajustada para permitir tentativas antes de DLQ.
+
+### 12.3 Validacao
+
+- `py -3 -m pytest tests/test_production_operations.py tests/test_sync_upsert.py tests/test_api_integration.py -q`
+  - Resultado: `13 passed`
+- `py -3 -m pytest tests/test_tenant_scheduler.py -q`
+  - Resultado: `3 passed`
+- `py -3 -m pytest -q`
+  - Resultado: `26 passed, 1 skipped`
+
+### 12.4 Proximo passo operacional
+
+```powershell
+git add -A
+git commit -m "fix: restore backend reporting and remote client contract"
+git push -u origin codex/restore-backend-reporting-contract
+```
+
+- Abrir PR para `main`.
+- Fazer merge aprovado.
+- Deploy na VPS.
+- Validar em producao:
+  - `https://movisystecnologia.com.br/healthz`
+  - `https://movisystecnologia.com.br/readyz/backend`
+  - `https://movisystecnologia.com.br/admin/api/health/ready`
+  - `https://movisystecnologia.com.br/admin/connected-apis`
+  - `https://movisystecnologia.com.br/admin/reports`

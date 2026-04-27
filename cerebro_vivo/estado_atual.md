@@ -163,3 +163,11 @@ Na retomada canonica mais recente, o backlog funcional estava concluido ate `P18
 - Referencia principal para reinicio: `RETOMADA_EXATA.md`.
 - Referencia executiva para contexto resumido: este arquivo.
 - A sessao foi pausada apos solicitar registro integral do estado para continuidade posterior.
+
+## Atualizacao executiva - 2026-04-27
+
+- Foi identificado downgrade funcional ao alinhar VPS com `origin/main`: producao possuia backend avancado fora do contrato versionado em `main`.
+- A correcao foi isolada na branch `codex/restore-backend-reporting-contract`.
+- O backend avancado foi restaurado para cobrir relatorios por tenant, APIs conectadas, pareamento por codigo, readiness, auditoria correlacionada, metricas e scheduler/worker com retry/DLQ.
+- Validacao local completa: `py -3 -m pytest -q` com `26 passed, 1 skipped`.
+- Proximo movimento seguro: commit, push, PR para `main`, merge aprovado e deploy na VPS com validacao autenticada de `/admin/reports` e `/admin/connected-apis`.

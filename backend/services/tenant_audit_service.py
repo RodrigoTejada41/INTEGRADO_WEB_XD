@@ -20,6 +20,10 @@ class TenantAuditService:
             resource_type=item.resource_type,
             resource_id=item.resource_id,
             status=item.status,
+            correlation_id=item.correlation_id,
+            request_path=item.request_path,
+            actor_ip=item.actor_ip,
+            user_agent=item.user_agent,
             detail=json.loads(item.detail_json or "{}"),
             created_at=item.created_at,
         )
@@ -33,7 +37,11 @@ class TenantAuditService:
         resource_type: str,
         resource_id: str | None = None,
         status: str = "success",
-        detail: dict[str, str] | None = None,
+        correlation_id: str | None = None,
+        request_path: str | None = None,
+        actor_ip: str | None = None,
+        user_agent: str | None = None,
+        detail: dict[str, object] | None = None,
     ) -> TenantAuditEventResponse:
         item = self.repository.create(
             empresa_id=empresa_id,
@@ -42,6 +50,10 @@ class TenantAuditService:
             resource_type=resource_type,
             resource_id=resource_id,
             status=status,
+            correlation_id=correlation_id,
+            request_path=request_path,
+            actor_ip=actor_ip,
+            user_agent=user_agent,
             detail=detail,
         )
         return self._to_response(item)

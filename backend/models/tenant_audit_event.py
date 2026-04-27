@@ -21,6 +21,10 @@ class TenantAuditEvent(Base):
     resource_type: Mapped[str] = mapped_column(String(80), nullable=False)
     resource_id: Mapped[str | None] = mapped_column(String(120), nullable=True)
     status: Mapped[str] = mapped_column(String(24), nullable=False, default="success")
+    correlation_id: Mapped[str | None] = mapped_column(String(128), nullable=True)
+    request_path: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    actor_ip: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    user_agent: Mapped[str | None] = mapped_column(String(255), nullable=True)
     detail_json: Mapped[str] = mapped_column(Text, nullable=False, default="{}")
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, default=utc_now
