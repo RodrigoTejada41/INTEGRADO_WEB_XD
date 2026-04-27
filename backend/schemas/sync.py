@@ -7,6 +7,8 @@ class VendaPayload(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     uuid: str = Field(min_length=8, max_length=128)
+    branch_code: str | None = Field(default=None, max_length=50)
+    terminal_code: str | None = Field(default=None, max_length=50)
     produto: str = Field(min_length=1, max_length=255)
     valor: Decimal = Field(gt=Decimal("0"))
     data: date

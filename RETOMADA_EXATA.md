@@ -1,11 +1,23 @@
 # RETOMADA EXATA - INTEGRADO_WEB_XD
 
-Data de atualizacao: 2026-04-22
+Data de atualizacao: 2026-04-27
 
 ## Objetivo desta nota
 Este arquivo e o ponto de entrada para retomar o projeto sem redescobrir contexto.
 
 ## Estado atual (validado)
+- Checkpoint mais recente: hotfix de rotas do painel admin e schema de relatorios em producao.
+- Branch local atual: `codex/fix-connected-apis-nginx`.
+- Commit local anterior nesta branch: `2a41261` - `fix: route connected apis through nginx`.
+- Existem mudancas locais staged ainda sem commit porque a sessao foi interrompida antes do commit final.
+- Arquivos staged neste checkpoint:
+  - `backend/models/venda.py`
+  - `backend/repositories/venda_repository.py`
+  - `backend/schemas/sync.py`
+  - `backend/sql/postgresql_schema.sql`
+  - `infra/nginx/default.conf`
+  - `tests/test_production_operations.py`
+  - `tests/test_sync_upsert.py`
 - VPS ativa em `172.238.213.72` com stack em `/opt/integrado_web_xd`.
 - Deploy de producao com `docker-compose.prod.yml`.
 - Containers esperados:
@@ -18,6 +30,72 @@ Este arquivo e o ponto de entrada para retomar o projeto sem redescobrir context
   - Cliente em `https://movisystecnologia.com.br/MoviRelatorios`
   - API/Docs em `https://movisystecnologia.com.br/admin`
 - SSL ativo (Let's Encrypt) com renovacao automatizada ja preparada.
+
+## Checkpoint operacional mais recente - 2026-04-27
+
+### Problema reportado
+- Tela `APIs Conectadas` retornava `404 Not Found` pelo Nginx.
+- Tela `Relatorios` tambem retornava `404 Not Found`.
+- Apos corrigir o roteamento, a tela `Relatorios` autenticada retornou `500 Internal Server Error`.
+
+### Causas confirmadas
+- O `sync-admin` usa links absolutos como `/connected-apis`, `/reports` e `/client/reports`.
+- A aplicacao esta publicada sob `/admin`, mas o Nginx so tinha compatibilidade para alguns caminhos absolutos (`/dashboard`, `/settings`, etc.).
+- O 500 de relatorios vinha do backend central:
+  - endpoint: `GET /admin/tenants/12345678000199/reports/overview`
+  - erro: `column vendas.branch_code does not exist`
+- O codigo de relatorios esperava `branch_code` e `terminal_code`, mas o schema real do PostgreSQL ainda nao tinha essas colunas.
+
+### Correcao aplicada diretamente na VPS
+- `infra/nginx/default.conf` copiado para `/opt/integrado_web_xd/infra/nginx/default.conf`.
+- Nginx validado e recarregado:
+  - `nginx -t` OK
+  - `nginx -s reload` OK
+- Migração SQL segura aplicada no PostgreSQL de producao:
+  - `ALTER TABLE vendas ADD COLUMN IF NOT EXISTS branch_code VARCHAR(50);`
+  - `ALTER TABLE vendas ADD COLUMN IF NOT EXISTS terminal_code VARCHAR(50);`
+  - `ALTER TABLE vendas_historico ADD COLUMN IF NOT EXISTS branch_code VARCHAR(50);`
+  - `ALTER TABLE vendas_historico ADD COLUMN IF NOT EXISTS terminal_code VARCHAR(50);`
+  - `CREATE INDEX IF NOT EXISTS ix_vendas_empresa_branch ON vendas (empresa_id, branch_code);`
+  - `CREATE INDEX IF NOT EXISTS ix_vendas_empresa_terminal ON vendas (empresa_id, terminal_code);`
+
+### Validacao em producao executada
+- Login admin:
+  - usuario: `admin`
+  - senha operacional temporaria usada nesta sessao: `MoviSys@2026#Admin`
+  - `POST /admin/login` -> `302`
+- `GET https://movisystecnologia.com.br/connected-apis` autenticado -> `200`
+- `GET https://movisystecnologia.com.br/admin/connected-apis` autenticado -> `200`
+- `GET https://movisystecnologia.com.br/reports` autenticado -> `200`
+- `GET https://movisystecnologia.com.br/admin/reports` autenticado -> `200`
+
+### Correcao registrada no codigo local
+- Nginx:
+  - adicionadas rotas compativeis para `/connected-apis`, `/reports` e `/client/reports`.
+- Backend:
+  - `Venda` e `VendaHistorico` agora incluem `branch_code` e `terminal_code`.
+  - `VendaPayload` agora aceita `branch_code` e `terminal_code`.
+  - `VendaRepository.bulk_upsert` persiste e atualiza esses campos.
+  - `retain_recent_data` arquiva esses campos em `vendas_historico`.
+  - `backend/sql/postgresql_schema.sql` inclui colunas, alter idempotente e indices.
+- Testes:
+  - contrato Nginx cobre `/connected-apis`, `/reports` e `/client/reports`.
+  - upsert cobre persistencia e update de `branch_code`/`terminal_code`.
+
+### Validacao local executada
+- `py -3 -m pytest tests/test_production_operations.py -q` -> `8 passed`.
+- `py -3 -m pytest tests/test_sync_upsert.py tests/test_production_operations.py -q` -> `11 passed`.
+- `py -3 -m pytest -q` -> `26 passed, 1 skipped`.
+
+### Estado Git exato ao pausar
+- Branch: `codex/fix-connected-apis-nginx`.
+- Worktree com arquivos staged e sem commit final.
+- Commit que ainda precisa ser criado:
+  - sugestao: `fix: restore reports route and sales branch schema`
+- Depois do commit:
+  - `git push -u origin codex/fix-connected-apis-nginx`
+  - abrir/atualizar PR: `https://github.com/RodrigoTejada41/INTEGRADO_WEB_XD/pull/new/codex/fix-connected-apis-nginx`
+- Observacao: `main` esta protegida; nao usar push direto para `main`.
 
 ## Correcao mais recente aplicada
 - Problema reportado: `https://movisystecnologia.com.br/admin/docs` mostrava `Failed to load API definition`.

@@ -35,6 +35,13 @@
 - Endpoints de summary para source e destination por tenant adicionados na API administrativa.
 - Auditoria persistente de alterações de configuração com ator, ação e recurso adicionada.
 - Suíte automatizada estabilizada com `12 passed`.
+- Hotfix de produção registrado em 2026-04-27:
+  - `/connected-apis` corrigido no Nginx para não retornar `404`.
+  - `/reports` e `/client/reports` corrigidos no Nginx para não retornar `404`.
+  - Schema de `vendas` e `vendas_historico` alinhado com relatórios por filial/terminal usando `branch_code` e `terminal_code`.
+  - VPS já recebeu migração SQL idempotente e validação autenticada retornou `200` para `connected-apis` e `reports`.
+  - Código local está staged na branch `codex/fix-connected-apis-nginx`, faltando commit/push/PR final.
+  - Validação local mais recente: `py -3 -m pytest -q` com `26 passed, 1 skipped`.
 
 ### Planejado
 - Multiempresa completa com isolamento por empresa, filial e terminal.
