@@ -432,3 +432,47 @@ git push -u origin codex/restore-backend-reporting-contract
 - Abrir PR da branch `codex/restore-backend-reporting-contract`.
 - Fazer merge em `main`.
 - So depois voltar a VPS para seguir `main`.
+
+## 14) Portal cliente acessivel por admin - 2026-04-28
+
+### 14.1 Decisao
+
+- Admin pode acessar qualquer portal de cliente em modo suporte.
+- Acesso deve ser sempre filtrado por `empresa_id`.
+- O perfil `client` permanece limitado ao seu proprio tenant e escopo de filiais.
+- Perfis nao autorizados continuam recebendo `403`.
+
+### 14.2 Entregue
+
+- Guard dedicado para portal cliente:
+  - `require_client_portal_access`
+- Rotas do portal cliente aceitando preview administrativo:
+  - `/client/dashboard?empresa_id=<empresa_id>`
+  - `/client/reports?empresa_id=<empresa_id>`
+  - exportacoes CSV/XLSX/PDF com `empresa_id`.
+- Templates exibem aviso quando o admin esta visualizando portal cliente.
+- Teste automatizado cobre resolucao de escopo admin para qualquer `empresa_id`.
+
+### 14.3 Validacao
+
+- `py -3 -m pytest tests/test_sync_admin_rbac.py -q`
+  - Resultado: `2 passed`
+- `py -3 -m pytest -q`
+  - Resultado: `28 passed, 1 skipped`
+
+### 14.4 Deploy
+
+- Branch:
+  - `codex/restore-backend-reporting-contract`
+- Commit:
+  - `c258d71` - `fix: allow admin client portal preview`
+- VPS:
+  - deploy executado;
+  - containers saudaveis;
+  - commit aplicado em `/opt/integrado_web_xd`.
+
+### 14.5 Pendente
+
+- GitHub CLI local esta desautenticado.
+- Criar/atualizar PR da branch `codex/restore-backend-reporting-contract` para `main` apos reautenticacao.
+- Nao fazer deploy de `main` antes de mergear essa branch.

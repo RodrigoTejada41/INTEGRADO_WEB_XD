@@ -195,3 +195,24 @@ Na retomada canonica mais recente, o backlog funcional estava concluido ate `P18
   - smoke autenticado: `health=200`, `ready=200`, `login=302`, `reports=200`, `connected_apis=200`.
 - Pendente obrigatorio:
   - mergear essa branch em `main` antes de qualquer deploy automatico de `main`.
+
+## Atualizacao operacional - portal cliente por admin - 2026-04-28
+
+- Admin pode acessar o portal cliente em modo suporte por `empresa_id`.
+- Rotas principais:
+  - `https://movisystecnologia.com.br/admin/client/dashboard?empresa_id=12345678000199`
+  - `https://movisystecnologia.com.br/admin/client/reports?empresa_id=12345678000199`
+- A regra de seguranca foi preservada:
+  - `client` continua limitado ao proprio tenant;
+  - `admin` precisa operar com `empresa_id` resolvido;
+  - demais perfis continuam sem acesso ao portal cliente.
+- Commit aplicado e publicado:
+  - `c258d71` - `fix: allow admin client portal preview`
+- Validacao local:
+  - `py -3 -m pytest -q` com `28 passed, 1 skipped`.
+- Deploy VPS:
+  - branch `codex/restore-backend-reporting-contract`;
+  - containers saudaveis apos `deploy-prod.sh`.
+- Pendente:
+  - GitHub CLI esta sem autenticacao local;
+  - abrir/atualizar PR e mergear em `main` antes de qualquer deploy automatico de `main`.
