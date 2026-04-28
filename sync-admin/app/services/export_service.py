@@ -75,18 +75,22 @@ def report_recent_sales_to_csv(rows: list[dict]) -> str:
     writer = csv.DictWriter(
         output,
         fieldnames=[
-            'uuid',
-            'produto',
-            'valor',
-            'data',
-            'data_atualizacao',
-            'branch_code',
-            'terminal_code',
+            'Data',
+            'Produto',
+            'Valor',
+            'Pagamento',
+            'Tipo',
+            'Familia',
+            'Filial',
+            'Terminal',
+            'Codigo',
         ],
+        delimiter=';',
+        extrasaction='ignore',
     )
     writer.writeheader()
     for row in rows:
-        writer.writerow(row)
+        writer.writerow(_client_sale_row(row))
     return output.getvalue()
 
 
@@ -96,19 +100,60 @@ def report_to_xlsx_bytes(
     top_rows: list[dict],
     recent_rows: list[dict],
 ) -> bytes:
-    overview_rows = [{'metric': key, 'value': value} for key, value in overview.items()]
+    overview_rows = [
+        {'Indicador': 'Empresa', 'Valor': overview.get('empresa_id', '-')},
+        {'Indicador': 'Periodo', 'Valor': f'{overview.get("start_date", "-")} ate {overview.get("end_date", "-")}'},
+        {'Indicador': 'Total faturado', 'Valor': overview.get('total_sales_value', 0)},
+        {'Indicador': 'Total de registros', 'Valor': overview.get('total_records', 0)},
+        {'Indicador': 'Produtos distintos', 'Valor': overview.get('distinct_products', 0)},
+        {'Indicador': 'Filiais distintas', 'Valor': overview.get('distinct_branches', 0)},
+        {'Indicador': 'Terminais distintos', 'Valor': overview.get('distinct_terminals', 0)},
+        {'Indicador': 'Primeira venda', 'Valor': overview.get('first_sale_date') or '-'},
+        {'Indicador': 'Ultima venda', 'Valor': overview.get('last_sale_date') or '-'},
+    ]
+    daily_export_rows = [
+        {
+            'Dia': row.get('day', '-'),
+            'Registros': row.get('total_records', 0),
+            'Valor': row.get('total_sales_value', 0),
+        }
+        for row in daily_rows
+    ]
+    top_export_rows = [
+        {
+            'Produto': row.get('produto', '-'),
+            'Registros': row.get('total_records', 0),
+            'Valor': row.get('total_sales_value', 0),
+        }
+        for row in top_rows
+    ]
+    recent_export_rows = [_client_sale_row(row) for row in recent_rows]
     return _build_xlsx(
         [
-            ('Overview', ['metric', 'value'], overview_rows),
-            ('DailySales', ['day', 'total_records', 'total_sales_value'], daily_rows),
-            ('TopProducts', ['produto', 'total_records', 'total_sales_value'], top_rows),
+            ('Resumo', ['Indicador', 'Valor'], overview_rows),
             (
-                'RecentSales',
-                ['uuid', 'produto', 'valor', 'data', 'data_atualizacao', 'branch_code', 'terminal_code'],
-                recent_rows,
+                'Vendas',
+                ['Data', 'Produto', 'Valor', 'Pagamento', 'Tipo', 'Familia', 'Filial', 'Terminal', 'Codigo'],
+                recent_export_rows,
             ),
+            ('Produtos', ['Produto', 'Registros', 'Valor'], top_export_rows),
+            ('Dias', ['Dia', 'Registros', 'Valor'], daily_export_rows),
         ]
     )
+
+
+def _client_sale_row(row: dict) -> dict[str, object]:
+    return {
+        'Data': row.get('data') or row.get('data_atualizacao') or '-',
+        'Produto': row.get('produto') or '-',
+        'Valor': row.get('valor') or row.get('total_sales_value') or 0,
+        'Pagamento': row.get('forma_pagamento') or '-',
+        'Tipo': row.get('tipo_venda') or '-',
+        'Familia': row.get('familia_produto') or '-',
+        'Filial': row.get('branch_code') or '-',
+        'Terminal': row.get('terminal_code') or '-',
+        'Codigo': row.get('uuid') or '-',
+    }
 
 
 def report_to_pdf_bytes(

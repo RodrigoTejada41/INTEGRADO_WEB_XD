@@ -613,3 +613,39 @@ git push -u origin codex/restore-backend-reporting-contract
   - Resultado: `4 passed`
 - `py -3 -m pytest -q`
   - Resultado: `30 passed, 1 skipped`
+
+## 18) Hotfix CSV/Excel simples para cliente - 2026-04-28
+
+### 18.1 Problema
+
+- CSV nao funcionava em alguns cenarios por campos extras no payload de vendas recentes.
+- Excel estava dificil para cliente entender por usar nomes tecnicos em ingles.
+
+### 18.2 Entregue
+
+- CSV com colunas simples:
+  - `Data`
+  - `Produto`
+  - `Valor`
+  - `Pagamento`
+  - `Tipo`
+  - `Familia`
+  - `Filial`
+  - `Terminal`
+  - `Codigo`
+- CSV passou a usar `;` como separador.
+- Excel simplificado com abas:
+  - `Resumo`
+  - `Vendas`
+  - `Produtos`
+  - `Dias`
+- Campos extras do backend nao quebram mais CSV.
+
+### 18.3 Validacao
+
+- `py -3 -m compileall sync-admin/app`
+  - OK
+- `py -3 -m pytest tests/test_sync_admin_rbac.py -q`
+  - Resultado: `5 passed`
+- `py -3 -m pytest -q`
+  - Resultado: `31 passed, 1 skipped`

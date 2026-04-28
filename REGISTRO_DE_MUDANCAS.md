@@ -77,6 +77,11 @@
   - Exportação PDF deixou de sair como texto comprimido.
   - Relatório agora possui seções, tabelas e paginação.
   - Validação completa: `py -3 -m pytest -q` com `30 passed, 1 skipped`.
+- Hotfix CSV/Excel de relatórios em 2026-04-28:
+  - CSV voltou a funcionar ignorando campos extras do backend.
+  - CSV e Excel agora usam colunas simples em português para o cliente.
+  - Excel passou a ter abas `Resumo`, `Vendas`, `Produtos` e `Dias`.
+  - Validação completa: `py -3 -m pytest -q` com `31 passed, 1 skipped`.
 
 ### Planejado
 - Multiempresa completa com isolamento por empresa, filial e terminal.

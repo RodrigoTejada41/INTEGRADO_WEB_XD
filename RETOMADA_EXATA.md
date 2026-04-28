@@ -478,3 +478,45 @@ Este arquivo e o ponto de entrada para retomar o projeto sem redescobrir context
   - Resultado: `4 passed`
 - `py -3 -m pytest -q`
   - Resultado: `30 passed, 1 skipped`
+
+## Hotfix CSV/Excel de relatorios - 2026-04-28
+
+### Problema reportado
+- CSV nao estava funcionando.
+- Excel estava confuso para o cliente entender.
+
+### Causa
+- CSV usava `csv.DictWriter` com campos fixos tecnicos e quebrava quando `recent_items` trazia campos extras.
+- Excel exportava abas/cabecalhos tecnicos em ingles:
+  - `Overview`
+  - `DailySales`
+  - `TopProducts`
+  - `RecentSales`
+
+### Correcao aplicada
+- CSV:
+  - passou a ignorar campos extras;
+  - usa separador `;`;
+  - cabecalhos em portugues:
+    - `Data`, `Produto`, `Valor`, `Pagamento`, `Tipo`, `Familia`, `Filial`, `Terminal`, `Codigo`.
+- Excel:
+  - abas simplificadas:
+    - `Resumo`
+    - `Vendas`
+    - `Produtos`
+    - `Dias`
+  - cabecalhos em portugues;
+  - removeu metricas tecnicas cruas do cliente.
+
+### Arquivos alterados
+- `sync-admin/app/services/export_service.py`
+- `tests/test_sync_admin_rbac.py`
+- `REGISTRO_DE_MUDANCAS.md`
+
+### Validacao
+- `py -3 -m compileall sync-admin/app`
+  - OK
+- `py -3 -m pytest tests/test_sync_admin_rbac.py -q`
+  - Resultado: `5 passed`
+- `py -3 -m pytest -q`
+  - Resultado: `31 passed, 1 skipped`

@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import os
 import sys
+import io
+import zipfile
 from pathlib import Path
 
 
@@ -192,3 +194,56 @@ def test_report_pdf_is_structured_and_readable() -> None:
     assert b"Top produtos" in pdf
     assert b"Vendas recentes" in pdf
     assert b"BT /F1 18 Tf" in pdf
+
+
+def test_report_csv_and_excel_are_client_readable() -> None:
+    _ensure_sync_admin_path()
+
+    from app.services.export_service import report_recent_sales_to_csv, report_to_xlsx_bytes
+
+    sale = {
+        "uuid": "codex-1776827155-13749",
+        "produto": "Teste Integracao Real Atualizado",
+        "valor": "99.90",
+        "data": "2026-04-22",
+        "data_atualizacao": "2026-04-22T10:00:00",
+        "branch_code": "0001",
+        "terminal_code": "PDV-01",
+        "forma_pagamento": "PIX",
+        "tipo_venda": "Balcao",
+        "familia_produto": "Teste",
+        "campo_extra_que_nao_pode_quebrar_csv": "x",
+    }
+
+    csv_text = report_recent_sales_to_csv([sale])
+
+    assert csv_text.splitlines()[0] == "Data;Produto;Valor;Pagamento;Tipo;Familia;Filial;Terminal;Codigo"
+    assert "Teste Integracao Real Atualizado" in csv_text
+    assert "campo_extra" not in csv_text
+
+    xlsx_bytes = report_to_xlsx_bytes(
+        {
+            "empresa_id": "12345678000199",
+            "start_date": "2025-02-25",
+            "end_date": "2026-04-28",
+            "total_records": 1,
+            "total_sales_value": "99.90",
+            "distinct_products": 1,
+        },
+        [{"day": "2026-04-22", "total_records": 1, "total_sales_value": "99.90"}],
+        [{"produto": "Teste Integracao Real Atualizado", "total_records": 1, "total_sales_value": "99.90"}],
+        [sale],
+    )
+
+    with zipfile.ZipFile(io.BytesIO(xlsx_bytes)) as archive:
+        workbook = archive.read("xl/workbook.xml").decode("utf-8")
+        first_sheet = archive.read("xl/worksheets/sheet1.xml").decode("utf-8")
+        sales_sheet = archive.read("xl/worksheets/sheet2.xml").decode("utf-8")
+
+    assert "Resumo" in workbook
+    assert "Vendas" in workbook
+    assert "Produtos" in workbook
+    assert "Dias" in workbook
+    assert "Total faturado" in first_sheet
+    assert "Pagamento" in sales_sheet
+    assert "Familia" in sales_sheet

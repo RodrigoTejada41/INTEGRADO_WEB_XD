@@ -276,3 +276,15 @@ Na retomada canonica mais recente, o backlog funcional estava concluido ate `P18
   - sem dependencia externa nova.
 - Validacao:
   - `py -3 -m pytest -q` com `30 passed, 1 skipped`.
+
+## Atualizacao operacional - CSV e Excel de relatorios - 2026-04-28
+
+- CSV corrigido para nao quebrar com campos extras do backend.
+- CSV agora usa colunas em portugues e separador `;`.
+- Excel simplificado para cliente:
+  - `Resumo`
+  - `Vendas`
+  - `Produtos`
+  - `Dias`
+- Validacao:
+  - `py -3 -m pytest -q` com `31 passed, 1 skipped`.
