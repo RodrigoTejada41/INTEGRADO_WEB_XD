@@ -288,3 +288,19 @@ Na retomada canonica mais recente, o backlog funcional estava concluido ate `P18
   - `Dias`
 - Validacao:
   - `py -3 -m pytest -q` com `31 passed, 1 skipped`.
+
+## Atualizacao operacional - hotfix Portal Cliente - 2026-04-28
+
+- Problema:
+  - `/client/dashboard` retornava `404 Not Found nginx/1.27.5` em producao.
+- Causa:
+  - faltava rota explicita no Nginx para encaminhar `/client/dashboard` ao `sync-admin`.
+- Correcao:
+  - `infra/nginx/default.conf` agora possui `location /client/dashboard { proxy_pass http://frontend_upstream; }`.
+- Contrato protegido:
+  - `tests/test_production_operations.py` valida que a rota existe no Nginx de producao.
+- Validacao:
+  - `py -3 -m pytest tests\test_production_operations.py -q` com `8 passed`.
+  - `py -3 -m pytest -q` com `31 passed, 1 skipped`.
+- Proximo passo:
+  - commit, push, deploy VPS e smoke real no dominio.

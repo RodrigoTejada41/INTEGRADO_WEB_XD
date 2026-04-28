@@ -520,3 +520,26 @@ Este arquivo e o ponto de entrada para retomar o projeto sem redescobrir context
   - Resultado: `5 passed`
 - `py -3 -m pytest -q`
   - Resultado: `31 passed, 1 skipped`
+
+## Hotfix 404 Portal Cliente - 2026-04-28
+
+### Problema reportado
+- Portal do cliente retornava:
+  - `404 Not Found`
+  - `nginx/1.27.5`
+
+### Causa
+- O Nginx tinha rota para `/client/reports`, mas nao tinha rota para `/client/dashboard`.
+- O menu do admin e o login do cliente usam link absoluto `/client/dashboard`.
+
+### Correcao aplicada
+- Adicionado no Nginx:
+  - `location /client/dashboard { proxy_pass http://frontend_upstream; }`
+- Teste de contrato atualizado:
+  - `tests/test_production_operations.py`
+
+### Validacao
+- `py -3 -m pytest tests/test_production_operations.py -q`
+  - Resultado: `8 passed`
+- `py -3 -m pytest -q`
+  - Resultado: `31 passed, 1 skipped`

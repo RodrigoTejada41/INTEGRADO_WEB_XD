@@ -649,3 +649,31 @@ git push -u origin codex/restore-backend-reporting-contract
   - Resultado: `5 passed`
 - `py -3 -m pytest -q`
   - Resultado: `31 passed, 1 skipped`
+
+## 19) Hotfix 404 Portal Cliente - 2026-04-28
+
+### 19.1 Problema
+
+- Portal do cliente retornava `404 Not Found nginx/1.27.5`.
+- O link `/client/dashboard` era gerado pelo painel, mas nao existia rota explicita no Nginx de producao.
+
+### 19.2 Entregue
+
+- Nginx passou a encaminhar `/client/dashboard` para o `sync-admin`.
+- Rota `/client/reports` foi preservada.
+- Admin continua autorizado a acessar todas as telas do cliente.
+- Perfil `client` continua restrito ao proprio portal/empresa.
+
+### 19.3 Validacao
+
+- `py -3 -m pytest tests\test_production_operations.py -q`
+  - Resultado: `8 passed`
+- `py -3 -m pytest -q`
+  - Resultado: `31 passed, 1 skipped`
+
+### 19.4 Proximo passo operacional
+
+- Commitar hotfix.
+- Push da branch.
+- Deploy na VPS.
+- Validar `https://movisystecnologia.com.br/client/dashboard?empresa_id=12345678000199` sem 404 do Nginx.

@@ -82,6 +82,10 @@
   - CSV e Excel agora usam colunas simples em português para o cliente.
   - Excel passou a ter abas `Resumo`, `Vendas`, `Produtos` e `Dias`.
   - Validação completa: `py -3 -m pytest -q` com `31 passed, 1 skipped`.
+- Hotfix Portal Cliente em 2026-04-28:
+  - Nginx agora roteia `/client/dashboard` para o `sync-admin`.
+  - Corrige `404 Not Found nginx/1.27.5` ao abrir o portal cliente por link absoluto.
+  - Validação completa: `py -3 -m pytest -q` com `31 passed, 1 skipped`.
 
 ### Planejado
 - Multiempresa completa com isolamento por empresa, filial e terminal.
