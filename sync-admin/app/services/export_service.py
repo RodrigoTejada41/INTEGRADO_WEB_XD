@@ -75,18 +75,22 @@ def report_recent_sales_to_csv(rows: list[dict]) -> str:
     writer = csv.DictWriter(
         output,
         fieldnames=[
-            'uuid',
-            'produto',
-            'valor',
-            'data',
-            'data_atualizacao',
-            'branch_code',
-            'terminal_code',
+            'Data',
+            'Produto',
+            'Valor',
+            'Pagamento',
+            'Tipo',
+            'Familia',
+            'Filial',
+            'Terminal',
+            'Codigo',
         ],
+        delimiter=';',
+        extrasaction='ignore',
     )
     writer.writeheader()
     for row in rows:
-        writer.writerow(row)
+        writer.writerow(_client_sale_row(row))
     return output.getvalue()
 
 
@@ -96,19 +100,60 @@ def report_to_xlsx_bytes(
     top_rows: list[dict],
     recent_rows: list[dict],
 ) -> bytes:
-    overview_rows = [{'metric': key, 'value': value} for key, value in overview.items()]
+    overview_rows = [
+        {'Indicador': 'Empresa', 'Valor': overview.get('empresa_id', '-')},
+        {'Indicador': 'Periodo', 'Valor': f'{overview.get("start_date", "-")} ate {overview.get("end_date", "-")}'},
+        {'Indicador': 'Total faturado', 'Valor': overview.get('total_sales_value', 0)},
+        {'Indicador': 'Total de registros', 'Valor': overview.get('total_records', 0)},
+        {'Indicador': 'Produtos distintos', 'Valor': overview.get('distinct_products', 0)},
+        {'Indicador': 'Filiais distintas', 'Valor': overview.get('distinct_branches', 0)},
+        {'Indicador': 'Terminais distintos', 'Valor': overview.get('distinct_terminals', 0)},
+        {'Indicador': 'Primeira venda', 'Valor': overview.get('first_sale_date') or '-'},
+        {'Indicador': 'Ultima venda', 'Valor': overview.get('last_sale_date') or '-'},
+    ]
+    daily_export_rows = [
+        {
+            'Dia': row.get('day', '-'),
+            'Registros': row.get('total_records', 0),
+            'Valor': row.get('total_sales_value', 0),
+        }
+        for row in daily_rows
+    ]
+    top_export_rows = [
+        {
+            'Produto': row.get('produto', '-'),
+            'Registros': row.get('total_records', 0),
+            'Valor': row.get('total_sales_value', 0),
+        }
+        for row in top_rows
+    ]
+    recent_export_rows = [_client_sale_row(row) for row in recent_rows]
     return _build_xlsx(
         [
-            ('Overview', ['metric', 'value'], overview_rows),
-            ('DailySales', ['day', 'total_records', 'total_sales_value'], daily_rows),
-            ('TopProducts', ['produto', 'total_records', 'total_sales_value'], top_rows),
+            ('Resumo', ['Indicador', 'Valor'], overview_rows),
             (
-                'RecentSales',
-                ['uuid', 'produto', 'valor', 'data', 'data_atualizacao', 'branch_code', 'terminal_code'],
-                recent_rows,
+                'Vendas',
+                ['Data', 'Produto', 'Valor', 'Pagamento', 'Tipo', 'Familia', 'Filial', 'Terminal', 'Codigo'],
+                recent_export_rows,
             ),
+            ('Produtos', ['Produto', 'Registros', 'Valor'], top_export_rows),
+            ('Dias', ['Dia', 'Registros', 'Valor'], daily_export_rows),
         ]
     )
+
+
+def _client_sale_row(row: dict) -> dict[str, object]:
+    return {
+        'Data': row.get('data') or row.get('data_atualizacao') or '-',
+        'Produto': row.get('produto') or '-',
+        'Valor': row.get('valor') or row.get('total_sales_value') or 0,
+        'Pagamento': row.get('forma_pagamento') or '-',
+        'Tipo': row.get('tipo_venda') or '-',
+        'Familia': row.get('familia_produto') or '-',
+        'Filial': row.get('branch_code') or '-',
+        'Terminal': row.get('terminal_code') or '-',
+        'Codigo': row.get('uuid') or '-',
+    }
 
 
 def report_to_pdf_bytes(
@@ -119,38 +164,62 @@ def report_to_pdf_bytes(
     *,
     title: str = 'Relatorios',
 ) -> bytes:
-    overview_lines = [f'{key}: {value}' for key, value in overview.items()]
-    daily_lines = [
-        'Serie diaria:',
-        *[
-            f'{row.get("day", "-")} | {row.get("total_records", 0)} | {row.get("total_sales_value", 0)}'
-            for row in daily_rows[:15]
-        ],
-    ]
-    top_lines = [
-        'Top produtos:',
-        *[
-            f'{row.get("produto", "-")} | {row.get("total_records", 0)} | {row.get("total_sales_value", 0)}'
-            for row in top_rows[:15]
-        ],
-    ]
-    recent_lines = [
-        'Vendas recentes:',
-        *[
-            f'{row.get("uuid", "-")} | {row.get("produto", "-")} | {row.get("valor", 0)} | {row.get("data", "-")}'
-            for row in recent_rows[:20]
-        ],
-    ]
-    return _build_pdf(
-        [_pdf_escape(title), '']
-        + [_pdf_escape(line) for line in overview_lines]
-        + ['']
-        + [_pdf_escape(line) for line in daily_lines]
-        + ['']
-        + [_pdf_escape(line) for line in top_lines]
-        + ['']
-        + [_pdf_escape(line) for line in recent_lines]
+    document = _PdfDocument(title=title)
+    document.heading(title)
+    document.paragraph(f'Gerado em: {datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")}')
+
+    document.section('Filtros e resumo')
+    document.key_values(
+        [
+            ('Empresa', overview.get('empresa_id', '-')),
+            ('Periodo', f'{overview.get("start_date", "-")} ate {overview.get("end_date", "-")}'),
+            ('Filial', overview.get('branch_code') or 'Todas'),
+            ('Terminal', overview.get('terminal_code') or 'Todos'),
+            ('Horario', f'{overview.get("start_time") or "00:00"} ate {overview.get("end_time") or "23:59"}'),
+        ]
     )
+
+    document.section('Indicadores')
+    document.key_values(
+        [
+            ('Total de registros', overview.get('total_records', 0)),
+            ('Total faturado', overview.get('total_sales_value', 0)),
+            ('Produtos distintos', overview.get('distinct_products', 0)),
+            ('Filiais distintas', overview.get('distinct_branches', 0)),
+            ('Terminais distintos', overview.get('distinct_terminals', 0)),
+            ('Primeira venda', overview.get('first_sale_date') or '-'),
+            ('Ultima venda', overview.get('last_sale_date') or '-'),
+        ]
+    )
+
+    document.table(
+        title='Serie diaria',
+        headers=['Dia', 'Registros', 'Valor'],
+        rows=[
+            [row.get('day', '-'), row.get('total_records', 0), row.get('total_sales_value', 0)]
+            for row in daily_rows[:25]
+        ],
+        widths=[110, 90, 130],
+    )
+    document.table(
+        title='Top produtos',
+        headers=['Produto', 'Registros', 'Valor'],
+        rows=[
+            [row.get('produto', '-'), row.get('total_records', 0), row.get('total_sales_value', 0)]
+            for row in top_rows[:25]
+        ],
+        widths=[260, 80, 110],
+    )
+    document.table(
+        title='Vendas recentes',
+        headers=['UUID', 'Produto', 'Valor', 'Data'],
+        rows=[
+            [row.get('uuid', '-'), row.get('produto', '-'), row.get('valor', 0), row.get('data', '-')]
+            for row in recent_rows[:35]
+        ],
+        widths=[145, 210, 80, 85],
+    )
+    return document.render()
 
 
 def _rows_to_markdown(*, title: str, rows: list[dict], headers: list[str], sample_limit: int) -> str:
@@ -316,7 +385,175 @@ def _xlsx_column_name(index: int) -> str:
 
 
 def _pdf_escape(text: str) -> str:
-    return text.replace('\\', '\\\\').replace('(', '\\(').replace(')', '\\)')
+    return str(text).replace('\\', '\\\\').replace('(', '\\(').replace(')', '\\)')
+
+
+def _pdf_text(value: object, max_length: int | None = None) -> str:
+    text = str(value if value not in (None, '') else '-')
+    text = (
+        text.replace('á', 'a')
+        .replace('à', 'a')
+        .replace('ã', 'a')
+        .replace('â', 'a')
+        .replace('é', 'e')
+        .replace('ê', 'e')
+        .replace('í', 'i')
+        .replace('ó', 'o')
+        .replace('õ', 'o')
+        .replace('ô', 'o')
+        .replace('ú', 'u')
+        .replace('ç', 'c')
+        .replace('Á', 'A')
+        .replace('À', 'A')
+        .replace('Ã', 'A')
+        .replace('Â', 'A')
+        .replace('É', 'E')
+        .replace('Ê', 'E')
+        .replace('Í', 'I')
+        .replace('Ó', 'O')
+        .replace('Õ', 'O')
+        .replace('Ô', 'O')
+        .replace('Ú', 'U')
+        .replace('Ç', 'C')
+    )
+    if max_length and len(text) > max_length:
+        return text[: max(0, max_length - 3)] + '...'
+    return text
+
+
+class _PdfDocument:
+    def __init__(self, *, title: str) -> None:
+        self.title = _pdf_text(title)
+        self.pages: list[list[str]] = [[]]
+        self.y = 790
+        self.left = 42
+        self.bottom = 54
+
+    def heading(self, text: str) -> None:
+        self._text(self.left, self.y, _pdf_text(text, 72), size=18)
+        self.y -= 22
+        self._line(self.left, self.y, 553, self.y)
+        self.y -= 18
+
+    def section(self, text: str) -> None:
+        self._ensure_space(34)
+        self.y -= 6
+        self._text(self.left, self.y, _pdf_text(text, 72), size=13)
+        self.y -= 16
+
+    def paragraph(self, text: str) -> None:
+        self._ensure_space(18)
+        self._text(self.left, self.y, _pdf_text(text, 95), size=9)
+        self.y -= 14
+
+    def key_values(self, rows: list[tuple[str, object]]) -> None:
+        for index in range(0, len(rows), 2):
+            self._ensure_space(22)
+            left = rows[index]
+            right = rows[index + 1] if index + 1 < len(rows) else None
+            self._key_value_cell(self.left, self.y, left[0], left[1], width=240)
+            if right:
+                self._key_value_cell(self.left + 265, self.y, right[0], right[1], width=240)
+            self.y -= 26
+        self.y -= 4
+
+    def table(self, *, title: str, headers: list[str], rows: list[list[object]], widths: list[int]) -> None:
+        self.section(title)
+        self._table_header(headers, widths)
+        if not rows:
+            self._ensure_space(20)
+            self._text(self.left, self.y, 'Sem dados para o filtro atual.', size=9)
+            self.y -= 16
+            return
+        for row in rows:
+            self._ensure_space(26)
+            if self.y > 760:
+                self._table_header(headers, widths)
+            self._row(row, widths)
+        self.y -= 8
+
+    def render(self) -> bytes:
+        page_objects = []
+        content_objects = []
+        font_object_number = 3 + len(self.pages) * 2
+        for index, commands in enumerate(self.pages):
+            page_number = 3 + index * 2
+            content_number = page_number + 1
+            content = ('\n'.join(commands) + '\n').encode('latin-1', 'replace')
+            page_objects.append(
+                (
+                    page_number,
+                    (
+                        f'{page_number} 0 obj\n'
+                        f'<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] '
+                        f'/Resources << /Font << /F1 {font_object_number} 0 R >> >> '
+                        f'/Contents {content_number} 0 R >>\nendobj\n'
+                    ).encode('latin-1')
+                )
+            )
+            content_objects.append(
+                (
+                    content_number,
+                    (
+                        f'{content_number} 0 obj\n<< /Length {len(content)} >>\nstream\n'
+                    ).encode('latin-1')
+                    + content
+                    + b'endstream\nendobj\n'
+                )
+            )
+
+        kids = ' '.join(f'{number} 0 R' for number, _ in page_objects)
+        objects: list[tuple[int, bytes]] = [
+            (1, b'1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n'),
+            (2, f'2 0 obj\n<< /Type /Pages /Kids [{kids}] /Count {len(self.pages)} >>\nendobj\n'.encode('latin-1')),
+        ]
+        objects.extend(page_objects)
+        objects.extend(content_objects)
+        objects.append(
+            (
+                font_object_number,
+                f'{font_object_number} 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>\nendobj\n'.encode('latin-1'),
+            )
+        )
+        return _build_pdf_from_objects(objects)
+
+    def _key_value_cell(self, x: int, y: int, label: str, value: object, *, width: int) -> None:
+        self._rect(x, y - 17, width, 22)
+        self._text(x + 8, y - 1, _pdf_text(label, 26), size=7)
+        self._text(x + 8, y - 11, _pdf_text(value, 34), size=9)
+
+    def _table_header(self, headers: list[str], widths: list[int]) -> None:
+        self._ensure_space(28)
+        x = self.left
+        self._rect(self.left, self.y - 15, sum(widths), 20, fill='0.92 0.96 1 rg')
+        for header, width in zip(headers, widths):
+            self._text(x + 4, self.y - 8, _pdf_text(header, max(8, width // 6)), size=8)
+            x += width
+        self.y -= 22
+
+    def _row(self, row: list[object], widths: list[int]) -> None:
+        x = self.left
+        row_height = 20
+        self._line(self.left, self.y - 15, self.left + sum(widths), self.y - 15)
+        for value, width in zip(row, widths):
+            self._text(x + 4, self.y - 8, _pdf_text(value, max(8, width // 6)), size=8)
+            x += width
+        self.y -= row_height
+
+    def _ensure_space(self, height: int) -> None:
+        if self.y - height >= self.bottom:
+            return
+        self.pages.append([])
+        self.y = 790
+
+    def _text(self, x: int, y: int, text: str, *, size: int) -> None:
+        self.pages[-1].append(f'BT /F1 {size} Tf {x} {y} Td ({_pdf_escape(text)}) Tj ET')
+
+    def _line(self, x1: int, y1: int, x2: int, y2: int) -> None:
+        self.pages[-1].append(f'0.75 0.82 0.9 RG {x1} {y1} m {x2} {y2} l S')
+
+    def _rect(self, x: int, y: int, width: int, height: int, *, fill: str = '0.98 0.99 1 rg') -> None:
+        self.pages[-1].append(f'q {fill} {x} {y} {width} {height} re f Q')
 
 
 def _build_pdf(lines: list[str]) -> bytes:
@@ -363,6 +600,33 @@ def _build_pdf(lines: list[str]) -> bytes:
         + f'<< /Size {len(objects) + 1} /Root 1 0 R >>\n'.encode('utf-8')
         + b'startxref\n'
         + f'{xref_offset}\n'.encode('utf-8')
+        + b'%%EOF'
+    )
+    return bytes(pdf)
+
+
+def _build_pdf_from_objects(objects: list[tuple[int, bytes]]) -> bytes:
+    ordered = sorted(objects, key=lambda item: item[0])
+    pdf = bytearray(b'%PDF-1.4\n')
+    offsets = {0: 0}
+    for number, obj in ordered:
+        offsets[number] = len(pdf)
+        pdf.extend(obj)
+    max_object = max(offsets)
+    xref_offset = len(pdf)
+    pdf.extend(f'xref\n0 {max_object + 1}\n'.encode('latin-1'))
+    pdf.extend(b'0000000000 65535 f \n')
+    for number in range(1, max_object + 1):
+        offset = offsets.get(number, 0)
+        if offset:
+            pdf.extend(f'{offset:010d} 00000 n \n'.encode('latin-1'))
+        else:
+            pdf.extend(b'0000000000 65535 f \n')
+    pdf.extend(
+        b'trailer\n'
+        + f'<< /Size {max_object + 1} /Root 1 0 R >>\n'.encode('latin-1')
+        + b'startxref\n'
+        + f'{xref_offset}\n'.encode('latin-1')
         + b'%%EOF'
     )
     return bytes(pdf)

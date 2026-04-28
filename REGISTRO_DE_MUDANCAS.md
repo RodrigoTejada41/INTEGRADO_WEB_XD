@@ -62,6 +62,49 @@
   - Telas exibem aviso de visualização administrativa.
   - Validação local completa: `py -3 -m pytest -q` com `28 passed, 1 skipped`.
   - Deploy validado na VPS no commit `c258d71`.
+- Navegação admin para portal cliente em 2026-04-28:
+  - Perfil `admin` recebeu permissões explícitas de portal cliente.
+  - Menu lateral do admin agora exibe `Portal Cliente` e `Relatórios Cliente`.
+  - Links abrem o tenant padrão configurado por `CONTROL_EMPRESA_ID`.
+  - Branch foi sincronizada com `origin/main` antes do push para evitar novo conflito de PR.
+- Modernização BI do painel de relatórios em 2026-04-28:
+  - Painel de relatórios ganhou layout executivo com KPIs, filtros globais, gráficos, comparativo, status da API local e tabela detalhada.
+  - Tema claro/escuro, busca e ordenação local foram adicionados.
+  - Endpoints JSON `/reports/api/*` foram criados para atualização automática em produção; aliases `/api/reports/*` ficam preservados para ambiente local.
+  - Regra de janela máxima de 14 meses foi aplicada no resolver de período.
+  - Validação completa: `py -3 -m pytest -q` com `29 passed, 1 skipped`.
+- Hotfix PDF de relatórios em 2026-04-28:
+  - Exportação PDF deixou de sair como texto comprimido.
+  - Relatório agora possui seções, tabelas e paginação.
+  - Validação completa: `py -3 -m pytest -q` com `30 passed, 1 skipped`.
+- Hotfix CSV/Excel de relatórios em 2026-04-28:
+  - CSV voltou a funcionar ignorando campos extras do backend.
+  - CSV e Excel agora usam colunas simples em português para o cliente.
+  - Excel passou a ter abas `Resumo`, `Vendas`, `Produtos` e `Dias`.
+  - Validação completa: `py -3 -m pytest -q` com `31 passed, 1 skipped`.
+- Hotfix Portal Cliente em 2026-04-28:
+  - Nginx agora roteia `/client/dashboard` para o `sync-admin`.
+  - Corrige `404 Not Found nginx/1.27.5` ao abrir o portal cliente por link absoluto.
+  - Validação completa: `py -3 -m pytest -q` com `31 passed, 1 skipped`.
+- Padronização AdminLTE global em 2026-04-28:
+  - AdminLTE definido como base visual oficial do `sync-admin`.
+  - Login, shell autenticado, menu lateral, navbar, content wrapper, breadcrumbs e footer foram padronizados.
+  - Relatórios usam `small-box`, `card card-outline`, filtros compactos, gráficos Chart.js, ranking e tabela responsiva.
+  - Criado partial reutilizável `partials/adminlte_components.html`.
+  - Filtro de categoria agora filtra no backend por produto/família mantendo `empresa_id`.
+  - Validação completa: `py -3 -m pytest -q` com `33 passed, 1 skipped`.
+- Ajustes visuais AdminLTE pós-deploy em 2026-04-28:
+  - Corrigida proporção dos KPIs do dashboard de relatórios.
+  - Corrigido overflow horizontal do painel lateral de filtros.
+  - Corrigido estouro do cabeçalho `Filtros globais`.
+  - Chips de filtros agora respeitam largura e usam reticências para valores longos.
+  - Commits publicados:
+    - `8a7bdb9` - `fix: normalize AdminLTE report layout proportions`
+    - `3eaa85d` - `fix: prevent report filter sidebar overflow`
+    - `7cc6729` - `fix: contain report filter header overflow`
+  - Deploy VPS aplicado na branch `codex/restore-backend-reporting-contract`.
+  - VPS validada no commit `7cc6729`.
+  - Health externo validado em `https://movisystecnologia.com.br/healthz` com retorno `ok`.
 
 ### Planejado
 - Multiempresa completa com isolamento por empresa, filial e terminal.

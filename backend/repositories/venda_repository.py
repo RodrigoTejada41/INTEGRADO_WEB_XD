@@ -1,7 +1,7 @@
 from datetime import UTC, date, datetime, time
 from decimal import Decimal
 
-from sqlalchemy import Time, cast, delete, desc, func, insert, select
+from sqlalchemy import Time, cast, delete, desc, func, insert, or_, select
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.dialects.sqlite import insert as sqlite_insert
 from sqlalchemy.orm import Session
@@ -145,6 +145,7 @@ class VendaRepository:
         end_date: date | None = None,
         branch_code: str | None = None,
         terminal_code: str | None = None,
+        category: str | None = None,
         start_time: time | None = None,
         end_time: time | None = None,
     ) -> dict[str, object]:
@@ -164,6 +165,7 @@ class VendaRepository:
             end_date=end_date,
             branch_code=branch_code,
             terminal_code=terminal_code,
+            category=category,
             start_time=start_time,
             end_time=end_time,
         )
@@ -186,6 +188,7 @@ class VendaRepository:
         end_date: date | None = None,
         branch_code: str | None = None,
         terminal_code: str | None = None,
+        category: str | None = None,
         start_time: time | None = None,
         end_time: time | None = None,
     ) -> list[dict[str, object]]:
@@ -201,6 +204,7 @@ class VendaRepository:
             end_date=end_date,
             branch_code=branch_code,
             terminal_code=terminal_code,
+            category=category,
             start_time=start_time,
             end_time=end_time,
         )
@@ -223,6 +227,7 @@ class VendaRepository:
         end_date: date | None = None,
         branch_code: str | None = None,
         terminal_code: str | None = None,
+        category: str | None = None,
         start_time: time | None = None,
         end_time: time | None = None,
     ) -> list[dict[str, object]]:
@@ -243,6 +248,7 @@ class VendaRepository:
             end_date=end_date,
             branch_code=branch_code,
             terminal_code=terminal_code,
+            category=category,
             start_time=start_time,
             end_time=end_time,
         )
@@ -266,6 +272,7 @@ class VendaRepository:
         end_date: date | None = None,
         branch_code: str | None = None,
         terminal_code: str | None = None,
+        category: str | None = None,
         start_time: time | None = None,
         end_time: time | None = None,
     ) -> list[dict[str, object]]:
@@ -293,6 +300,7 @@ class VendaRepository:
             end_date=end_date,
             branch_code=branch_code,
             terminal_code=terminal_code,
+            category=category,
             start_time=start_time,
             end_time=end_time,
         )
@@ -315,6 +323,7 @@ class VendaRepository:
         end_date: date | None = None,
         branch_code: str | None = None,
         terminal_code: str | None = None,
+        category: str | None = None,
         start_time: time | None = None,
         end_time: time | None = None,
     ) -> list[Venda]:
@@ -326,6 +335,7 @@ class VendaRepository:
             end_date=end_date,
             branch_code=branch_code,
             terminal_code=terminal_code,
+            category=category,
             start_time=start_time,
             end_time=end_time,
         )
@@ -377,6 +387,7 @@ class VendaRepository:
         end_date: date | None = None,
         branch_code: str | None = None,
         terminal_code: str | None = None,
+        category: str | None = None,
         start_time: time | None = None,
         end_time: time | None = None,
     ):
@@ -389,6 +400,14 @@ class VendaRepository:
             stmt = stmt.where(Venda.branch_code == branch_code)
         if terminal_code:
             stmt = stmt.where(Venda.terminal_code == terminal_code)
+        if category and category.strip():
+            category_pattern = f"%{category.strip()}%"
+            stmt = stmt.where(
+                or_(
+                    Venda.produto.ilike(category_pattern),
+                    Venda.familia_produto.ilike(category_pattern),
+                )
+            )
         if start_time is not None:
             stmt = stmt.where(self._time_expression() >= self._time_filter_value(start_time))
         if end_time is not None:

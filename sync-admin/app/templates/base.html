@@ -1,55 +1,202 @@
-﻿<!doctype html>
+<!doctype html>
 <html lang="pt-br">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>{{ title or "Sync Admin" }}</title>
+  <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.5.2/css/all.min.css" rel="stylesheet" />
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <link href="https://cdn.jsdelivr.net/npm/admin-lte@3.2/dist/css/adminlte.min.css" rel="stylesheet" />
   <link href="/static/css/app.css" rel="stylesheet" />
 </head>
-<body>
-  <div class="d-flex" id="layout">
-    <aside class="sidebar p-3">
-      <h5 class="mb-4">Sync Admin</h5>
-      {% if current_user is defined and current_user %}
-      <div class="small text-white-50 mb-3">
-        <div><strong>{{ current_user.full_name }}</strong></div>
-        <div>{{ current_user.username }} · {{ current_user.role }}</div>
+<body class="hold-transition sidebar-mini layout-fixed adminlte-shell">
+  <div class="wrapper">
+    <nav class="main-header navbar navbar-expand navbar-white navbar-light border-bottom-0">
+      <ul class="navbar-nav">
+        <li class="nav-item">
+          <a class="nav-link" data-widget="pushmenu" href="#" role="button" aria-label="Alternar menu">
+            <i class="fas fa-bars"></i>
+          </a>
+        </li>
+        <li class="nav-item d-none d-sm-inline-block">
+          <a href="/dashboard" class="nav-link">Dashboard</a>
+        </li>
+        <li class="nav-item d-none d-sm-inline-block">
+          <a href="/connected-apis" class="nav-link">APIs</a>
+        </li>
+        <li class="nav-item d-none d-sm-inline-block">
+          <a href="/client/reports{% if settings is defined %}?empresa_id={{ settings.control_empresa_id }}{% endif %}" class="nav-link">Relatorios</a>
+        </li>
+      </ul>
+
+      <ul class="navbar-nav ms-auto">
+        {% if current_user is defined and current_user %}
+        <li class="nav-item">
+          <span class="nav-link">
+            <i class="fas fa-user-shield me-1"></i>{{ current_user.username }} · {{ current_user.role }}
+          </span>
+        </li>
+        {% endif %}
+        <li class="nav-item">
+          <button class="nav-link btn btn-link" type="button" data-theme-toggle>
+            <i class="fas fa-moon"></i>
+          </button>
+        </li>
+      </ul>
+    </nav>
+
+    <aside class="main-sidebar sidebar-dark-primary elevation-4">
+      <a href="/dashboard" class="brand-link">
+        <span class="brand-image img-circle elevation-2 adminlte-brand-mark">SX</span>
+        <span class="brand-text font-weight-light">Sync Admin</span>
+      </a>
+
+      <div class="sidebar">
+        {% if current_user is defined and current_user %}
+        <div class="user-panel mt-3 pb-3 mb-3 d-flex">
+          <div class="image">
+            <span class="adminlte-user-avatar">{{ current_user.username[:1]|upper }}</span>
+          </div>
+          <div class="info">
+            <a href="#" class="d-block">{{ current_user.full_name }}</a>
+            <small class="text-muted">{{ current_user.role }}</small>
+          </div>
+        </div>
+        {% endif %}
+
+        <nav class="mt-2">
+          <ul class="nav nav-pills nav-sidebar flex-column" data-widget="treeview" role="menu">
+            {% if current_user is defined and current_user and current_user.role == 'client' %}
+            <li class="nav-item">
+              <a class="nav-link" href="/client/dashboard">
+                <i class="nav-icon fas fa-gauge-high"></i><p>Meu Painel</p>
+              </a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link" href="/client/reports">
+                <i class="nav-icon fas fa-chart-line"></i><p>Meus Relatorios</p>
+              </a>
+            </li>
+            {% else %}
+            <li class="nav-item">
+              <a class="nav-link" href="/dashboard">
+                <i class="nav-icon fas fa-gauge-high"></i><p>Dashboard</p>
+              </a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link" href="/client/reports{% if settings is defined %}?empresa_id={{ settings.control_empresa_id }}{% endif %}">
+                <i class="nav-icon fas fa-chart-pie"></i><p>Relatorios</p>
+              </a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link" href="/connected-apis">
+                <i class="nav-icon fas fa-plug-circle-check"></i><p>APIs conectadas</p>
+              </a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link" href="/records">
+                <i class="nav-icon fas fa-database"></i><p>Sincronizacoes</p>
+              </a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link" href="/history">
+                <i class="nav-icon fas fa-clock-rotate-left"></i><p>Logs</p>
+              </a>
+            </li>
+            {% if current_user is defined and current_user and current_user.role == 'admin' %}
+            <li class="nav-header">ADMINISTRACAO</li>
+            <li class="nav-item">
+              <a class="nav-link" href="/settings#empresas">
+                <i class="nav-icon fas fa-building"></i><p>Empresas</p>
+              </a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link" href="/settings#usuarios">
+                <i class="nav-icon fas fa-users-gear"></i><p>Usuarios</p>
+              </a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link" href="/settings#api-local">
+                <i class="nav-icon fas fa-server"></i><p>API local</p>
+              </a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link" href="/settings#api-web">
+                <i class="nav-icon fas fa-cloud"></i><p>API web</p>
+              </a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link" href="/settings#backup">
+                <i class="nav-icon fas fa-box-archive"></i><p>Backup</p>
+              </a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link" href="/settings">
+                <i class="nav-icon fas fa-sliders"></i><p>Configuracoes</p>
+              </a>
+            </li>
+            {% endif %}
+            {% endif %}
+            <li class="nav-item mt-3">
+              <form method="post" action="/logout">
+                <button class="nav-link btn btn-link text-start w-100" type="submit">
+                  <i class="nav-icon fas fa-right-from-bracket"></i><p>Sair</p>
+                </button>
+              </form>
+            </li>
+          </ul>
+        </nav>
       </div>
-      {% endif %}
-      <nav class="nav flex-column gap-2">
-        {% if current_user is defined and current_user and current_user.role == 'client' %}
-        <a class="nav-link" href="/client/dashboard">Meu Painel</a>
-        <a class="nav-link" href="/client/reports">Meus Relatórios</a>
-        {% else %}
-        <a class="nav-link" href="/dashboard">Dashboard</a>
-        <a class="nav-link" href="/connected-apis">APIs Conectadas</a>
-        <a class="nav-link" href="/records">Registros</a>
-        <a class="nav-link" href="/history">Histórico</a>
-        {% if current_user is defined and current_user and current_user.role == 'admin' %}
-        <a class="nav-link" href="/settings">Configurações</a>
-        {% endif %}
-        {% endif %}
-      </nav>
-      <form method="post" action="/logout" class="mt-4">
-        <button class="btn btn-outline-light btn-sm w-100">Sair</button>
-      </form>
     </aside>
-    <main class="content p-4">
-      {% if request.query_params.get('flash') %}
-      <div class="alert alert-success" role="alert">
-        {{ request.query_params.get('flash') }}
+
+    <div class="content-wrapper">
+      <section class="content-header">
+        <div class="container-fluid">
+          <div class="row mb-2">
+            <div class="col-sm-8">
+              <h1>{{ page_title or title or "Painel operacional" }}</h1>
+            </div>
+            <div class="col-sm-4">
+              <ol class="breadcrumb float-sm-right">
+                <li class="breadcrumb-item"><a href="/dashboard">Home</a></li>
+                <li class="breadcrumb-item active">{{ page_title or "Operacao" }}</li>
+              </ol>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="content">
+        <div class="container-fluid">
+          {% if request.query_params.get('flash') %}
+          <div class="alert alert-success alert-dismissible fade show" role="alert">
+            <i class="fas fa-check-circle me-1"></i>{{ request.query_params.get('flash') }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Fechar"></button>
+          </div>
+          {% endif %}
+          {% if request.query_params.get('error') %}
+          <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            <i class="fas fa-triangle-exclamation me-1"></i>{{ request.query_params.get('error') }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Fechar"></button>
+          </div>
+          {% endif %}
+          {% block content %}{% endblock %}
+        </div>
+      </section>
+    </div>
+
+    <footer class="main-footer">
+      <strong>MoviSys Sync</strong>
+      <span class="ms-2">Plataforma multi-tenant de sincronizacao e relatorios.</span>
+      <div class="float-right d-none d-sm-inline-block">
+        <b>Ambiente</b> AdminLTE
       </div>
-      {% endif %}
-      {% if request.query_params.get('error') %}
-      <div class="alert alert-danger" role="alert">
-        {{ request.query_params.get('error') }}
-      </div>
-      {% endif %}
-      {% block content %}{% endblock %}
-    </main>
+    </footer>
   </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/jquery@3.7.1/dist/jquery.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/admin-lte@3.2/dist/js/adminlte.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3"></script>
   <script src="/static/js/dashboard.js"></script>
   <script src="/static/js/reports.js"></script>

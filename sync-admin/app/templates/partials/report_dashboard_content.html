@@ -1,310 +1,314 @@
-<section class="report-hero mb-4">
-  <div class="d-flex flex-wrap justify-content-between gap-3 align-items-start">
-    <div>
-      <p class="report-eyebrow mb-2">{{ report_title }}</p>
-      <h3 class="mb-2">{{ report_heading }}</h3>
-      <p class="text-muted mb-0">{{ report_description }}</p>
-      {% if selected_empresa_id is defined %}
-      <p class="small text-muted mt-2 mb-0">Empresa em foco: <code>{{ selected_empresa_id }}</code></p>
-      {% endif %}
+<section
+  class="bi-dashboard bi-dashboard-v2"
+  data-dashboard-endpoint="{{ api_endpoints.dashboard if api_endpoints is defined else '' }}"
+  data-refresh-seconds="{{ report_auto_refresh_seconds or 60 }}"
+>
+  <header class="bi-exec-header">
+    <div class="bi-exec-copy">
+      <p class="bi-eyebrow">{{ report_title }}</p>
+      <h1>Dashboard de Performance</h1>
+      <p>
+        {{ report_company_label }} - {{ start_date or 'inicio' }} ate {{ end_date or 'hoje' }}
+      </p>
+      <div class="bi-exec-meta">
+        <span>Empresa <strong>{{ report_company_label }}</strong></span>
+        <span>CNPJ <strong>{{ selected_empresa_id or overview.empresa_id }}</strong></span>
+        <span>Janela <strong>max. 14 meses</strong></span>
+      </div>
     </div>
-    <div class="d-flex flex-wrap gap-2 align-items-center">
-      <div class="report-company-badge">Empresa {{ report_company_label }}</div>
-      <a class="btn btn-sm btn-outline-secondary" href="{{ export_base_path }}/export.csv?empresa_id={{ selected_empresa_id or '' }}&period_preset={{ period_preset }}&start_date={{ start_date }}&end_date={{ end_date }}&start_time={{ start_time }}&end_time={{ end_time }}&branch_code={{ branch_code }}&terminal_code={{ terminal_code }}&recent_limit={{ recent_limit }}">CSV</a>
-      <a class="btn btn-sm btn-outline-secondary" href="{{ export_base_path }}/export.xlsx?empresa_id={{ selected_empresa_id or '' }}&period_preset={{ period_preset }}&start_date={{ start_date }}&end_date={{ end_date }}&start_time={{ start_time }}&end_time={{ end_time }}&branch_code={{ branch_code }}&terminal_code={{ terminal_code }}&top_limit={{ top_limit }}&recent_limit={{ recent_limit }}">XLSX</a>
-      <a class="btn btn-sm btn-outline-secondary" href="{{ export_base_path }}/export.pdf?empresa_id={{ selected_empresa_id or '' }}&period_preset={{ period_preset }}&start_date={{ start_date }}&end_date={{ end_date }}&start_time={{ start_time }}&end_time={{ end_time }}&branch_code={{ branch_code }}&terminal_code={{ terminal_code }}&top_limit={{ top_limit }}&recent_limit={{ recent_limit }}">PDF</a>
+    <div class="bi-live-card bi-live-card--{{ sync_status.status }}">
+      <div>
+        <span class="bi-status-dot"></span>
+        <strong>API local {{ sync_status.label }}</strong>
+      </div>
+      <small>Ultima sincronizacao: {{ sync_status.last_sync_at }}</small>
+      <small>{{ sync_status.reason }}</small>
+      <button class="btn btn-sm btn-light" type="button" data-theme-toggle>Alternar tema</button>
     </div>
-  </div>
-  <div class="d-flex flex-wrap gap-2 mt-3">
-    {% for chip in filter_chips %}
-    <div class="report-chip">
-      <span class="report-chip-label">{{ chip.label }}</span>
-      <strong>{{ chip.value }}</strong>
+  </header>
+
+  <section class="row g-3 bi-kpi-row" data-kpi-grid>
+    {% for card in kpi_cards %}
+    <div class="col-12 col-sm-6 col-xl-2">
+      <article class="small-box bi-small-box bi-kpi--{{ card.tone }}" data-kpi-key="{{ card.key }}">
+        <div class="inner">
+          <h3 data-kpi-value>{{ card.value }}</h3>
+          <p>{{ card.label }}</p>
+          <small data-kpi-hint>{{ card.hint }}</small>
+        </div>
+        <div class="icon"><i class="fas fa-chart-line"></i></div>
+        <span class="small-box-footer">
+          {% if card.value.startswith('-') %}<i class="fas fa-arrow-down"></i>{% else %}<i class="fas fa-arrow-up"></i>{% endif %}
+          Comparativo do periodo
+        </span>
+      </article>
     </div>
     {% endfor %}
-  </div>
-</section>
+  </section>
 
-<form method="get" class="card p-3 mb-4">
-  <div class="row g-2 align-items-end">
-    <div class="col-md-2">
-      <label class="form-label">Periodo rapido</label>
-      <select class="form-select" name="period_preset">
-        <option value="custom" {% if period_preset == 'custom' %}selected{% endif %}>Datas X a Y</option>
-        <option value="today" {% if period_preset == 'today' %}selected{% endif %}>Vendas do dia</option>
-        <option value="month" {% if period_preset == 'month' %}selected{% endif %}>Mensal</option>
-        <option value="quarter" {% if period_preset == 'quarter' %}selected{% endif %}>Trimestral</option>
-        <option value="semester" {% if period_preset == 'semester' %}selected{% endif %}>Semestral</option>
-        <option value="year" {% if period_preset == 'year' %}selected{% endif %}>Anual</option>
-      </select>
-    </div>
-    <div class="col-md-2">
-      <label class="form-label">Data inicial</label>
-      <input class="form-control" type="date" name="start_date" value="{{ start_date }}" />
-    </div>
-    <div class="col-md-2">
-      <label class="form-label">Data final</label>
-      <input class="form-control" type="date" name="end_date" value="{{ end_date }}" />
-    </div>
-    <div class="col-md-2">
-      <label class="form-label">Hora inicial</label>
-      <input class="form-control" type="time" name="start_time" value="{{ start_time }}" />
-    </div>
-    <div class="col-md-2">
-      <label class="form-label">Hora final</label>
-      <input class="form-control" type="time" name="end_time" value="{{ end_time }}" />
-    </div>
-    <div class="col-md-2">
-      <label class="form-label">Filial</label>
-      {% if allowed_branch_codes is defined %}
-      <select class="form-select" name="branch_code">
-        <option value="">Todas as filiais permitidas</option>
-        {% for allowed_code in allowed_branch_codes %}
-        <option value="{{ allowed_code }}" {% if branch_code == allowed_code %}selected{% endif %}>{{ allowed_code }}</option>
-        {% endfor %}
-      </select>
-      {% else %}
-      <input class="form-control" type="text" name="branch_code" value="{{ branch_code }}" placeholder="0001" />
-      {% endif %}
-    </div>
-    <div class="col-md-2">
-      <label class="form-label">Terminal</label>
-      <input class="form-control" type="text" name="terminal_code" value="{{ terminal_code }}" placeholder="PDV-01" />
-    </div>
-    <div class="col-md-2">
-      <label class="form-label">Top produtos</label>
-      <input class="form-control" type="number" min="1" max="20" name="top_limit" value="{{ top_limit }}" />
-    </div>
-    <div class="col-md-2">
-      <label class="form-label">Vendas recentes</label>
-      <input class="form-control" type="number" min="1" max="50" name="recent_limit" value="{{ recent_limit }}" />
-    </div>
-    <div class="col-12 d-flex gap-2">
-      {% if selected_empresa_id is defined %}
-      <input type="hidden" name="empresa_id" value="{{ selected_empresa_id }}" />
-      {% endif %}
-      <button class="btn btn-primary" type="submit">Aplicar filtro</button>
-      <a class="btn btn-outline-secondary" href="{{ report_root_path }}{% if selected_empresa_id is defined %}?empresa_id={{ selected_empresa_id }}{% endif %}">Limpar</a>
-    </div>
-  </div>
-</form>
-
-<div class="row g-3 mb-4">
-  <div class="col-md-3"><div class="card p-3 report-stat"><small>Total de registros</small><h4>{{ overview.total_records }}</h4><span class="text-muted">Volume total sincronizado no recorte.</span></div></div>
-  <div class="col-md-3"><div class="card p-3 report-stat"><small>Produtos distintos</small><h4>{{ overview.distinct_products }}</h4><span class="text-muted">Mix efetivo do periodo atual.</span></div></div>
-  <div class="col-md-3"><div class="card p-3 report-stat"><small>Filiais distintas</small><h4>{{ overview.distinct_branches }}</h4><span class="text-muted">Cobertura operacional ativa.</span></div></div>
-  <div class="col-md-3"><div class="card p-3 report-stat"><small>Terminais distintos</small><h4>{{ overview.distinct_terminals }}</h4><span class="text-muted">Pontos de captura participantes.</span></div></div>
-</div>
-
-<div class="row g-3 mb-4">
-  <div class="col-md-4">
-    <div class="card p-3">
-      <h6>Vendas por tipo</h6>
-      <div class="chart-sm">
-        <canvas id="reportTypeChart" data-labels='{{ type_chart_labels|safe }}' data-values='{{ type_chart_values|safe }}'></canvas>
-      </div>
-    </div>
-  </div>
-  <div class="col-md-4">
-    <div class="card p-3">
-      <h6>Vendas por pagamento</h6>
-      <div class="chart-sm">
-        <canvas id="reportPaymentChart" data-labels='{{ payment_chart_labels|safe }}' data-values='{{ payment_chart_values|safe }}'></canvas>
-      </div>
-    </div>
-  </div>
-  <div class="col-md-4">
-    <div class="card p-3">
-      <h6>Vendas por familia</h6>
-      <div class="chart-sm">
-        <canvas id="reportFamilyChart" data-labels='{{ family_chart_labels|safe }}' data-values='{{ family_chart_values|safe }}'></canvas>
-      </div>
-    </div>
-  </div>
-</div>
-
-<div class="row g-3 mb-4">
-  <div class="col-md-4"><div class="card p-3 report-stat"><small>Valor total</small><h4>{{ overview.total_sales_value }}</h4><span class="text-muted">Receita acumulada no periodo filtrado.</span></div></div>
-  <div class="col-md-4"><div class="card p-3 report-stat"><small>Primeira venda</small><h4>{{ overview.first_sale_date or '-' }}</h4><span class="text-muted">Inicio da janela com movimento.</span></div></div>
-  <div class="col-md-4"><div class="card p-3 report-stat"><small>Ultima venda</small><h4>{{ overview.last_sale_date or '-' }}</h4><span class="text-muted">Ultimo evento encontrado no recorte.</span></div></div>
-</div>
-
-<div class="row g-3 mb-4">
-  {% for section in [
-    {'title': 'Por tipo de venda', 'items': type_items},
-    {'title': 'Por forma de pagamento', 'items': payment_items},
-    {'title': 'Por familia do produto', 'items': family_items},
-  ] %}
-  <div class="col-md-4">
-    <div class="card p-3 h-100">
-      <h6>{{ section.title }}</h6>
-      <div class="table-responsive">
-        <table class="table table-sm table-striped align-middle">
-          <thead><tr><th>Grupo</th><th>Registros</th><th>Valor</th></tr></thead>
-          <tbody>
-            {% for item in section['items'] %}
-            <tr>
-              <td>{{ item.label }}</td>
-              <td>{{ item.total_records }}</td>
-              <td>{{ item.total_sales_value }}</td>
-            </tr>
-            {% endfor %}
-            {% if section['items']|length == 0 %}
-            <tr><td colspan="3" class="text-muted">Sem dados no filtro atual.</td></tr>
-            {% endif %}
-          </tbody>
-        </table>
-      </div>
-    </div>
-  </div>
-  {% endfor %}
-</div>
-
-<div class="row g-3 mb-4">
-  {% for card in highlight_cards %}
-  <div class="col-md-3">
-    <div class="card p-3 report-highlight">
-      <small>{{ card.label }}</small>
-      <h5>{{ card.value }}</h5>
-      <span class="text-muted">{{ card.hint }}</span>
-    </div>
-  </div>
-  {% endfor %}
-</div>
-
-{% if comparison %}
-<div class="card p-3 mb-4">
-  <div class="d-flex justify-content-between align-items-center mb-2">
-    <h6 class="mb-0">Comparativo com periodo anterior</h6>
-    <small class="text-muted">{{ comparison.previous_start_date }} ate {{ comparison.previous_end_date }}</small>
-  </div>
-  <div class="row g-3">
-    <div class="col-md-6">
-      <div class="border rounded p-3 h-100">
-        <small class="text-muted d-block">Valor total anterior</small>
-        <strong>{{ comparison.previous_total_sales_value }}</strong>
-        <div class="small mt-2">
-          Variacao atual:
-          <span class="{% if comparison.delta_total_sales_value.startswith('+') %}text-success{% else %}text-danger{% endif %}">
-            {{ comparison.delta_total_sales_value }}
-          </span>
-          {% if comparison.delta_total_sales_value_pct %}
-          <span class="text-muted">({{ comparison.delta_total_sales_value_pct }}%)</span>
-          {% endif %}
+  <section class="bi-workspace-grid">
+    <aside class="bi-filter-rail card card-outline card-info">
+      <div class="card-header bi-panel-head bi-filter-head">
+        <div>
+          <h3 class="card-title">Filtros globais</h3>
+          <p>Aplicam em KPIs, graficos, tabela e exportacoes.</p>
         </div>
       </div>
-    </div>
-    <div class="col-md-6">
-      <div class="border rounded p-3 h-100">
-        <small class="text-muted d-block">Registros anteriores</small>
-        <strong>{{ comparison.previous_total_records }}</strong>
-        <div class="small mt-2">
-          Variacao atual:
-          <span class="{% if comparison.delta_total_records >= 0 %}text-success{% else %}text-danger{% endif %}">
-            {{ comparison.delta_total_records }}
-          </span>
-          {% if comparison.delta_total_records_pct %}
-          <span class="text-muted">({{ comparison.delta_total_records_pct }}%)</span>
-          {% endif %}
-        </div>
-      </div>
-    </div>
-  </div>
-</div>
-{% endif %}
-
-<div class="row g-3 mb-4">
-  <div class="col-md-7">
-    <div class="card p-3">
-      <h6>Serie diaria de vendas</h6>
-      <div class="chart-sm">
-        <canvas id="reportDailyChart" data-labels='{{ daily_chart_labels|safe }}' data-values='{{ daily_chart_values|safe }}'></canvas>
-      </div>
-    </div>
-  </div>
-  <div class="col-md-5">
-    <div class="card p-3">
-      <h6>Top produtos</h6>
-      <div class="chart-sm">
-        <canvas id="reportTopChart" data-labels='{{ top_chart_labels|safe }}' data-values='{{ top_chart_values|safe }}'></canvas>
-      </div>
-    </div>
-  </div>
-</div>
-
-<div class="row g-3 mb-4">
-  <div class="col-md-6">
-    <div class="card p-3">
-      <h6>Serie diaria</h6>
-      <div class="table-responsive">
-        <table class="table table-sm table-striped align-middle">
-          <thead><tr><th>Dia</th><th>Registros</th><th>Valor</th></tr></thead>
-          <tbody>
-            {% for item in daily_items %}
-            <tr>
-              <td>{{ item.day }}</td>
-              <td>{{ item.total_records }}</td>
-              <td>{{ item.total_sales_value }}</td>
-            </tr>
-            {% endfor %}
-            {% if daily_items|length == 0 %}
-            <tr><td colspan="3" class="text-muted">Sem dados para o filtro atual.</td></tr>
-            {% endif %}
-          </tbody>
-        </table>
-      </div>
-    </div>
-  </div>
-  <div class="col-md-6">
-    <div class="card p-3">
-      <h6>Top produtos</h6>
-      <div class="table-responsive">
-        <table class="table table-sm table-striped align-middle">
-          <thead><tr><th>Produto</th><th>Registros</th><th>Valor</th></tr></thead>
-          <tbody>
-            {% for item in top_items %}
-            <tr>
-              <td>{{ item.produto }}</td>
-              <td>{{ item.total_records }}</td>
-              <td>{{ item.total_sales_value }}</td>
-            </tr>
-            {% endfor %}
-            {% if top_items|length == 0 %}
-            <tr><td colspan="3" class="text-muted">Sem produtos no filtro atual.</td></tr>
-            {% endif %}
-          </tbody>
-        </table>
-      </div>
-    </div>
-  </div>
-</div>
-
-<div class="card p-3">
-  <div class="d-flex justify-content-between align-items-center mb-2">
-    <h6 class="mb-0">Vendas recentes</h6>
-    <small class="text-muted">Ultimos {{ recent_limit }} registros dentro do filtro aplicado.</small>
-  </div>
-  <div class="table-responsive">
-    <table class="table table-sm table-striped align-middle">
-      <thead><tr><th>UUID</th><th>Produto</th><th>Valor</th><th>Data</th><th>Pagamento</th><th>Tipo</th><th>Familia</th><th>Filial</th><th>Terminal</th></tr></thead>
-      <tbody>
-        {% for item in recent_items %}
-        <tr>
-          <td><code>{{ item.uuid }}</code></td>
-          <td>{{ item.produto }}</td>
-          <td>{{ item.valor }}</td>
-          <td>{{ item.data }}</td>
-          <td>{{ item.forma_pagamento or '-' }}</td>
-          <td>{{ item.tipo_venda or '-' }}</td>
-          <td>{{ item.familia_produto or '-' }}</td>
-          <td>{{ item.branch_code or '-' }}</td>
-          <td>{{ item.terminal_code or '-' }}</td>
-        </tr>
-        {% endfor %}
-        {% if recent_items|length == 0 %}
-        <tr><td colspan="9" class="text-muted">Sem vendas recentes para o filtro atual.</td></tr>
+      <form method="get" class="card-body bi-filter-panel bi-filter-panel--compact" data-report-filters>
+        {% if selected_empresa_id is defined %}
+        <input type="hidden" name="empresa_id" value="{{ selected_empresa_id }}" />
         {% endif %}
-      </tbody>
-    </table>
-  </div>
-</div>
+
+        <div class="bi-filter-field bi-filter-field--full">
+          <label>Empresa</label>
+          <input class="form-control" type="search" value="{{ report_company_label }}" disabled />
+        </div>
+        <div class="bi-filter-field">
+          <label>Periodo</label>
+          <select class="form-select" name="period_preset">
+            <option value="custom" {% if period_preset == 'custom' %}selected{% endif %}>Datas X a Y</option>
+            <option value="today" {% if period_preset == 'today' %}selected{% endif %}>Vendas do dia</option>
+            <option value="month" {% if period_preset == 'month' %}selected{% endif %}>Mensal</option>
+            <option value="quarter" {% if period_preset == 'quarter' %}selected{% endif %}>Trimestral</option>
+            <option value="semester" {% if period_preset == 'semester' %}selected{% endif %}>Semestral</option>
+            <option value="year" {% if period_preset == 'year' %}selected{% endif %}>Anual</option>
+          </select>
+        </div>
+        <div class="bi-filter-field">
+          <label>Tipo relatorio</label>
+          <select class="form-select" name="report_type">
+            <option value="sales" {% if report_type == 'sales' %}selected{% endif %}>Vendas</option>
+            <option value="products" {% if report_type == 'products' %}selected{% endif %}>Produtos</option>
+            <option value="payments" {% if report_type == 'payments' %}selected{% endif %}>Pagamentos</option>
+          </select>
+        </div>
+        <div class="bi-filter-field">
+          <label>Data inicial</label>
+          <input class="form-control" type="date" name="start_date" value="{{ start_date }}" />
+        </div>
+        <div class="bi-filter-field">
+          <label>Data final</label>
+          <input class="form-control" type="date" name="end_date" value="{{ end_date }}" />
+        </div>
+        <div class="bi-filter-field">
+          <label>Hora inicial</label>
+          <input class="form-control" type="time" name="start_time" value="{{ start_time }}" />
+        </div>
+        <div class="bi-filter-field">
+          <label>Hora final</label>
+          <input class="form-control" type="time" name="end_time" value="{{ end_time }}" />
+        </div>
+        <div class="bi-filter-field">
+          <label>Categoria</label>
+          <input class="form-control" type="search" name="category" value="{{ category }}" placeholder="Familia ou produto" />
+        </div>
+        <div class="bi-filter-field">
+          <label>Status</label>
+          <select class="form-select" name="status_filter">
+            <option value="" {% if not status_filter %}selected{% endif %}>Todos</option>
+            <option value="online" {% if status_filter == 'online' %}selected{% endif %}>Online</option>
+            <option value="warning" {% if status_filter == 'warning' %}selected{% endif %}>Atrasado</option>
+            <option value="offline" {% if status_filter == 'offline' %}selected{% endif %}>Offline</option>
+          </select>
+        </div>
+        <div class="bi-filter-field">
+          <label>Filial</label>
+          {% if allowed_branch_codes is defined %}
+          <select class="form-select" name="branch_code">
+            <option value="">Todas</option>
+            {% for allowed_code in allowed_branch_codes %}
+            <option value="{{ allowed_code }}" {% if branch_code == allowed_code %}selected{% endif %}>{{ allowed_code }}</option>
+            {% endfor %}
+          </select>
+          {% else %}
+          <input class="form-control" type="text" name="branch_code" value="{{ branch_code }}" placeholder="0001" />
+          {% endif %}
+        </div>
+        <div class="bi-filter-field">
+          <label>Terminal</label>
+          <input class="form-control" type="text" name="terminal_code" value="{{ terminal_code }}" placeholder="PDV-01" />
+        </div>
+        <div class="bi-filter-field">
+          <label>Top ranking</label>
+          <input class="form-control" type="number" min="1" max="20" name="top_limit" value="{{ top_limit }}" />
+        </div>
+        <div class="bi-filter-field">
+          <label>Linhas tabela</label>
+          <input class="form-control" type="number" min="1" max="50" name="recent_limit" value="{{ recent_limit }}" />
+        </div>
+        <div class="bi-filter-actions bi-filter-field--full">
+          <button class="btn btn-primary" type="submit">Aplicar filtros</button>
+          <a class="btn btn-outline-secondary" href="{{ report_root_path }}{% if selected_empresa_id is defined %}?empresa_id={{ selected_empresa_id }}{% endif %}">Resetar</a>
+        </div>
+      </form>
+
+      <div class="bi-chip-row bi-chip-row--vertical">
+        {% for chip in filter_chips %}
+        <span class="bi-chip"><em>{{ chip.label }}</em><strong>{{ chip.value }}</strong></span>
+        {% endfor %}
+      </div>
+    </aside>
+
+    <main class="bi-analytics-canvas">
+      <section class="bi-chart-grid bi-chart-grid--modern">
+        <article class="card card-primary card-outline bi-panel bi-panel--wide bi-panel--primary">
+          <div class="card-header bi-panel-head">
+            <div>
+              <h3 class="card-title">Evolucao de vendas no tempo</h3>
+              <p>Grafico de linha com tendencia diaria e tooltip por valor.</p>
+            </div>
+          </div>
+          <div class="card-body chart-lg">
+            <canvas id="reportDailyChart" data-labels='{{ daily_chart_labels|safe }}' data-values='{{ daily_chart_values|safe }}'></canvas>
+          </div>
+        </article>
+
+        <article class="card card-success card-outline bi-panel">
+          <div class="card-header bi-panel-head">
+            <div>
+              <h3 class="card-title">Distribuicao por pagamento</h3>
+              <p>Donut por valor faturado.</p>
+            </div>
+          </div>
+          <div class="card-body chart-md">
+            <canvas id="reportPaymentChart" data-labels='{{ payment_chart_labels|safe }}' data-values='{{ payment_chart_values|safe }}'></canvas>
+          </div>
+        </article>
+
+        <article class="card card-warning card-outline bi-panel">
+          <div class="card-header bi-panel-head">
+            <div>
+              <h3 class="card-title">Vendas por produto</h3>
+              <p>Barras com os maiores produtos.</p>
+            </div>
+          </div>
+          <div class="card-body chart-md">
+            <canvas id="reportTopChart" data-labels='{{ top_chart_labels|safe }}' data-values='{{ top_chart_values|safe }}'></canvas>
+          </div>
+        </article>
+
+        <article class="card card-danger card-outline bi-panel">
+          <div class="card-header bi-panel-head">
+            <div>
+              <h3 class="card-title">Distribuicao por categoria</h3>
+              <p>Familia de produto.</p>
+            </div>
+          </div>
+          <div class="card-body chart-md">
+            <canvas id="reportFamilyChart" data-labels='{{ family_chart_labels|safe }}' data-values='{{ family_chart_values|safe }}'></canvas>
+          </div>
+        </article>
+
+        <article class="card card-secondary card-outline bi-panel">
+          <div class="card-header bi-panel-head">
+            <div>
+              <h3 class="card-title">Tipo de venda</h3>
+              <p>Mix comercial.</p>
+            </div>
+          </div>
+          <div class="card-body chart-md">
+            <canvas id="reportTypeChart" data-labels='{{ type_chart_labels|safe }}' data-values='{{ type_chart_values|safe }}'></canvas>
+          </div>
+        </article>
+      </section>
+
+      <section class="card card-outline card-indigo bi-ranking-panel">
+        <div class="card-header bi-panel-head">
+          <div>
+            <h3 class="card-title">Ranking executivo</h3>
+            <p>Top produtos por faturamento no periodo selecionado.</p>
+          </div>
+        </div>
+        <div class="card-body bi-ranking-list">
+          {% for item in top_items %}
+          <button class="bi-ranking-item" type="button" data-drilldown="{{ item.produto }}">
+            <span>{{ loop.index }}</span>
+            <strong>{{ item.produto }}</strong>
+            <em>{{ item.total_sales_value }}</em>
+          </button>
+          {% endfor %}
+          {% if top_items|length == 0 %}
+          <div class="text-muted">Sem ranking para o filtro atual.</div>
+          {% endif %}
+        </div>
+      </section>
+
+      {% if comparison %}
+      <section class="bi-comparison bi-comparison--modern">
+        <div>
+          <span>Periodo anterior</span>
+          <strong>{{ comparison.previous_start_date }} ate {{ comparison.previous_end_date }}</strong>
+        </div>
+        <div>
+          <span>Valor anterior</span>
+          <strong>{{ comparison.previous_total_sales_value }}</strong>
+        </div>
+        <div>
+          <span>Variacao valor</span>
+          <strong>{{ comparison.delta_total_sales_value }}{% if comparison.delta_total_sales_value_pct %} ({{ comparison.delta_total_sales_value_pct }}%){% endif %}</strong>
+        </div>
+        <div>
+          <span>Variacao vendas</span>
+          <strong>{{ comparison.delta_total_records }}{% if comparison.delta_total_records_pct %} ({{ comparison.delta_total_records_pct }}%){% endif %}</strong>
+        </div>
+      </section>
+      {% endif %}
+
+      <section class="card card-outline card-primary bi-table-panel bi-table-panel--modern">
+        <div class="card-header bi-panel-head">
+          <div>
+            <h3 class="card-title">Detalhamento de vendas</h3>
+            <p>Busca, ordenacao, paginacao local e exportacao respeitam os filtros aplicados.</p>
+          </div>
+          <div class="bi-table-tools">
+            <input class="form-control bi-table-search" type="search" placeholder="Buscar produto, pagamento, filial..." data-table-search />
+            <div class="btn-group">
+              <a class="btn btn-sm btn-outline-secondary" href="{{ export_base_path }}/export.csv?empresa_id={{ selected_empresa_id or '' }}&period_preset={{ period_preset }}&start_date={{ start_date }}&end_date={{ end_date }}&start_time={{ start_time }}&end_time={{ end_time }}&branch_code={{ branch_code }}&terminal_code={{ terminal_code }}&category={{ category }}&recent_limit={{ recent_limit }}">CSV</a>
+              <a class="btn btn-sm btn-outline-secondary" href="{{ export_base_path }}/export.xlsx?empresa_id={{ selected_empresa_id or '' }}&period_preset={{ period_preset }}&start_date={{ start_date }}&end_date={{ end_date }}&start_time={{ start_time }}&end_time={{ end_time }}&branch_code={{ branch_code }}&terminal_code={{ terminal_code }}&category={{ category }}&top_limit={{ top_limit }}&recent_limit={{ recent_limit }}">Excel</a>
+              <a class="btn btn-sm btn-primary" href="{{ export_base_path }}/export.pdf?empresa_id={{ selected_empresa_id or '' }}&period_preset={{ period_preset }}&start_date={{ start_date }}&end_date={{ end_date }}&start_time={{ start_time }}&end_time={{ end_time }}&branch_code={{ branch_code }}&terminal_code={{ terminal_code }}&category={{ category }}&top_limit={{ top_limit }}&recent_limit={{ recent_limit }}">PDF</a>
+            </div>
+          </div>
+        </div>
+        <div class="card-body table-responsive p-0">
+          <table class="table align-middle bi-table" data-report-table>
+            <thead>
+              <tr>
+                <th data-sort="text">Produto</th>
+                <th data-sort="number">Valor</th>
+                <th data-sort="text">Data</th>
+                <th data-sort="text">Pagamento</th>
+                <th data-sort="text">Tipo</th>
+                <th data-sort="text">Familia</th>
+                <th data-sort="text">Filial</th>
+                <th data-sort="text">Terminal</th>
+                <th data-sort="text">Codigo</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for item in recent_items %}
+              <tr>
+                <td>{{ item.produto }}</td>
+                <td>{{ item.valor }}</td>
+                <td>{{ item.data }}</td>
+                <td>{{ item.forma_pagamento or '-' }}</td>
+                <td>{{ item.tipo_venda or '-' }}</td>
+                <td>{{ item.familia_produto or '-' }}</td>
+                <td>{{ item.branch_code or '-' }}</td>
+                <td>{{ item.terminal_code or '-' }}</td>
+                <td><code>{{ item.uuid }}</code></td>
+              </tr>
+              {% endfor %}
+              {% if recent_items|length == 0 %}
+              <tr><td colspan="9" class="text-muted">Sem vendas recentes para o filtro atual.</td></tr>
+              {% endif %}
+            </tbody>
+          </table>
+        </div>
+        <div class="card-footer bi-table-footer">
+          <span><strong data-table-count>{{ recent_items|length }}</strong> registro(s) exibidos</span>
+          <div class="bi-pagination" data-table-pagination></div>
+        </div>
+      </section>
+    </main>
+  </section>
+</section>
