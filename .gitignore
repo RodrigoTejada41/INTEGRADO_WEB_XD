@@ -18,6 +18,7 @@ env/
 # Local configuration and secrets
 .env
 .env.prod
+agent_local/data/agent_api_key.txt
 
 # Generated databases and runtime artifacts
 output/
