@@ -377,3 +377,43 @@ Na retomada canonica mais recente, o backlog funcional estava concluido ate `P18
   - commit/push;
   - gerar release versionada oficial do instalador quando for distribuir para cliente;
   - evoluir para instalacao como servico Windows.
+
+## Teste real de sincronizacao local para web - 2026-04-28
+
+- Fluxo validado:
+  - MariaDB local -> agente local -> API web -> relatorios do portal cliente.
+- Tenant:
+  - `12345678000199`
+- Banco local:
+  - MariaDB `127.0.0.1:3308/xd`
+- Pareamento:
+  - codigo temporario criado na VPS;
+  - agente local ativado;
+  - chave salva em `agent_local/data/agent_api_key.txt`.
+- Resultado do envio:
+  - `inserted_count=484`
+  - `updated_count=0`
+  - `processed_count=484`
+- Resultado dos relatorios em producao:
+  - `total_records=485`
+  - `total_sales_value=20132.21`
+  - `distinct_products=103`
+  - `first_sale_date=2026-01-14`
+  - `last_sale_date=2026-04-22`
+- Links:
+  - `https://movisystecnologia.com.br/client/dashboard?empresa_id=12345678000199`
+  - `https://movisystecnologia.com.br/client/reports?empresa_id=12345678000199&start_date=2026-01-14&end_date=2026-04-28`
+- Seguranca:
+  - chave local nao foi exibida;
+  - `agent_local/data/agent_api_key.txt` esta no `.gitignore`;
+  - checkpoint runtime local nao foi commitado.
+- Branch atual:
+  - `codex/local-agent-db-panel`
+- Commits relevantes:
+  - `e6a4b7d` - painel local com configuracao de banco;
+  - `f3ba66e` - ignore da chave local runtime.
+- Proximo passo:
+  - abrir PR;
+  - mergear em `main`;
+  - atualizar VPS;
+  - gerar release oficial do instalador cliente.

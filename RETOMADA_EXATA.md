@@ -709,3 +709,88 @@ Este arquivo e o ponto de entrada para retomar o projeto sem redescobrir context
 ### Proximo passo recomendado
 - Commitar e publicar esta evolucao.
 - Depois criar release versionada oficial do instalador se for distribuir para cliente.
+
+## Teste ponta a ponta MariaDB local -> API web -> relatorios - 2026-04-28
+
+### Objetivo
+- Validar o fluxo real solicitado:
+  - banco MariaDB local;
+  - agente/API local;
+  - envio para API web em producao;
+  - visualizacao posterior no portal do cliente.
+
+### Ambiente usado
+- Branch local:
+  - `codex/local-agent-db-panel`
+- API web:
+  - `https://movisystecnologia.com.br/admin/api`
+- Tenant:
+  - `12345678000199`
+- Banco local:
+  - MariaDB em `127.0.0.1:3308/xd`
+- Query local:
+  - `AGENT_SOURCE_QUERY` do `agent_local/.env.example`
+- Checkpoint runtime local:
+  - `agent_local/data/checkpoints.json`
+- Chave runtime local:
+  - `agent_local/data/agent_api_key.txt`
+  - adicionada ao `.gitignore` para nunca versionar.
+
+### Passos executados
+- Criado codigo temporario de pareamento na VPS para o tenant `12345678000199`.
+- Ativado o agente local com o codigo gerado.
+- Gerada chave local do agente em `agent_local/data/agent_api_key.txt`.
+- Configuracao MariaDB salva no `.env` local via novo servico do painel:
+  - `AGENT_MARIADB_URL`;
+  - `AGENT_SOURCE_QUERY`;
+  - `SYNC_INTERVAL_MINUTES`;
+  - `BATCH_SIZE`;
+  - `CHECKPOINT_FILE`.
+- Teste de conexao MariaDB:
+  - `mariadb_ping=True`
+- Amostra antes do envio:
+  - havia registros pendentes apos checkpoint `2026-01-14T11:17:44+00:00`.
+- Rodado ciclo unico do `SyncRunner`.
+
+### Resultado da sincronizacao
+- API web retornou:
+  - `status`: `ok`
+  - `empresa_id`: `12345678000199`
+  - `inserted_count`: `484`
+  - `updated_count`: `0`
+  - `processed_count`: `484`
+
+### Resultado do relatorio web
+- Endpoint administrativo de relatorios em producao confirmou:
+  - periodo: `2026-01-14` ate `2026-04-28`
+  - `total_records`: `485`
+  - `total_sales_value`: `20132.21`
+  - `distinct_products`: `103`
+  - `first_sale_date`: `2026-01-14`
+  - `last_sale_date`: `2026-04-22`
+
+### Links para verificar visualmente
+- Portal cliente:
+  - `https://movisystecnologia.com.br/client/dashboard?empresa_id=12345678000199`
+- Relatorios cliente com periodo usado no teste:
+  - `https://movisystecnologia.com.br/client/reports?empresa_id=12345678000199&start_date=2026-01-14&end_date=2026-04-28`
+
+### Cuidados tomados
+- A chave local do agente nao foi exibida no log.
+- A chave local do agente foi ignorada no Git:
+  - `.gitignore`
+  - `agent_local/data/agent_api_key.txt`
+- O checkpoint runtime alterado pelo teste nao foi commitado.
+
+### Commits relacionados
+- `e6a4b7d` - `feat: add local agent database setup panel`
+- `f3ba66e` - `chore: ignore local agent runtime key`
+
+### Estado para continuar depois
+- O fluxo local -> web esta provado com dados reais.
+- A branch `codex/local-agent-db-panel` esta publicada.
+- PR ainda precisa ser aberta/mergeada na `main`.
+- Proximo passo seguro:
+  - abrir PR de `codex/local-agent-db-panel` para `main`;
+  - apos merge, atualizar VPS para `main`;
+  - gerar release versionada oficial do instalador do cliente.
