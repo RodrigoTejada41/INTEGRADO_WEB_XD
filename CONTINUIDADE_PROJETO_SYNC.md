@@ -511,3 +511,67 @@ git push -u origin codex/restore-backend-reporting-contract
 - Conflito em `tests/test_sync_admin_rbac.py` foi resolvido localmente.
 - Suite completa passou depois do merge.
 - Push executado para `codex/restore-backend-reporting-contract`.
+
+## 16) Modernizacao BI do painel de relatorios - 2026-04-28
+
+### 16.1 Direcao
+
+- Modernizar a experiencia de relatorios para padrao comercial inspirado em Power BI, Metabase, Tableau e SaaS B2B.
+- Nao reescrever para React neste ciclo para evitar alto risco de regressao.
+- Preparar endpoints JSON modulares para futura migracao de frontend.
+
+### 16.2 Entregue
+
+- Layout BI responsivo:
+  - KPIs no topo;
+  - filtros globais;
+  - graficos de linha, barra e donut;
+  - comparativo com periodo anterior;
+  - status da API local;
+  - tabela detalhada;
+  - tema claro/escuro;
+  - busca e ordenacao local na tabela.
+- KPIs obrigatorios implementados:
+  - total faturado;
+  - total de registros;
+  - ticket medio;
+  - crescimento percentual;
+  - comparativo com periodo anterior;
+  - ultima sincronizacao recebida;
+  - status da API local conectada.
+- Endpoints JSON:
+  - `/api/reports/dashboard`
+  - `/api/reports/kpis`
+  - `/api/reports/charts`
+  - `/api/reports/table`
+  - `/api/reports/sync-status`
+  - `/api/reports/export/pdf`
+  - `/api/reports/export/excel`
+  - `/api/reports/export/csv`
+- Atualizacao automatica:
+  - KPIs atualizados sem reload completo.
+- Drill-down inicial:
+  - clique em grafico filtra a tabela detalhada.
+- Regra de 14 meses aplicada no resolver de periodo.
+
+### 16.3 Segurança e multi-tenant
+
+- `client` continua limitado ao proprio `empresa_id`.
+- Admin/analyst usam permissao `reports.view`.
+- Resolucao de empresa acontece antes de montar payload de relatorio.
+- Nenhum endpoint novo consulta relatorio sem resolver o tenant do usuario.
+
+### 16.4 Validacao
+
+- `py -3 -m compileall sync-admin/app`
+  - OK
+- `py -3 -m pytest tests/test_sync_admin_rbac.py -q`
+  - Resultado: `2 passed`
+- `py -3 -m pytest -q`
+  - Resultado: `29 passed, 1 skipped`
+
+### 16.5 Proximo passo
+
+- Fazer merge da branch em `main`.
+- Deployar VPS a partir de `main`.
+- Validar visual em `https://movisystecnologia.com.br/admin/client/reports?empresa_id=12345678000199`.

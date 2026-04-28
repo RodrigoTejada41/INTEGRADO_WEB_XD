@@ -67,6 +67,12 @@
   - Menu lateral do admin agora exibe `Portal Cliente` e `Relatórios Cliente`.
   - Links abrem o tenant padrão configurado por `CONTROL_EMPRESA_ID`.
   - Branch foi sincronizada com `origin/main` antes do push para evitar novo conflito de PR.
+- Modernização BI do painel de relatórios em 2026-04-28:
+  - Painel de relatórios ganhou layout executivo com KPIs, filtros globais, gráficos, comparativo, status da API local e tabela detalhada.
+  - Tema claro/escuro, busca e ordenação local foram adicionados.
+  - Endpoints JSON `/api/reports/*` foram criados para atualização automática e futura migração frontend.
+  - Regra de janela máxima de 14 meses foi aplicada no resolver de período.
+  - Validação completa: `py -3 -m pytest -q` com `29 passed, 1 skipped`.
 
 ### Planejado
 - Multiempresa completa com isolamento por empresa, filial e terminal.

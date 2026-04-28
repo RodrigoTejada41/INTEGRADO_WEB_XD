@@ -136,3 +136,19 @@ def test_admin_can_preview_any_client_portal_scope(monkeypatch) -> None:
     assert scope.selected_branch_code == "0002"
     assert "client.dashboard.view" in ROLE_PERMISSIONS["admin"]
     assert "client.reports.view" in ROLE_PERMISSIONS["admin"]
+
+
+def test_report_period_is_limited_to_fourteen_months() -> None:
+    _ensure_sync_admin_path()
+
+    from app.web.routes import pages
+
+    start_date, end_date, preset = pages._resolve_report_period(
+        "custom",
+        "2024-01-01",
+        "2026-04-28",
+    )
+
+    assert preset == "custom"
+    assert end_date == "2026-04-28"
+    assert start_date == "2025-02-25"

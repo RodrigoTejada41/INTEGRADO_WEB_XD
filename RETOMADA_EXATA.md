@@ -370,3 +370,70 @@ Este arquivo e o ponto de entrada para retomar o projeto sem redescobrir context
   - `5844f52` - `fix: expose client portal navigation to admin`
   - `026fa96` - `merge main after admin portal navigation update`
 - Push ja executado para `codex/restore-backend-reporting-contract`.
+
+## Modernizacao BI do painel de relatorios - 2026-04-28
+
+### Decisao tecnica
+- Evoluir o painel atual sem reescrever o stack para React neste ciclo.
+- Manter arquitetura existente:
+  - backend central FastAPI/SQLAlchemy;
+  - sync-admin em FastAPI + Jinja;
+  - graficos via Chart.js;
+  - exportacoes existentes preservadas.
+- Implementar uma superficie visual de BI comercial com baixo risco e compatibilidade com producao.
+
+### Entregue
+- Dashboard de relatorios com visual SaaS/BI:
+  - header executivo;
+  - filtros globais;
+  - cards de KPI;
+  - graficos de linha, barra e donut;
+  - comparativo com periodo anterior;
+  - status da API local;
+  - tabela detalhada com busca e ordenacao local;
+  - layout responsivo desktop/tablet/celular;
+  - tema claro/escuro por toggle.
+- KPIs adicionados:
+  - total faturado;
+  - total de registros;
+  - ticket medio;
+  - crescimento percentual;
+  - periodo anterior;
+  - ultima sincronizacao;
+  - status da API local.
+- Endpoints JSON adicionados no sync-admin:
+  - `GET /api/reports/dashboard`
+  - `GET /api/reports/kpis`
+  - `GET /api/reports/charts`
+  - `GET /api/reports/table`
+  - `GET /api/reports/sync-status`
+  - `GET /api/reports/export/pdf`
+  - `GET /api/reports/export/excel`
+  - `GET /api/reports/export/csv`
+- Atualizacao automatica:
+  - dashboard consulta endpoint JSON em intervalo configurado;
+  - atualiza KPIs sem reload completo.
+- Drill-down inicial:
+  - clique em ponto/barra do grafico filtra a tabela detalhada pelo label selecionado.
+- Regra de 14 meses:
+  - `_resolve_report_period` agora limita a janela de consulta a `MAX_REPORT_WINDOW_DAYS=427`.
+  - se usuario enviar intervalo maior, o inicio e ajustado para respeitar a janela maxima.
+
+### Arquivos alterados
+- `sync-admin/app/web/routes/pages.py`
+- `sync-admin/app/templates/partials/report_dashboard_content.html`
+- `sync-admin/app/static/css/app.css`
+- `sync-admin/app/static/js/reports.js`
+- `tests/test_sync_admin_rbac.py`
+
+### Validacao
+- `py -3 -m compileall sync-admin/app`
+  - OK
+- `py -3 -m pytest tests/test_sync_admin_rbac.py -q`
+  - Resultado: `2 passed`
+- `py -3 -m pytest -q`
+  - Resultado: `29 passed, 1 skipped`
+
+### Pendente recomendado
+- Validar visual no navegador/VPS apos merge.
+- Em ciclo futuro, se necessario, migrar o frontend para React/Recharts com contrato de API ja preparado.

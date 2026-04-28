@@ -228,3 +228,31 @@ Na retomada canonica mais recente, o backlog funcional estava concluido ate `P18
 - Antes do push, a branch foi sincronizada com `origin/main` e conflito local foi resolvido.
 - Validacao completa:
   - `py -3 -m pytest -q` com `28 passed, 1 skipped`.
+
+## Atualizacao de produto - dashboard BI de relatorios - 2026-04-28
+
+- Painel de relatorios modernizado para padrao SaaS/BI:
+  - KPIs no topo;
+  - filtros globais;
+  - graficos de linha, barra e donut;
+  - comparativo com periodo anterior;
+  - status da API local;
+  - tabela detalhada com busca e ordenacao;
+  - tema claro/escuro;
+  - responsividade desktop/tablet/celular.
+- Endpoints JSON adicionados:
+  - `/api/reports/dashboard`
+  - `/api/reports/kpis`
+  - `/api/reports/charts`
+  - `/api/reports/table`
+  - `/api/reports/sync-status`
+  - `/api/reports/export/pdf`
+  - `/api/reports/export/excel`
+  - `/api/reports/export/csv`
+- Regra de 14 meses agora e aplicada diretamente no resolver de periodo.
+- Validacao completa:
+  - `py -3 -m pytest -q` com `29 passed, 1 skipped`.
+- Proximo passo operacional:
+  - mergear branch em `main`;
+  - deployar VPS a partir de `main`;
+  - validar visual real no dominio.
