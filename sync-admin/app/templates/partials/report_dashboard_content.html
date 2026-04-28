@@ -8,7 +8,7 @@
       <p class="bi-eyebrow">{{ report_title }}</p>
       <h1>Dashboard de Performance</h1>
       <p>
-        {{ report_company_label }} · {{ start_date or 'inicio' }} ate {{ end_date or 'hoje' }}
+        {{ report_company_label }} - {{ start_date or 'inicio' }} ate {{ end_date or 'hoje' }}
       </p>
       <div class="bi-exec-meta">
         <span>Empresa <strong>{{ report_company_label }}</strong></span>
@@ -27,7 +27,7 @@
     </div>
   </header>
 
-  <section class="bi-kpi-grid bi-kpi-grid--executive row" data-kpi-grid>
+  <section class="row g-3 bi-kpi-row" data-kpi-grid>
     {% for card in kpi_cards %}
     <div class="col-12 col-sm-6 col-xl-2">
       <article class="small-box bi-small-box bi-kpi--{{ card.tone }}" data-kpi-key="{{ card.key }}">

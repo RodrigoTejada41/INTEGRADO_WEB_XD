@@ -477,10 +477,10 @@ body[data-theme="dark"] .bi-status-row {
 .bi-exec-copy h1 {
   max-width: 760px;
   margin: 0;
-  font-size: clamp(2rem, 4vw, 4.4rem);
+  font-size: clamp(2rem, 3vw, 3.2rem);
   font-weight: 900;
-  line-height: 0.95;
-  letter-spacing: -0.07em;
+  line-height: 1.02;
+  letter-spacing: -0.055em;
 }
 
 .bi-exec-copy > p {
@@ -530,6 +530,15 @@ body[data-theme="dark"] .bi-status-row {
 
 .bi-kpi-grid--executive {
   grid-template-columns: repeat(6, minmax(150px, 1fr));
+}
+
+.bi-kpi-row {
+  margin-right: -0.5rem;
+  margin-left: -0.5rem;
+}
+
+.bi-kpi-row > [class*="col-"] {
+  display: flex;
 }
 
 .bi-kpi-top {
@@ -975,7 +984,9 @@ body[data-theme="dark"] .bi-ranking-item:hover {
 }
 
 .bi-small-box {
-  min-height: 150px;
+  width: 100%;
+  min-height: 132px;
+  margin-bottom: 0;
   overflow: hidden;
   border-radius: 1rem;
   color: #fff;
@@ -1000,14 +1011,36 @@ body[data-theme="dark"] .bi-ranking-item:hover {
 
 .bi-small-box .inner h3 {
   overflow-wrap: anywhere;
-  font-size: clamp(1.25rem, 1.7vw, 1.9rem);
+  font-size: clamp(1.35rem, 1.4vw, 1.65rem);
   font-weight: 900;
+  margin-bottom: 0.25rem;
+  white-space: normal;
 }
 
 .bi-small-box .inner small {
   display: block;
-  min-height: 32px;
+  min-height: 0;
+  max-height: 38px;
+  overflow: hidden;
   color: rgba(255, 255, 255, 0.82);
+  font-size: 0.76rem;
+  line-height: 1.25;
+}
+
+.bi-small-box .inner p {
+  min-height: 38px;
+  margin-bottom: 0.35rem;
+  color: rgba(255, 255, 255, 0.95);
+  font-size: 0.88rem;
+  font-weight: 700;
+  line-height: 1.18;
+}
+
+.bi-small-box .icon {
+  top: 0.45rem;
+  right: 0.55rem;
+  font-size: 2.7rem;
+  opacity: 0.22;
 }
 
 .bi-small-box .small-box-footer {
