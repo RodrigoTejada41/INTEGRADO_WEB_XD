@@ -216,3 +216,15 @@ Na retomada canonica mais recente, o backlog funcional estava concluido ate `P18
 - Pendente:
   - GitHub CLI esta sem autenticacao local;
   - abrir/atualizar PR e mergear em `main` antes de qualquer deploy automatico de `main`.
+
+## Atualizacao operacional - navegacao admin completa - 2026-04-28
+
+- Admin deve acessar todas as telas, incluindo as telas do portal cliente.
+- Menu lateral do admin agora inclui:
+  - `Portal Cliente`
+  - `Relatórios Cliente`
+- O acesso usa o tenant padrao `CONTROL_EMPRESA_ID`, sem remover a opcao de trocar `empresa_id` pela URL.
+- Perfil `client` continua isolado ao proprio `empresa_id`.
+- Antes do push, a branch foi sincronizada com `origin/main` e conflito local foi resolvido.
+- Validacao completa:
+  - `py -3 -m pytest -q` com `28 passed, 1 skipped`.

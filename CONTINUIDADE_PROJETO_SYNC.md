@@ -476,3 +476,38 @@ git push -u origin codex/restore-backend-reporting-contract
 - GitHub CLI local esta desautenticado.
 - Criar/atualizar PR da branch `codex/restore-backend-reporting-contract` para `main` apos reautenticacao.
 - Nao fazer deploy de `main` antes de mergear essa branch.
+
+## 15) Admin com acesso visivel ao portal cliente - 2026-04-28
+
+### 15.1 Decisao
+
+- Admin deve ter acesso a todas as telas, incluindo telas do portal cliente.
+- Esse acesso nao pode remover isolamento do perfil `client`.
+- A navegacao do admin deve mostrar o portal cliente diretamente, sem depender de URL manual.
+
+### 15.2 Entregue
+
+- Permissoes RBAC de portal cliente adicionadas ao perfil `admin`.
+- Menu lateral do admin passou a exibir:
+  - `Portal Cliente`
+  - `Relatórios Cliente`
+- Os links usam `CONTROL_EMPRESA_ID` como tenant padrao operacional.
+- O guard `require_client_portal_access` continua aceitando:
+  - `client` com `empresa_id`;
+  - `admin`;
+  - rejeitando demais perfis.
+
+### 15.3 Validacao
+
+- `py -3 -m pytest tests/test_sync_admin_rbac.py -q`
+  - Resultado: `2 passed`
+- `py -3 -m pytest -q`
+  - Resultado: `28 passed, 1 skipped`
+
+### 15.4 Controle de PR
+
+- Antes do push foi feito `git fetch origin`.
+- `origin/main` foi incorporado na branch.
+- Conflito em `tests/test_sync_admin_rbac.py` foi resolvido localmente.
+- Suite completa passou depois do merge.
+- Push executado para `codex/restore-backend-reporting-contract`.

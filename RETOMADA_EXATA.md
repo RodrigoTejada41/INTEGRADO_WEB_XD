@@ -330,3 +330,43 @@ Este arquivo e o ponto de entrada para retomar o projeto sem redescobrir context
 - Reautenticar GitHub CLI ou usar navegador para abrir/atualizar PR.
 - Mergear `codex/restore-backend-reporting-contract` em `main`.
 - Depois do merge, voltar a VPS para seguir `main` e validar que nao houve downgrade.
+
+## Hotfix navegacao admin para portal cliente - 2026-04-28
+
+### Decisao operacional
+- Admin deve ter acesso a todas as telas do sistema, inclusive telas do portal cliente.
+- O acesso admin ao portal cliente continua multi-tenant seguro:
+  - sempre com `empresa_id` explicito ou fallback operacional `CONTROL_EMPRESA_ID`;
+  - perfil `client` continua preso ao proprio tenant.
+
+### Correcao aplicada
+- `admin` recebeu permissoes explicitas:
+  - `client.dashboard.view`
+  - `client.reports.view`
+- Menu lateral do admin agora exibe:
+  - `Portal Cliente`
+  - `Relatórios Cliente`
+- Links usam `settings.control_empresa_id` para abrir um tenant padrao sem URL manual.
+
+### Arquivos alterados
+- `sync-admin/app/web/deps.py`
+- `sync-admin/app/web/routes/pages.py`
+- `sync-admin/app/templates/base.html`
+- `tests/test_sync_admin_rbac.py`
+
+### Validacao
+- `py -3 -m pytest tests/test_sync_admin_rbac.py -q`
+  - Resultado: `2 passed`
+- `py -3 -m pytest -q`
+  - Resultado: `28 passed, 1 skipped`
+
+### Controle de conflito PR
+- Antes do push foi executado:
+  - `git fetch origin`
+  - merge de `origin/main`
+  - conflito resolvido localmente em `tests/test_sync_admin_rbac.py`
+  - suite completa verde
+- Commits relevantes:
+  - `5844f52` - `fix: expose client portal navigation to admin`
+  - `026fa96` - `merge main after admin portal navigation update`
+- Push ja executado para `codex/restore-backend-reporting-contract`.

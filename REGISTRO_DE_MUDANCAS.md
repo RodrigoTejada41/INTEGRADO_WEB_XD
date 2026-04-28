@@ -62,6 +62,11 @@
   - Telas exibem aviso de visualização administrativa.
   - Validação local completa: `py -3 -m pytest -q` com `28 passed, 1 skipped`.
   - Deploy validado na VPS no commit `c258d71`.
+- Navegação admin para portal cliente em 2026-04-28:
+  - Perfil `admin` recebeu permissões explícitas de portal cliente.
+  - Menu lateral do admin agora exibe `Portal Cliente` e `Relatórios Cliente`.
+  - Links abrem o tenant padrão configurado por `CONTROL_EMPRESA_ID`.
+  - Branch foi sincronizada com `origin/main` antes do push para evitar novo conflito de PR.
 
 ### Planejado
 - Multiempresa completa com isolamento por empresa, filial e terminal.
