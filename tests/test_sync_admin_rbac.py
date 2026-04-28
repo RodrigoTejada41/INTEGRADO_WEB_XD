@@ -95,7 +95,7 @@ def test_admin_can_preview_any_client_portal_scope(monkeypatch) -> None:
     _ensure_sync_admin_path()
 
     from app.models.user import User
-    from app.web.deps import require_client_portal_access
+    from app.web.deps import ROLE_PERMISSIONS, require_client_portal_access
     from app.web.routes import pages
 
     captured: dict[str, str | None] = {}
@@ -134,3 +134,5 @@ def test_admin_can_preview_any_client_portal_scope(monkeypatch) -> None:
     assert scope.empresa_id == "99887766000155"
     assert scope.allowed_branch_codes == ["0001", "0002"]
     assert scope.selected_branch_code == "0002"
+    assert "client.dashboard.view" in ROLE_PERMISSIONS["admin"]
+    assert "client.reports.view" in ROLE_PERMISSIONS["admin"]

@@ -18,6 +18,8 @@ ROLE_PERMISSIONS: dict[str, set[str]] = {
         'settings.manage',
         'users.manage',
         'jobs.retry',
+        'client.dashboard.view',
+        'client.reports.view',
     },
     'analyst': {
         'dashboard.view',

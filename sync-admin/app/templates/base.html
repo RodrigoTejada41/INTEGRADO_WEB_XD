@@ -27,6 +27,8 @@
         <a class="nav-link" href="/records">Registros</a>
         <a class="nav-link" href="/history">Histórico</a>
         {% if current_user is defined and current_user and current_user.role == 'admin' %}
+        <a class="nav-link" href="/client/dashboard?empresa_id={{ settings.control_empresa_id }}">Portal Cliente</a>
+        <a class="nav-link" href="/client/reports?empresa_id={{ settings.control_empresa_id }}">Relatórios Cliente</a>
         <a class="nav-link" href="/settings">Configurações</a>
         {% endif %}
         {% endif %}

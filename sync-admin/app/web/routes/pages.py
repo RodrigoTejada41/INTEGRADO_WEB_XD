@@ -45,6 +45,7 @@ from app.web.deps import require_client_portal_access, require_web_permission
 router = APIRouter(tags=['web'])
 BASE_DIR = Path(__file__).resolve().parents[2]
 templates = Jinja2Templates(directory=str(BASE_DIR / 'templates'))
+templates.env.globals['settings'] = settings
 
 _LOCAL_AUDIT_FIELD_LABELS = {
     'full_name': 'Nome',
