@@ -447,3 +447,34 @@ Este arquivo e o ponto de entrada para retomar o projeto sem redescobrir context
 ### Pendente recomendado
 - Validar visual no navegador/VPS apos merge.
 - Em ciclo futuro, se necessario, migrar o frontend para React/Recharts com contrato de API ja preparado.
+
+## Hotfix PDF de relatorios - 2026-04-28
+
+### Problema reportado
+- PDF de relatorios era gerado como texto corrido e comprimido.
+- Conteudo ficava ilegivel:
+  - filtros, KPIs, serie diaria, top produtos e vendas recentes saiam quase em bloco unico.
+
+### Correcao aplicada
+- `report_to_pdf_bytes` foi refeito para gerar PDF estruturado:
+  - titulo;
+  - data de geracao;
+  - secao de filtros e resumo;
+  - secao de indicadores;
+  - tabela de serie diaria;
+  - tabela de top produtos;
+  - tabela de vendas recentes;
+  - paginacao automatica quando o conteudo passa do limite da pagina.
+- Implementado renderizador PDF interno `_PdfDocument`, sem dependencia externa.
+
+### Arquivos alterados
+- `sync-admin/app/services/export_service.py`
+- `tests/test_sync_admin_rbac.py`
+
+### Validacao
+- `py -3 -m compileall sync-admin/app`
+  - OK
+- `py -3 -m pytest tests/test_sync_admin_rbac.py -q`
+  - Resultado: `4 passed`
+- `py -3 -m pytest -q`
+  - Resultado: `30 passed, 1 skipped`

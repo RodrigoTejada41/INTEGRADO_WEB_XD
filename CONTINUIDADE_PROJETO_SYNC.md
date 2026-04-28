@@ -584,3 +584,32 @@ git push -u origin codex/restore-backend-reporting-contract
 - Fazer merge da branch em `main`.
 - Deployar VPS a partir de `main`.
 - Validar visual em `https://movisystecnologia.com.br/admin/client/reports?empresa_id=12345678000199`.
+
+## 17) Hotfix PDF legivel de relatorios - 2026-04-28
+
+### 17.1 Problema
+
+- Exportacao PDF estava tecnicamente gerando arquivo, mas sem layout legivel.
+- O conteudo saia comprimido, como texto corrido.
+
+### 17.2 Entregue
+
+- PDF de relatorio passou a ter estrutura:
+  - titulo;
+  - data de geracao;
+  - filtros e resumo;
+  - indicadores;
+  - tabela de serie diaria;
+  - tabela de top produtos;
+  - tabela de vendas recentes.
+- Renderizacao passou a ser paginada.
+- Nenhuma dependencia externa foi adicionada.
+
+### 17.3 Validacao
+
+- `py -3 -m compileall sync-admin/app`
+  - OK
+- `py -3 -m pytest tests/test_sync_admin_rbac.py -q`
+  - Resultado: `4 passed`
+- `py -3 -m pytest -q`
+  - Resultado: `30 passed, 1 skipped`

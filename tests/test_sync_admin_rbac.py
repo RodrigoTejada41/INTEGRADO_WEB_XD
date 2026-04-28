@@ -152,3 +152,43 @@ def test_report_period_is_limited_to_fourteen_months() -> None:
     assert preset == "custom"
     assert end_date == "2026-04-28"
     assert start_date == "2025-02-25"
+
+
+def test_report_pdf_is_structured_and_readable() -> None:
+    _ensure_sync_admin_path()
+
+    from app.services.export_service import report_to_pdf_bytes
+
+    pdf = report_to_pdf_bytes(
+        {
+            "empresa_id": "12345678000199",
+            "start_date": "2025-02-25",
+            "end_date": "2026-04-28",
+            "total_records": 1,
+            "total_sales_value": "99.90",
+            "distinct_products": 1,
+            "distinct_branches": 0,
+            "distinct_terminals": 0,
+            "first_sale_date": "2026-04-22",
+            "last_sale_date": "2026-04-22",
+        },
+        [{"day": "2026-04-22", "total_records": 1, "total_sales_value": "99.90"}],
+        [{"produto": "Teste Integracao Real Atualizado", "total_records": 1, "total_sales_value": "99.90"}],
+        [
+            {
+                "uuid": "codex-1776827155-13749",
+                "produto": "Teste Integracao Real Atualizado",
+                "valor": "99.90",
+                "data": "2026-04-22",
+            }
+        ],
+        title="Relatorios do cliente",
+    )
+
+    assert pdf.startswith(b"%PDF-1.4")
+    assert b"Filtros e resumo" in pdf
+    assert b"Indicadores" in pdf
+    assert b"Serie diaria" in pdf
+    assert b"Top produtos" in pdf
+    assert b"Vendas recentes" in pdf
+    assert b"BT /F1 18 Tf" in pdf

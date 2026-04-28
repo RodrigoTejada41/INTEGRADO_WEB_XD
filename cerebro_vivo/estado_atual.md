@@ -265,3 +265,14 @@ Na retomada canonica mais recente, o backlog funcional estava concluido ate `P18
   - mergear branch em `main`;
   - deployar VPS a partir de `main`;
   - validar visual real no dominio.
+
+## Atualizacao operacional - PDF de relatorios - 2026-04-28
+
+- Problema corrigido:
+  - PDF estava ilegivel por sair como texto comprimido.
+- Entrega:
+  - PDF estruturado com titulo, filtros, indicadores e tabelas;
+  - paginacao automatica;
+  - sem dependencia externa nova.
+- Validacao:
+  - `py -3 -m pytest -q` com `30 passed, 1 skipped`.

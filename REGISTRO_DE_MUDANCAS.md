@@ -73,6 +73,10 @@
   - Endpoints JSON `/reports/api/*` foram criados para atualização automática em produção; aliases `/api/reports/*` ficam preservados para ambiente local.
   - Regra de janela máxima de 14 meses foi aplicada no resolver de período.
   - Validação completa: `py -3 -m pytest -q` com `29 passed, 1 skipped`.
+- Hotfix PDF de relatórios em 2026-04-28:
+  - Exportação PDF deixou de sair como texto comprimido.
+  - Relatório agora possui seções, tabelas e paginação.
+  - Validação completa: `py -3 -m pytest -q` com `30 passed, 1 skipped`.
 
 ### Planejado
 - Multiempresa completa com isolamento por empresa, filial e terminal.
