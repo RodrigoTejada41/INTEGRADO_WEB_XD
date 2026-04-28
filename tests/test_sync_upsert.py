@@ -204,3 +204,21 @@ def test_report_breakdowns_and_time_filter() -> None:
     )
     assert afternoon_overview["total_records"] == 1
     assert afternoon_overview["total_sales_value"] == Decimal("40.00")
+
+    category_overview = repository.report_overview(
+        empresa_id="11111111000101",
+        start_date=date(2026, 4, 16),
+        end_date=date(2026, 4, 16),
+        category="beb",
+    )
+    assert category_overview["total_records"] == 1
+    assert category_overview["total_sales_value"] == Decimal("10.00")
+
+    category_recent_sales = repository.report_recent_sales(
+        empresa_id="11111111000101",
+        limit=10,
+        start_date=date(2026, 4, 16),
+        end_date=date(2026, 4, 16),
+        category="sand",
+    )
+    assert [sale.produto for sale in category_recent_sales] == ["Sanduiche"]

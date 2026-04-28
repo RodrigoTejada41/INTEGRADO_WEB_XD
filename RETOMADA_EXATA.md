@@ -330,3 +330,323 @@ Este arquivo e o ponto de entrada para retomar o projeto sem redescobrir context
 - Reautenticar GitHub CLI ou usar navegador para abrir/atualizar PR.
 - Mergear `codex/restore-backend-reporting-contract` em `main`.
 - Depois do merge, voltar a VPS para seguir `main` e validar que nao houve downgrade.
+
+## Hotfix navegacao admin para portal cliente - 2026-04-28
+
+### Decisao operacional
+- Admin deve ter acesso a todas as telas do sistema, inclusive telas do portal cliente.
+- O acesso admin ao portal cliente continua multi-tenant seguro:
+  - sempre com `empresa_id` explicito ou fallback operacional `CONTROL_EMPRESA_ID`;
+  - perfil `client` continua preso ao proprio tenant.
+
+### Correcao aplicada
+- `admin` recebeu permissoes explicitas:
+  - `client.dashboard.view`
+  - `client.reports.view`
+- Menu lateral do admin agora exibe:
+  - `Portal Cliente`
+  - `Relatórios Cliente`
+- Links usam `settings.control_empresa_id` para abrir um tenant padrao sem URL manual.
+
+### Arquivos alterados
+- `sync-admin/app/web/deps.py`
+- `sync-admin/app/web/routes/pages.py`
+- `sync-admin/app/templates/base.html`
+- `tests/test_sync_admin_rbac.py`
+
+### Validacao
+- `py -3 -m pytest tests/test_sync_admin_rbac.py -q`
+  - Resultado: `2 passed`
+- `py -3 -m pytest -q`
+  - Resultado: `28 passed, 1 skipped`
+
+### Controle de conflito PR
+- Antes do push foi executado:
+  - `git fetch origin`
+  - merge de `origin/main`
+  - conflito resolvido localmente em `tests/test_sync_admin_rbac.py`
+  - suite completa verde
+- Commits relevantes:
+  - `5844f52` - `fix: expose client portal navigation to admin`
+  - `026fa96` - `merge main after admin portal navigation update`
+- Push ja executado para `codex/restore-backend-reporting-contract`.
+
+## Modernizacao BI do painel de relatorios - 2026-04-28
+
+### Decisao tecnica
+- Evoluir o painel atual sem reescrever o stack para React neste ciclo.
+- Manter arquitetura existente:
+  - backend central FastAPI/SQLAlchemy;
+  - sync-admin em FastAPI + Jinja;
+  - graficos via Chart.js;
+  - exportacoes existentes preservadas.
+- Implementar uma superficie visual de BI comercial com baixo risco e compatibilidade com producao.
+
+### Entregue
+- Dashboard de relatorios com visual SaaS/BI:
+  - header executivo;
+  - filtros globais;
+  - cards de KPI;
+  - graficos de linha, barra e donut;
+  - comparativo com periodo anterior;
+  - status da API local;
+  - tabela detalhada com busca e ordenacao local;
+  - layout responsivo desktop/tablet/celular;
+  - tema claro/escuro por toggle.
+- KPIs adicionados:
+  - total faturado;
+  - total de registros;
+  - ticket medio;
+  - crescimento percentual;
+  - periodo anterior;
+  - ultima sincronizacao;
+  - status da API local.
+- Endpoints JSON adicionados no sync-admin:
+  - caminho publico usado pela UI/Nginx:
+    - `GET /reports/api/dashboard`
+    - `GET /reports/api/kpis`
+    - `GET /reports/api/charts`
+    - `GET /reports/api/table`
+    - `GET /reports/api/sync-status`
+    - `GET /reports/api/export/pdf`
+    - `GET /reports/api/export/excel`
+    - `GET /reports/api/export/csv`
+  - aliases locais preservados:
+  - `GET /api/reports/dashboard`
+  - `GET /api/reports/kpis`
+  - `GET /api/reports/charts`
+  - `GET /api/reports/table`
+  - `GET /api/reports/sync-status`
+  - `GET /api/reports/export/pdf`
+  - `GET /api/reports/export/excel`
+  - `GET /api/reports/export/csv`
+- Atualizacao automatica:
+  - dashboard consulta endpoint JSON em intervalo configurado;
+  - atualiza KPIs sem reload completo.
+- Drill-down inicial:
+  - clique em ponto/barra do grafico filtra a tabela detalhada pelo label selecionado.
+- Regra de 14 meses:
+  - `_resolve_report_period` agora limita a janela de consulta a `MAX_REPORT_WINDOW_DAYS=427`.
+  - se usuario enviar intervalo maior, o inicio e ajustado para respeitar a janela maxima.
+
+### Arquivos alterados
+- `sync-admin/app/web/routes/pages.py`
+- `sync-admin/app/templates/partials/report_dashboard_content.html`
+- `sync-admin/app/static/css/app.css`
+- `sync-admin/app/static/js/reports.js`
+- `tests/test_sync_admin_rbac.py`
+
+### Validacao
+- `py -3 -m compileall sync-admin/app`
+  - OK
+- `py -3 -m pytest tests/test_sync_admin_rbac.py -q`
+  - Resultado: `2 passed`
+- `py -3 -m pytest -q`
+  - Resultado: `29 passed, 1 skipped`
+
+### Pendente recomendado
+- Validar visual no navegador/VPS apos merge.
+- Em ciclo futuro, se necessario, migrar o frontend para React/Recharts com contrato de API ja preparado.
+
+## Hotfix PDF de relatorios - 2026-04-28
+
+### Problema reportado
+- PDF de relatorios era gerado como texto corrido e comprimido.
+- Conteudo ficava ilegivel:
+  - filtros, KPIs, serie diaria, top produtos e vendas recentes saiam quase em bloco unico.
+
+### Correcao aplicada
+- `report_to_pdf_bytes` foi refeito para gerar PDF estruturado:
+  - titulo;
+  - data de geracao;
+  - secao de filtros e resumo;
+  - secao de indicadores;
+  - tabela de serie diaria;
+  - tabela de top produtos;
+  - tabela de vendas recentes;
+  - paginacao automatica quando o conteudo passa do limite da pagina.
+- Implementado renderizador PDF interno `_PdfDocument`, sem dependencia externa.
+
+### Arquivos alterados
+- `sync-admin/app/services/export_service.py`
+- `tests/test_sync_admin_rbac.py`
+
+### Validacao
+- `py -3 -m compileall sync-admin/app`
+  - OK
+- `py -3 -m pytest tests/test_sync_admin_rbac.py -q`
+  - Resultado: `4 passed`
+- `py -3 -m pytest -q`
+  - Resultado: `30 passed, 1 skipped`
+
+## Hotfix CSV/Excel de relatorios - 2026-04-28
+
+### Problema reportado
+- CSV nao estava funcionando.
+- Excel estava confuso para o cliente entender.
+
+### Causa
+- CSV usava `csv.DictWriter` com campos fixos tecnicos e quebrava quando `recent_items` trazia campos extras.
+- Excel exportava abas/cabecalhos tecnicos em ingles:
+  - `Overview`
+  - `DailySales`
+  - `TopProducts`
+  - `RecentSales`
+
+### Correcao aplicada
+- CSV:
+  - passou a ignorar campos extras;
+  - usa separador `;`;
+  - cabecalhos em portugues:
+    - `Data`, `Produto`, `Valor`, `Pagamento`, `Tipo`, `Familia`, `Filial`, `Terminal`, `Codigo`.
+- Excel:
+  - abas simplificadas:
+    - `Resumo`
+    - `Vendas`
+    - `Produtos`
+    - `Dias`
+  - cabecalhos em portugues;
+  - removeu metricas tecnicas cruas do cliente.
+
+### Arquivos alterados
+- `sync-admin/app/services/export_service.py`
+- `tests/test_sync_admin_rbac.py`
+- `REGISTRO_DE_MUDANCAS.md`
+
+### Validacao
+- `py -3 -m compileall sync-admin/app`
+  - OK
+- `py -3 -m pytest tests/test_sync_admin_rbac.py -q`
+  - Resultado: `5 passed`
+- `py -3 -m pytest -q`
+  - Resultado: `31 passed, 1 skipped`
+
+## Hotfix 404 Portal Cliente - 2026-04-28
+
+### Problema reportado
+- Portal do cliente retornava:
+  - `404 Not Found`
+  - `nginx/1.27.5`
+
+### Causa
+- O Nginx tinha rota para `/client/reports`, mas nao tinha rota para `/client/dashboard`.
+- O menu do admin e o login do cliente usam link absoluto `/client/dashboard`.
+
+### Correcao aplicada
+- Adicionado no Nginx:
+  - `location /client/dashboard { proxy_pass http://frontend_upstream; }`
+- Teste de contrato atualizado:
+  - `tests/test_production_operations.py`
+
+### Validacao
+- `py -3 -m pytest tests/test_production_operations.py -q`
+  - Resultado: `8 passed`
+- `py -3 -m pytest -q`
+  - Resultado: `31 passed, 1 skipped`
+
+## Padronizacao visual AdminLTE - 2026-04-28
+
+### Decisao tecnica
+- AdminLTE passa a ser a base visual oficial do `sync-admin`.
+- Todas as telas autenticadas usam:
+  - `main-sidebar`;
+  - `main-header navbar`;
+  - `content-wrapper`;
+  - `content-header`;
+  - breadcrumbs;
+  - `main-footer`;
+  - cards, small-boxes, badges, alerts e tabelas no padrao AdminLTE.
+
+### Entregue
+- Login migrado para layout AdminLTE (`login-page`, `login-box`, `card-outline`).
+- Menu lateral padronizado com:
+  - Dashboard;
+  - Relatorios;
+  - Empresas;
+  - Usuarios;
+  - APIs conectadas;
+  - Sincronizacoes;
+  - Logs;
+  - Configuracoes;
+  - Backup;
+  - Sair.
+- Relatorios migrados para BI com AdminLTE:
+  - KPIs em `small-box`;
+  - graficos em `card card-outline`;
+  - filtros compactos em card lateral;
+  - ranking executivo;
+  - tabela responsiva com busca, ordenacao e paginacao local;
+  - exportacao CSV, Excel e PDF preservada.
+- Criado partial reutilizavel:
+  - `sync-admin/app/templates/partials/adminlte_components.html`.
+- Filtro de categoria agora tambem e aplicado no backend por produto/familia, sempre com `empresa_id`.
+
+### Arquivos principais
+- `sync-admin/app/templates/base.html`
+- `sync-admin/app/templates/login.html`
+- `sync-admin/app/templates/partials/report_dashboard_content.html`
+- `sync-admin/app/templates/partials/adminlte_components.html`
+- `sync-admin/app/static/css/app.css`
+- `sync-admin/app/static/js/reports.js`
+- `backend/repositories/venda_repository.py`
+- `backend/services/tenant_report_service.py`
+- `backend/api/routes/tenant_admin.py`
+- `sync-admin/app/services/control_service.py`
+- `sync-admin/app/web/routes/pages.py`
+
+### Validacao
+- `py -3 -m compileall sync-admin/app backend`
+  - OK
+- `py -3 -m pytest tests/test_sync_admin_rbac.py tests/test_sync_upsert.py tests/test_sync_admin_sync_cockpit.py -q`
+  - Resultado: `14 passed`
+- `py -3 -m pytest -q`
+  - Resultado: `33 passed, 1 skipped`
+
+## Checkpoint visual AdminLTE em producao - 2026-04-28
+
+### Contexto
+- O painel de relatorios foi padronizado com AdminLTE, mas a validacao visual real mostrou problemas de proporcao:
+  - KPIs estreitos/verticais;
+  - filtros laterais com overflow horizontal;
+  - cabecalho `Filtros globais` e resumo de chips estourando a largura do card.
+
+### Correcoes aplicadas
+- `fix: normalize AdminLTE report layout proportions`
+  - Commit: `8a7bdb9`
+  - Corrigiu proporcao dos KPIs e conflitos entre grid proprio e `.row` do AdminLTE.
+- `fix: prevent report filter sidebar overflow`
+  - Commit: `3eaa85d`
+  - Corrigiu overflow horizontal do painel lateral de filtros.
+  - Ajustou inputs/selects, grid compacto e chips verticais.
+- `fix: contain report filter header overflow`
+  - Commit: `7cc6729`
+  - Corrigiu estouro do cabecalho `Filtros globais`.
+  - Isolou classe `bi-filter-head`.
+  - Ajustou `card-title`, descricao e chips de resumo com reticencias.
+
+### Arquivos principais
+- `sync-admin/app/static/css/app.css`
+- `sync-admin/app/templates/partials/report_dashboard_content.html`
+
+### Validacao
+- `py -3 -m compileall sync-admin\app`
+  - OK
+- Deploy VPS aplicado na branch:
+  - `codex/restore-backend-reporting-contract`
+- VPS atualizada para:
+  - `7cc6729`
+- Containers validados:
+  - `integrado-frontend` healthy
+  - `integrado-nginx` healthy
+- Smoke externo:
+  - `https://movisystecnologia.com.br/healthz`
+  - Resultado: `ok`
+
+### Estado atual para retomada
+- Workspace local estava limpo antes deste checkpoint documental.
+- Producao esta alinhada com a branch `codex/restore-backend-reporting-contract`.
+- O bug visual reportado do bloco `Filtros globais` foi tratado no CSS e publicado.
+- Proxima acao recomendada:
+  - validar visual no navegador em `https://movisystecnologia.com.br/client/dashboard`;
+  - se estiver aprovado, abrir/atualizar PR para merge em `main`;
+  - apos merge, manter VPS seguindo `main`.

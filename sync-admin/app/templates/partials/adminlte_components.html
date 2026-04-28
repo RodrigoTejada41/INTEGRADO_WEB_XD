@@ -1,0 +1,34 @@
+{% macro card(title, icon='fas fa-layer-group', outline='primary') -%}
+<section class="card card-outline card-{{ outline }}">
+  <div class="card-header">
+    <h3 class="card-title"><i class="{{ icon }} me-1"></i>{{ title }}</h3>
+  </div>
+  <div class="card-body">
+    {{ caller() }}
+  </div>
+</section>
+{%- endmacro %}
+
+{% macro small_box(label, value, icon='fas fa-chart-line', tone='info', footer='Detalhes operacionais') -%}
+<div class="small-box bg-{{ tone }}">
+  <div class="inner">
+    <h3>{{ value }}</h3>
+    <p>{{ label }}</p>
+  </div>
+  <div class="icon"><i class="{{ icon }}"></i></div>
+  <span class="small-box-footer">{{ footer }}</span>
+</div>
+{%- endmacro %}
+
+{% macro badge_status(status) -%}
+{% set value = status or '-' %}
+{% if value in ['online', 'ok', 'success', 'ativo'] %}
+<span class="badge bg-success">{{ value }}</span>
+{% elif value in ['warning', 'retrying', 'queued', 'running', 'atrasado'] %}
+<span class="badge bg-warning text-dark">{{ value }}</span>
+{% elif value in ['offline', 'error', 'failed', 'inativo'] %}
+<span class="badge bg-danger">{{ value }}</span>
+{% else %}
+<span class="badge bg-secondary">{{ value }}</span>
+{% endif %}
+{%- endmacro %}

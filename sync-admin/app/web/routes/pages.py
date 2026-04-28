@@ -40,11 +40,14 @@ from app.services.export_service import (
 )
 from app.services.user_service import UserService
 from app.schemas.users import UserCreateRequest, UserUpdateRequest
-from app.web.deps import require_client_portal_access, require_web_permission
+from app.web.deps import ROLE_PERMISSIONS, require_client_portal_access, require_web_permission, require_web_user
 
 router = APIRouter(tags=['web'])
 BASE_DIR = Path(__file__).resolve().parents[2]
 templates = Jinja2Templates(directory=str(BASE_DIR / 'templates'))
+templates.env.globals['settings'] = settings
+MAX_REPORT_WINDOW_DAYS = 427
+REPORT_AUTO_REFRESH_SECONDS = 60
 
 _LOCAL_AUDIT_FIELD_LABELS = {
     'full_name': 'Nome',
@@ -80,7 +83,16 @@ def _parse_date(value: str | None) -> date | None:
 
 def _resolve_report_period(period_preset: str | None, start_date: str | None, end_date: str | None) -> tuple[str | None, str | None, str]:
     if start_date or end_date:
-        return start_date, end_date, period_preset or "custom"
+        start = _parse_date(start_date)
+        end = _parse_date(end_date) or date.today()
+        if start is None:
+            start = end - timedelta(days=MAX_REPORT_WINDOW_DAYS)
+        if end < start:
+            start, end = end, start
+        min_start = end - timedelta(days=MAX_REPORT_WINDOW_DAYS)
+        if start < min_start:
+            start = min_start
+        return start.isoformat(), end.isoformat(), period_preset or "custom"
 
     today = date.today()
     preset = period_preset or ""
@@ -96,7 +108,7 @@ def _resolve_report_period(period_preset: str | None, start_date: str | None, en
         return today.replace(month=semester_month, day=1).isoformat(), today.isoformat(), preset
     if preset == "year":
         return today.replace(month=1, day=1).isoformat(), today.isoformat(), preset
-    return start_date, end_date, "custom"
+    return (today - timedelta(days=MAX_REPORT_WINDOW_DAYS)).isoformat(), today.isoformat(), "custom"
 
 
 def _period_label(period_preset: str) -> str:
@@ -621,6 +633,9 @@ def _build_filter_chips(
     end_time: str | None,
     branch_code: str | None,
     terminal_code: str | None,
+    category: str | None,
+    status_filter: str | None,
+    report_type: str | None,
     top_limit: int,
     recent_limit: int,
 ) -> list[dict[str, str]]:
@@ -638,6 +653,9 @@ def _build_filter_chips(
         {'label': 'Horario', 'value': f'{start_time or "00:00"} ate {end_time or "23:59"}'},
         {'label': 'Filial', 'value': branch_code or 'Todas'},
         {'label': 'Terminal', 'value': terminal_code or 'Todos'},
+        {'label': 'Categoria', 'value': category or 'Todas'},
+        {'label': 'Status', 'value': status_filter or 'Todos'},
+        {'label': 'Tipo', 'value': report_type or 'Vendas'},
         {'label': 'Top produtos', 'value': str(top_limit)},
         {'label': 'Vendas recentes', 'value': str(recent_limit)},
     ]
@@ -699,6 +717,122 @@ def _build_report_highlights(
     ]
 
 
+def _build_sync_status(empresa_id: str | None) -> dict[str, object]:
+    control = ControlService()
+    clients = control.fetch_remote_clients(empresa_id=empresa_id)
+    if not clients:
+        return {
+            'status': 'offline',
+            'label': 'offline',
+            'last_sync_at': '-',
+            'sync_lag_minutes': None,
+            'reason': 'Nenhuma API local conectada para o tenant filtrado.',
+        }
+    snapshots = [_remote_client_health_snapshot(client) for client in clients]
+    level_order = {'error': 3, 'warning': 2, 'offline': 3, 'online': 1, 'unknown': 0}
+    worst = max(snapshots, key=lambda item: level_order.get(str(item.get('level')), 0))
+    latest_client = max(
+        clients,
+        key=lambda item: _parse_timestamp(item.get('last_sync_at')) or datetime.min.replace(tzinfo=UTC),
+    )
+    latest_sync = _parse_timestamp(latest_client.get('last_sync_at'))
+    return {
+        'status': worst.get('level') or 'unknown',
+        'label': worst.get('label') or 'unknown',
+        'last_sync_at': latest_sync.isoformat(timespec='minutes') if latest_sync else '-',
+        'sync_lag_minutes': worst.get('sync_lag_minutes'),
+        'reason': worst.get('reason') or 'Status operacional calculado pela frota conectada.',
+    }
+
+
+def _build_kpi_cards(
+    *,
+    overview: dict,
+    comparison: dict | None,
+    sync_status: dict[str, object],
+) -> list[dict[str, str]]:
+    total_records = int(overview.get('total_records', 0) or 0)
+    total_sales = _safe_float(overview.get('total_sales_value'))
+    distinct_products = int(overview.get('distinct_products', 0) or 0)
+    average_ticket = total_sales / total_records if total_records else 0.0
+    growth_pct = comparison.get('delta_total_sales_value_pct') if comparison else None
+    growth_value = f'{growth_pct}%' if growth_pct else '0.0%'
+    growth_tone = 'success'
+    if growth_value.startswith('-'):
+        growth_tone = 'error'
+    elif growth_value in {'0.0%', '+0.0%'}:
+        growth_tone = 'neutral'
+    return [
+        {
+            'key': 'total_sales',
+            'icon': 'R$',
+            'label': 'Faturamento total',
+            'value': _format_decimal(total_sales),
+            'hint': 'Receita liquida do periodo filtrado.',
+            'tone': 'success',
+        },
+        {
+            'key': 'total_records',
+            'icon': 'NV',
+            'label': 'Total de vendas',
+            'value': str(total_records),
+            'hint': 'Registros comerciais sincronizados.',
+            'tone': 'primary',
+        },
+        {
+            'key': 'average_ticket',
+            'icon': 'TM',
+            'label': 'Ticket medio',
+            'value': _format_decimal(average_ticket),
+            'hint': 'Media de faturamento por venda.',
+            'tone': 'info',
+        },
+        {
+            'key': 'growth',
+            'icon': 'TR',
+            'label': 'Crescimento',
+            'value': growth_value,
+            'hint': 'Comparado ao periodo anterior.',
+            'tone': growth_tone,
+        },
+        {
+            'key': 'items',
+            'icon': 'SKU',
+            'label': 'Quantidade de itens',
+            'value': str(distinct_products),
+            'hint': 'Produtos distintos vendidos.',
+            'tone': 'warning',
+        },
+        {
+            'key': 'last_sync',
+            'icon': 'SYNC',
+            'label': 'Status da sincronizacao',
+            'value': str(sync_status.get('last_sync_at') or '-'),
+            'hint': str(sync_status.get('reason') or '-'),
+            'tone': str(sync_status.get('status') or 'neutral'),
+        },
+    ]
+
+
+def _report_api_params(
+    *,
+    request: Request,
+    base_path: str,
+    empresa_id: str | None,
+) -> dict[str, str]:
+    params = dict(request.query_params)
+    if empresa_id:
+        params['empresa_id'] = empresa_id
+    query = '&'.join(f'{key}={value}' for key, value in params.items() if value not in (None, ''))
+    return {
+        'dashboard': f'{base_path}/dashboard?{query}' if query else f'{base_path}/dashboard',
+        'kpis': f'{base_path}/kpis?{query}' if query else f'{base_path}/kpis',
+        'charts': f'{base_path}/charts?{query}' if query else f'{base_path}/charts',
+        'table': f'{base_path}/table?{query}' if query else f'{base_path}/table',
+        'sync_status': f'{base_path}/sync-status?{query}' if query else f'{base_path}/sync-status',
+    }
+
+
 def _build_comparison(
     *,
     current_overview: dict,
@@ -737,6 +871,9 @@ def _build_report_payload(
     terminal_code: str | None,
     top_limit: int,
     recent_limit: int,
+    category: str | None = None,
+    status_filter: str | None = None,
+    report_type: str | None = None,
 ) -> dict:
     control = ControlService()
     normalized_top_limit = max(1, min(top_limit, 20))
@@ -748,6 +885,7 @@ def _build_report_payload(
         end_date=end_date,
         branch_code=branch_code,
         terminal_code=terminal_code,
+        category=category,
         start_time=start_time,
         end_time=end_time,
     )
@@ -757,6 +895,7 @@ def _build_report_payload(
         end_date=end_date,
         branch_code=branch_code,
         terminal_code=terminal_code,
+        category=category,
         start_time=start_time,
         end_time=end_time,
     )
@@ -766,6 +905,7 @@ def _build_report_payload(
         end_date=end_date,
         branch_code=branch_code,
         terminal_code=terminal_code,
+        category=category,
         start_time=start_time,
         end_time=end_time,
         limit=normalized_top_limit,
@@ -777,6 +917,7 @@ def _build_report_payload(
         end_date=end_date,
         branch_code=branch_code,
         terminal_code=terminal_code,
+        category=category,
         start_time=start_time,
         end_time=end_time,
         limit=normalized_top_limit,
@@ -788,6 +929,7 @@ def _build_report_payload(
         end_date=end_date,
         branch_code=branch_code,
         terminal_code=terminal_code,
+        category=category,
         start_time=start_time,
         end_time=end_time,
         limit=normalized_top_limit,
@@ -799,6 +941,7 @@ def _build_report_payload(
         end_date=end_date,
         branch_code=branch_code,
         terminal_code=terminal_code,
+        category=category,
         start_time=start_time,
         end_time=end_time,
         limit=normalized_top_limit,
@@ -809,6 +952,7 @@ def _build_report_payload(
         end_date=end_date,
         branch_code=branch_code,
         terminal_code=terminal_code,
+        category=category,
         start_time=start_time,
         end_time=end_time,
         limit=normalized_recent_limit,
@@ -828,6 +972,7 @@ def _build_report_payload(
             end_date=previous_period[1],
             branch_code=branch_code,
             terminal_code=terminal_code,
+            category=category,
             start_time=start_time,
             end_time=end_time,
         )
@@ -835,6 +980,12 @@ def _build_report_payload(
         current_overview=overview,
         previous_overview=previous_overview,
         previous_period=previous_period,
+    )
+    sync_status = _build_sync_status(empresa_id)
+    kpi_cards = _build_kpi_cards(
+        overview=overview,
+        comparison=comparison,
+        sync_status=sync_status,
     )
     highlight_cards = _build_report_highlights(
         overview=overview,
@@ -849,6 +1000,9 @@ def _build_report_payload(
         end_time=end_time,
         branch_code=branch_code,
         terminal_code=terminal_code,
+        category=category,
+        status_filter=status_filter,
+        report_type=report_type,
         top_limit=normalized_top_limit,
         recent_limit=normalized_recent_limit,
     )
@@ -861,6 +1015,8 @@ def _build_report_payload(
         'family_items': family_items,
         'recent_items': recent_items,
         'comparison': comparison,
+        'sync_status': sync_status,
+        'kpi_cards': kpi_cards,
         'highlight_cards': highlight_cards,
         'filter_chips': filter_chips,
         'period_preset': normalized_period_preset,
@@ -870,8 +1026,12 @@ def _build_report_payload(
         'end_time': end_time or '',
         'branch_code': branch_code or '',
         'terminal_code': terminal_code or '',
+        'category': category or '',
+        'status_filter': status_filter or '',
+        'report_type': report_type or 'sales',
         'top_limit': normalized_top_limit,
         'recent_limit': normalized_recent_limit,
+        'report_auto_refresh_seconds': REPORT_AUTO_REFRESH_SECONDS,
         'daily_chart_labels': json.dumps([item.get('day', '-') for item in daily_items]),
         'daily_chart_values': json.dumps(
             [float(item.get('total_sales_value', 0) or 0) for item in daily_items]
@@ -1383,6 +1543,9 @@ def reports_page(
     end_time: str | None = None,
     branch_code: str | None = None,
     terminal_code: str | None = None,
+    category: str | None = None,
+    status_filter: str | None = None,
+    report_type: str | None = None,
     top_limit: int = 10,
     recent_limit: int = 20,
     current_user: User = Depends(require_web_permission('reports.view')),
@@ -1396,16 +1559,25 @@ def reports_page(
         end_time=end_time,
         branch_code=branch_code,
         terminal_code=terminal_code,
+        category=category,
+        status_filter=status_filter,
+        report_type=report_type,
         top_limit=top_limit,
         recent_limit=recent_limit,
     )
+    selected_empresa_id = empresa_id or settings.control_empresa_id
     return templates.TemplateResponse(
         request,
         'reports.html',
         {
             'request': request,
             'current_user': current_user,
-            'selected_empresa_id': empresa_id or settings.control_empresa_id,
+            'selected_empresa_id': selected_empresa_id,
+            'api_endpoints': _report_api_params(
+                request=request,
+                base_path='/reports/api',
+                empresa_id=selected_empresa_id,
+            ),
             **payload,
         },
     )
@@ -1527,6 +1699,9 @@ def client_reports_page(
     end_time: str | None = None,
     branch_code: str | None = None,
     terminal_code: str | None = None,
+    category: str | None = None,
+    status_filter: str | None = None,
+    report_type: str | None = None,
     top_limit: int = 10,
     recent_limit: int = 20,
     current_user: User = Depends(require_client_portal_access),
@@ -1550,6 +1725,9 @@ def client_reports_page(
         end_time=end_time,
         branch_code=scope.selected_branch_code,
         terminal_code=terminal_code,
+        category=category,
+        status_filter=status_filter,
+        report_type=report_type,
         top_limit=top_limit,
         recent_limit=recent_limit,
     )
@@ -1561,6 +1739,11 @@ def client_reports_page(
             'current_user': current_user,
             'selected_empresa_id': scope.empresa_id,
             'is_admin_client_preview': current_user.role == 'admin',
+            'api_endpoints': _report_api_params(
+                request=request,
+                base_path='/reports/api',
+                empresa_id=scope.empresa_id,
+            ),
             'allowed_branch_codes': scope.allowed_branch_codes,
             'branch_code': scope.selected_branch_code or '',
             **payload,
@@ -1568,6 +1751,288 @@ def client_reports_page(
     )
 
 
+def _resolve_report_empresa_for_user(
+    *,
+    current_user: User,
+    db: Session,
+    empresa_id: str | None,
+    branch_code: str | None,
+    start_date: str | None,
+    end_date: str | None,
+    terminal_code: str | None,
+) -> tuple[str, str | None]:
+    if current_user.role == 'client':
+        scope = _resolve_client_portal_scope(
+            current_user=current_user,
+            db=db,
+            requested_empresa_id=empresa_id,
+            requested_branch_code=branch_code,
+            start_date=start_date,
+            end_date=end_date,
+            terminal_code=terminal_code,
+        )
+        return scope.empresa_id, scope.selected_branch_code
+    if 'reports.view' not in ROLE_PERMISSIONS.get(current_user.role, set()):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail='Acesso negado para relatorios.',
+        )
+    return empresa_id or settings.control_empresa_id, branch_code
+
+
+def _build_report_payload_for_api(
+    *,
+    current_user: User,
+    db: Session,
+    empresa_id: str | None,
+    period_preset: str | None,
+    start_date: str | None,
+    end_date: str | None,
+    start_time: str | None,
+    end_time: str | None,
+    branch_code: str | None,
+    terminal_code: str | None,
+    category: str | None,
+    status_filter: str | None,
+    report_type: str | None,
+    top_limit: int,
+    recent_limit: int,
+) -> dict:
+    resolved_empresa_id, resolved_branch_code = _resolve_report_empresa_for_user(
+        current_user=current_user,
+        db=db,
+        empresa_id=empresa_id,
+        branch_code=branch_code,
+        start_date=start_date,
+        end_date=end_date,
+        terminal_code=terminal_code,
+    )
+    return _build_report_payload(
+        empresa_id=resolved_empresa_id,
+        period_preset=period_preset,
+        start_date=start_date,
+        end_date=end_date,
+        start_time=start_time,
+        end_time=end_time,
+        branch_code=resolved_branch_code,
+        terminal_code=terminal_code,
+        category=category,
+        status_filter=status_filter,
+        report_type=report_type,
+        top_limit=top_limit,
+        recent_limit=recent_limit,
+    ) | {'selected_empresa_id': resolved_empresa_id}
+
+
+def _extract_report_api_payload(
+    *,
+    current_user: User,
+    db: Session,
+    empresa_id: str | None = None,
+    period_preset: str | None = None,
+    start_date: str | None = None,
+    end_date: str | None = None,
+    start_time: str | None = None,
+    end_time: str | None = None,
+    branch_code: str | None = None,
+    terminal_code: str | None = None,
+    category: str | None = None,
+    status_filter: str | None = None,
+    report_type: str | None = None,
+    top_limit: int = 10,
+    recent_limit: int = 20,
+) -> dict:
+    return _build_report_payload_for_api(
+        current_user=current_user,
+        db=db,
+        empresa_id=empresa_id,
+        period_preset=period_preset,
+        start_date=start_date,
+        end_date=end_date,
+        start_time=start_time,
+        end_time=end_time,
+        branch_code=branch_code,
+        terminal_code=terminal_code,
+        category=category,
+        status_filter=status_filter,
+        report_type=report_type,
+        top_limit=top_limit,
+        recent_limit=recent_limit,
+    )
+
+
+@router.get('/reports/api/dashboard')
+@router.get('/api/reports/dashboard')
+def api_reports_dashboard(
+    empresa_id: str | None = None,
+    period_preset: str | None = None,
+    start_date: str | None = None,
+    end_date: str | None = None,
+    start_time: str | None = None,
+    end_time: str | None = None,
+    branch_code: str | None = None,
+    terminal_code: str | None = None,
+    category: str | None = None,
+    status_filter: str | None = None,
+    report_type: str | None = None,
+    top_limit: int = 10,
+    recent_limit: int = 20,
+    current_user: User = Depends(require_web_user),
+    db: Session = Depends(get_db),
+):
+    return _extract_report_api_payload(
+        current_user=current_user,
+        db=db,
+        empresa_id=empresa_id,
+        period_preset=period_preset,
+        start_date=start_date,
+        end_date=end_date,
+        start_time=start_time,
+        end_time=end_time,
+        branch_code=branch_code,
+        terminal_code=terminal_code,
+        category=category,
+        status_filter=status_filter,
+        report_type=report_type,
+        top_limit=top_limit,
+        recent_limit=recent_limit,
+    )
+
+
+@router.get('/reports/api/kpis')
+@router.get('/api/reports/kpis')
+def api_reports_kpis(
+    empresa_id: str | None = None,
+    period_preset: str | None = None,
+    start_date: str | None = None,
+    end_date: str | None = None,
+    start_time: str | None = None,
+    end_time: str | None = None,
+    branch_code: str | None = None,
+    terminal_code: str | None = None,
+    category: str | None = None,
+    status_filter: str | None = None,
+    report_type: str | None = None,
+    current_user: User = Depends(require_web_user),
+    db: Session = Depends(get_db),
+):
+    payload = _extract_report_api_payload(
+        current_user=current_user,
+        db=db,
+        empresa_id=empresa_id,
+        period_preset=period_preset,
+        start_date=start_date,
+        end_date=end_date,
+        start_time=start_time,
+        end_time=end_time,
+        branch_code=branch_code,
+        terminal_code=terminal_code,
+        category=category,
+        status_filter=status_filter,
+        report_type=report_type,
+    )
+    return {'items': payload['kpi_cards'], 'sync_status': payload['sync_status']}
+
+
+@router.get('/reports/api/charts')
+@router.get('/api/reports/charts')
+def api_reports_charts(
+    empresa_id: str | None = None,
+    period_preset: str | None = None,
+    start_date: str | None = None,
+    end_date: str | None = None,
+    start_time: str | None = None,
+    end_time: str | None = None,
+    branch_code: str | None = None,
+    terminal_code: str | None = None,
+    category: str | None = None,
+    status_filter: str | None = None,
+    report_type: str | None = None,
+    current_user: User = Depends(require_web_user),
+    db: Session = Depends(get_db),
+):
+    payload = _extract_report_api_payload(
+        current_user=current_user,
+        db=db,
+        empresa_id=empresa_id,
+        period_preset=period_preset,
+        start_date=start_date,
+        end_date=end_date,
+        start_time=start_time,
+        end_time=end_time,
+        branch_code=branch_code,
+        terminal_code=terminal_code,
+        category=category,
+        status_filter=status_filter,
+        report_type=report_type,
+    )
+    return {
+        'daily_items': payload['daily_items'],
+        'top_items': payload['top_items'],
+        'type_items': payload['type_items'],
+        'payment_items': payload['payment_items'],
+        'family_items': payload['family_items'],
+    }
+
+
+@router.get('/reports/api/table')
+@router.get('/api/reports/table')
+def api_reports_table(
+    empresa_id: str | None = None,
+    period_preset: str | None = None,
+    start_date: str | None = None,
+    end_date: str | None = None,
+    start_time: str | None = None,
+    end_time: str | None = None,
+    branch_code: str | None = None,
+    terminal_code: str | None = None,
+    category: str | None = None,
+    status_filter: str | None = None,
+    report_type: str | None = None,
+    recent_limit: int = 20,
+    current_user: User = Depends(require_web_user),
+    db: Session = Depends(get_db),
+):
+    payload = _extract_report_api_payload(
+        current_user=current_user,
+        db=db,
+        empresa_id=empresa_id,
+        period_preset=period_preset,
+        start_date=start_date,
+        end_date=end_date,
+        start_time=start_time,
+        end_time=end_time,
+        branch_code=branch_code,
+        terminal_code=terminal_code,
+        category=category,
+        status_filter=status_filter,
+        report_type=report_type,
+        recent_limit=recent_limit,
+    )
+    return {'items': payload['recent_items'], 'limit': payload['recent_limit']}
+
+
+@router.get('/reports/api/sync-status')
+@router.get('/api/reports/sync-status')
+def api_reports_sync_status(
+    empresa_id: str | None = None,
+    current_user: User = Depends(require_web_user),
+    db: Session = Depends(get_db),
+):
+    resolved_empresa_id, _ = _resolve_report_empresa_for_user(
+        current_user=current_user,
+        db=db,
+        empresa_id=empresa_id,
+        branch_code=None,
+        start_date=None,
+        end_date=None,
+        terminal_code=None,
+    )
+    return _build_sync_status(resolved_empresa_id) | {'empresa_id': resolved_empresa_id}
+
+
+@router.get('/reports/api/export/csv')
+@router.get('/api/reports/export/csv')
 @router.get('/reports/export.csv')
 def export_reports_csv(
     empresa_id: str | None = None,
@@ -1578,6 +2043,7 @@ def export_reports_csv(
     end_time: str | None = None,
     branch_code: str | None = None,
     terminal_code: str | None = None,
+    category: str | None = None,
     recent_limit: int = 50,
     _: object = Depends(require_web_permission('reports.view')),
 ):
@@ -1590,6 +2056,7 @@ def export_reports_csv(
         end_time=end_time,
         branch_code=branch_code,
         terminal_code=terminal_code,
+        category=category,
         top_limit=10,
         recent_limit=recent_limit,
     )
@@ -1601,6 +2068,8 @@ def export_reports_csv(
     )
 
 
+@router.get('/reports/api/export/excel')
+@router.get('/api/reports/export/excel')
 @router.get('/reports/export.xlsx')
 def export_reports_xlsx(
     empresa_id: str | None = None,
@@ -1611,6 +2080,7 @@ def export_reports_xlsx(
     end_time: str | None = None,
     branch_code: str | None = None,
     terminal_code: str | None = None,
+    category: str | None = None,
     top_limit: int = 10,
     recent_limit: int = 50,
     _: object = Depends(require_web_permission('reports.view')),
@@ -1624,6 +2094,7 @@ def export_reports_xlsx(
         end_time=end_time,
         branch_code=branch_code,
         terminal_code=terminal_code,
+        category=category,
         top_limit=top_limit,
         recent_limit=recent_limit,
     )
@@ -1640,6 +2111,8 @@ def export_reports_xlsx(
     )
 
 
+@router.get('/reports/api/export/pdf')
+@router.get('/api/reports/export/pdf')
 @router.get('/reports/export.pdf')
 def export_reports_pdf(
     empresa_id: str | None = None,
@@ -1650,6 +2123,7 @@ def export_reports_pdf(
     end_time: str | None = None,
     branch_code: str | None = None,
     terminal_code: str | None = None,
+    category: str | None = None,
     top_limit: int = 10,
     recent_limit: int = 50,
     _: object = Depends(require_web_permission('reports.view')),
@@ -1663,6 +2137,7 @@ def export_reports_pdf(
         end_time=end_time,
         branch_code=branch_code,
         terminal_code=terminal_code,
+        category=category,
         top_limit=top_limit,
         recent_limit=recent_limit,
     )
@@ -1690,6 +2165,7 @@ def export_client_reports_csv(
     end_time: str | None = None,
     branch_code: str | None = None,
     terminal_code: str | None = None,
+    category: str | None = None,
     recent_limit: int = 50,
     current_user: User = Depends(require_client_portal_access),
     db: Session = Depends(get_db),
@@ -1712,6 +2188,7 @@ def export_client_reports_csv(
         end_time=end_time,
         branch_code=scope.selected_branch_code,
         terminal_code=terminal_code,
+        category=category,
         top_limit=10,
         recent_limit=recent_limit,
     )
@@ -1733,6 +2210,7 @@ def export_client_reports_xlsx(
     end_time: str | None = None,
     branch_code: str | None = None,
     terminal_code: str | None = None,
+    category: str | None = None,
     top_limit: int = 10,
     recent_limit: int = 50,
     current_user: User = Depends(require_client_portal_access),
@@ -1756,6 +2234,7 @@ def export_client_reports_xlsx(
         end_time=end_time,
         branch_code=scope.selected_branch_code,
         terminal_code=terminal_code,
+        category=category,
         top_limit=top_limit,
         recent_limit=recent_limit,
     )
@@ -1782,6 +2261,7 @@ def export_client_reports_pdf(
     end_time: str | None = None,
     branch_code: str | None = None,
     terminal_code: str | None = None,
+    category: str | None = None,
     top_limit: int = 10,
     recent_limit: int = 50,
     current_user: User = Depends(require_client_portal_access),
@@ -1805,6 +2285,7 @@ def export_client_reports_pdf(
         end_time=end_time,
         branch_code=scope.selected_branch_code,
         terminal_code=terminal_code,
+        category=category,
         top_limit=top_limit,
         recent_limit=recent_limit,
     )

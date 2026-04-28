@@ -66,6 +66,7 @@ def test_nginx_exposes_explicit_backend_and_sync_admin_readiness_routes() -> Non
     assert "location /admin/ {" in nginx_config
     assert "proxy_pass http://frontend_upstream;" in nginx_config
     assert "location /reports { proxy_pass http://frontend_upstream; }" in nginx_config
+    assert "location /client/dashboard { proxy_pass http://frontend_upstream; }" in nginx_config
     assert "location /client/reports { proxy_pass http://frontend_upstream; }" in nginx_config
     assert "location /connected-apis { proxy_pass http://frontend_upstream; }" in nginx_config
 

@@ -216,3 +216,137 @@ Na retomada canonica mais recente, o backlog funcional estava concluido ate `P18
 - Pendente:
   - GitHub CLI esta sem autenticacao local;
   - abrir/atualizar PR e mergear em `main` antes de qualquer deploy automatico de `main`.
+
+## Atualizacao operacional - navegacao admin completa - 2026-04-28
+
+- Admin deve acessar todas as telas, incluindo as telas do portal cliente.
+- Menu lateral do admin agora inclui:
+  - `Portal Cliente`
+  - `Relatórios Cliente`
+- O acesso usa o tenant padrao `CONTROL_EMPRESA_ID`, sem remover a opcao de trocar `empresa_id` pela URL.
+- Perfil `client` continua isolado ao proprio `empresa_id`.
+- Antes do push, a branch foi sincronizada com `origin/main` e conflito local foi resolvido.
+- Validacao completa:
+  - `py -3 -m pytest -q` com `28 passed, 1 skipped`.
+
+## Atualizacao de produto - dashboard BI de relatorios - 2026-04-28
+
+- Painel de relatorios modernizado para padrao SaaS/BI:
+  - KPIs no topo;
+  - filtros globais;
+  - graficos de linha, barra e donut;
+  - comparativo com periodo anterior;
+  - status da API local;
+  - tabela detalhada com busca e ordenacao;
+  - tema claro/escuro;
+  - responsividade desktop/tablet/celular.
+- Endpoints JSON adicionados:
+  - `/reports/api/dashboard`
+  - `/reports/api/kpis`
+  - `/reports/api/charts`
+  - `/reports/api/table`
+  - `/reports/api/sync-status`
+  - `/reports/api/export/pdf`
+  - `/reports/api/export/excel`
+  - `/reports/api/export/csv`
+- Aliases locais preservados:
+  - `/api/reports/dashboard`
+  - `/api/reports/kpis`
+  - `/api/reports/charts`
+  - `/api/reports/table`
+  - `/api/reports/sync-status`
+  - `/api/reports/export/pdf`
+  - `/api/reports/export/excel`
+  - `/api/reports/export/csv`
+- Regra de 14 meses agora e aplicada diretamente no resolver de periodo.
+- Validacao completa:
+  - `py -3 -m pytest -q` com `29 passed, 1 skipped`.
+- Proximo passo operacional:
+  - mergear branch em `main`;
+  - deployar VPS a partir de `main`;
+  - validar visual real no dominio.
+
+## Atualizacao operacional - PDF de relatorios - 2026-04-28
+
+- Problema corrigido:
+  - PDF estava ilegivel por sair como texto comprimido.
+- Entrega:
+  - PDF estruturado com titulo, filtros, indicadores e tabelas;
+  - paginacao automatica;
+  - sem dependencia externa nova.
+- Validacao:
+  - `py -3 -m pytest -q` com `30 passed, 1 skipped`.
+
+## Atualizacao operacional - CSV e Excel de relatorios - 2026-04-28
+
+- CSV corrigido para nao quebrar com campos extras do backend.
+- CSV agora usa colunas em portugues e separador `;`.
+- Excel simplificado para cliente:
+  - `Resumo`
+  - `Vendas`
+  - `Produtos`
+  - `Dias`
+- Validacao:
+  - `py -3 -m pytest -q` com `31 passed, 1 skipped`.
+
+## Atualizacao operacional - hotfix Portal Cliente - 2026-04-28
+
+- Problema:
+  - `/client/dashboard` retornava `404 Not Found nginx/1.27.5` em producao.
+- Causa:
+  - faltava rota explicita no Nginx para encaminhar `/client/dashboard` ao `sync-admin`.
+- Correcao:
+  - `infra/nginx/default.conf` agora possui `location /client/dashboard { proxy_pass http://frontend_upstream; }`.
+- Contrato protegido:
+  - `tests/test_production_operations.py` valida que a rota existe no Nginx de producao.
+- Validacao:
+  - `py -3 -m pytest tests\test_production_operations.py -q` com `8 passed`.
+  - `py -3 -m pytest -q` com `31 passed, 1 skipped`.
+- Proximo passo:
+  - commit, push, deploy VPS e smoke real no dominio.
+
+## Atualizacao visual - AdminLTE global - 2026-04-28
+
+- Decisao:
+  - AdminLTE passa a ser a base visual oficial do `sync-admin`.
+- Entrega:
+  - shell autenticado global com sidebar, navbar, content wrapper, breadcrumb e footer;
+  - login em layout AdminLTE;
+  - menu lateral com dashboard, relatorios, empresas, usuarios, APIs conectadas, sincronizacoes, logs, configuracoes, backup e sair;
+  - relatorios em dashboard BI com `small-box`, cards AdminLTE, filtros compactos, graficos, ranking, tabela responsiva e exportacoes;
+  - partial reutilizavel `sync-admin/app/templates/partials/adminlte_components.html`.
+- Backend:
+  - filtro `Categoria` agora chega ate API/repository e filtra produto/familia com `empresa_id`.
+- Validacao:
+  - `py -3 -m compileall sync-admin/app backend` OK.
+  - `py -3 -m pytest tests/test_sync_admin_rbac.py tests/test_sync_upsert.py tests/test_sync_admin_sync_cockpit.py -q` com `14 passed`.
+  - `py -3 -m pytest -q` com `33 passed, 1 skipped`.
+- Proximo passo:
+  - commit, push, deploy VPS e validacao visual real no dominio.
+
+## Checkpoint visual pos-deploy - filtros e proporcoes AdminLTE - 2026-04-28
+
+- Problemas corrigidos apos validacao visual real:
+  - KPIs do dashboard ficavam comprimidos e desproporcionais.
+  - Painel lateral de filtros estourava horizontalmente.
+  - Cabecalho `Filtros globais` vazava dentro do card.
+  - Resumo/chips dos filtros nao respeitava largura da lateral.
+- Commits relevantes:
+  - `8a7bdb9` - `fix: normalize AdminLTE report layout proportions`
+  - `3eaa85d` - `fix: prevent report filter sidebar overflow`
+  - `7cc6729` - `fix: contain report filter header overflow`
+- Arquivos principais:
+  - `sync-admin/app/static/css/app.css`
+  - `sync-admin/app/templates/partials/report_dashboard_content.html`
+- Validacao local:
+  - `py -3 -m compileall sync-admin\app` OK.
+- Deploy VPS:
+  - branch `codex/restore-backend-reporting-contract`;
+  - VPS em `7cc6729`;
+  - `integrado-frontend` healthy;
+  - `integrado-nginx` healthy;
+  - `https://movisystecnologia.com.br/healthz` retornou `ok`.
+- Estado para retomada:
+  - producao esta atualizada com o ultimo hotfix visual;
+  - proximo passo e validar visual no navegador e consolidar merge em `main`;
+  - depois do merge, VPS deve voltar a seguir `main` para evitar drift.
