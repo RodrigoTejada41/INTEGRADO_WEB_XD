@@ -650,3 +650,62 @@ Este arquivo e o ponto de entrada para retomar o projeto sem redescobrir context
   - validar visual no navegador em `https://movisystecnologia.com.br/client/dashboard`;
   - se estiver aprovado, abrir/atualizar PR para merge em `main`;
   - apos merge, manter VPS seguindo `main`.
+
+## Evolucao API Local - painel de banco por formulario - 2026-04-28
+
+### Decisao
+- Manter a arquitetura correta para cliente real:
+  - credenciais do banco ficam no agente local;
+  - API web recebe apenas dados sincronizados;
+  - admin web acompanha status e pode operar a API conectada;
+  - cliente nao precisa editar JSON para configurar o banco.
+
+### Entregue
+- Criado servico local de configuracao de banco:
+  - `agent_local/config/database_config.py`
+- Painel local `agent_local/pairing_ui.py` evoluido para `MoviSync - Painel Local`.
+- Nova aba `Banco Local` com:
+  - tipo do banco;
+  - host/IP;
+  - porta;
+  - nome do banco;
+  - usuario;
+  - senha;
+  - SSL;
+  - intervalo de sincronizacao;
+  - tamanho do lote;
+  - arquivo `.env`.
+- Botoes adicionados:
+  - `Testar banco`;
+  - `Salvar banco`.
+- O painel salva automaticamente:
+  - `AGENT_MARIADB_URL`;
+  - `SYNC_INTERVAL_MINUTES`;
+  - `BATCH_SIZE`.
+- Instalador local atualizado para criar tambem:
+  - `Abrir_Painel_Local.cmd`
+- Atalho antigo preservado:
+  - `Abrir_Vinculacao.cmd`
+
+### Arquivos principais
+- `agent_local/config/database_config.py`
+- `agent_local/pairing_ui.py`
+- `infra/client-agent/install-agent-client.ps1`
+- `infra/client-agent/README.md`
+- `infra/client-agent/RELEASES.md`
+- `tests/test_agent_local_database_config.py`
+
+### Validacao
+- `py -3 -m compileall agent_local`
+  - OK
+- `py -3 -m pytest tests\test_agent_local_database_config.py tests\test_agent_pairing_service.py -q`
+  - Resultado: `3 passed`
+- `py -3 -m pytest -q`
+  - Resultado: `35 passed, 1 skipped`
+- Smoke de pacote instalador:
+  - `powershell -ExecutionPolicy Bypass -File .\infra\client-agent\build-release.ps1 -VersionTag local-panel-smoke -OutputRoot .\output\client-agent-releases`
+  - Resultado: release gerada em `output/client-agent-releases/local-panel-smoke`
+
+### Proximo passo recomendado
+- Commitar e publicar esta evolucao.
+- Depois criar release versionada oficial do instalador se for distribuir para cliente.

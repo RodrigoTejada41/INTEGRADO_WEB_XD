@@ -350,3 +350,30 @@ Na retomada canonica mais recente, o backlog funcional estava concluido ate `P18
   - producao esta atualizada com o ultimo hotfix visual;
   - proximo passo e validar visual no navegador e consolidar merge em `main`;
   - depois do merge, VPS deve voltar a seguir `main` para evitar drift.
+
+## Evolucao API Local - painel de configuracao do banco - 2026-04-28
+
+- Objetivo:
+  - deixar o agente local adequado para cliente real, sem exigir edicao manual de JSON ou URL tecnica do banco.
+- Entrega:
+  - `agent_local/config/database_config.py` criado;
+  - `agent_local/pairing_ui.py` virou `MoviSync - Painel Local`;
+  - nova aba `Banco Local` adicionada;
+  - formulario para MariaDB com host, porta, banco, usuario, senha, SSL, intervalo e lote;
+  - botoes `Testar banco` e `Salvar banco`;
+  - salvamento automatico de `AGENT_MARIADB_URL`, `SYNC_INTERVAL_MINUTES` e `BATCH_SIZE`;
+  - instalador cria `Abrir_Painel_Local.cmd`;
+  - `Abrir_Vinculacao.cmd` foi preservado para compatibilidade.
+- Seguranca:
+  - credenciais do banco permanecem apenas na maquina do cliente;
+  - API web nao recebe senha, usuario ou IP interno;
+  - URL MariaDB e gerada pelo sistema com escape correto de senha.
+- Validacao:
+  - `py -3 -m compileall agent_local` OK;
+  - `py -3 -m pytest tests\test_agent_local_database_config.py tests\test_agent_pairing_service.py -q` com `3 passed`;
+  - `py -3 -m pytest -q` com `35 passed, 1 skipped`;
+  - pacote smoke gerado em `output/client-agent-releases/local-panel-smoke`.
+- Proximo passo:
+  - commit/push;
+  - gerar release versionada oficial do instalador quando for distribuir para cliente;
+  - evoluir para instalacao como servico Windows.
