@@ -48,7 +48,7 @@
 
   <section class="bi-workspace-grid">
     <aside class="bi-filter-rail card card-outline card-info">
-      <div class="card-header bi-panel-head">
+      <div class="card-header bi-panel-head bi-filter-head">
         <div>
           <h3 class="card-title">Filtros globais</h3>
           <p>Aplicam em KPIs, graficos, tabela e exportacoes.</p>
@@ -144,7 +144,7 @@
 
       <div class="bi-chip-row bi-chip-row--vertical">
         {% for chip in filter_chips %}
-        <span class="bi-chip"><em>{{ chip.label }}</em>{{ chip.value }}</span>
+        <span class="bi-chip"><em>{{ chip.label }}</em><strong>{{ chip.value }}</strong></span>
         {% endfor %}
       </div>
     </aside>

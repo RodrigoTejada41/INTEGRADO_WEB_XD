@@ -576,6 +576,7 @@ body[data-theme="dark"] .bi-status-row {
   top: 1rem;
   display: grid;
   gap: 0.85rem;
+  min-width: 0;
   max-height: calc(100vh - 2rem);
   overflow: auto;
   padding: 1rem;
@@ -584,6 +585,40 @@ body[data-theme="dark"] .bi-status-row {
   background: var(--surface);
   box-shadow: 0 18px 48px rgba(15, 23, 42, 0.08);
   backdrop-filter: blur(14px);
+}
+
+.bi-filter-head {
+  display: block;
+  min-width: 0;
+  padding: 1rem 1rem 0.75rem;
+  margin-bottom: 0;
+}
+
+.bi-filter-head > div {
+  min-width: 0;
+}
+
+.bi-filter-head .card-title {
+  float: none;
+  display: block;
+  max-width: 100%;
+  margin: 0;
+  overflow: hidden;
+  color: #0f172a;
+  font-size: 1.05rem;
+  font-weight: 800;
+  line-height: 1.2;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bi-filter-head p {
+  max-width: 100%;
+  margin: 0.25rem 0 0;
+  overflow-wrap: anywhere;
+  color: #64748b;
+  font-size: 0.82rem;
+  line-height: 1.35;
 }
 
 .bi-filter-panel--compact {
@@ -630,6 +665,7 @@ body[data-theme="dark"] .bi-status-row {
 .bi-chip-row--vertical {
   display: grid;
   gap: 0.45rem;
+  min-width: 0;
 }
 
 .bi-chip-row--vertical .bi-chip {
@@ -637,11 +673,13 @@ body[data-theme="dark"] .bi-status-row {
   justify-content: space-between;
   gap: 0.5rem;
   min-width: 0;
+  max-width: 100%;
   border-radius: 0.85rem;
 }
 
 .bi-chip-row--vertical .bi-chip,
-.bi-chip-row--vertical .bi-chip em {
+.bi-chip-row--vertical .bi-chip em,
+.bi-chip-row--vertical .bi-chip strong {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -650,6 +688,14 @@ body[data-theme="dark"] .bi-status-row {
 .bi-chip-row--vertical .bi-chip em {
   flex: 0 0 auto;
   max-width: 44%;
+}
+
+.bi-chip-row--vertical .bi-chip strong {
+  flex: 1 1 auto;
+  min-width: 0;
+  color: inherit;
+  font-weight: 500;
+  text-align: right;
 }
 
 .bi-analytics-canvas {
@@ -1085,6 +1131,10 @@ body[data-theme="dark"] .bi-ranking-item:hover {
 
 .bi-filter-rail {
   overflow-x: hidden;
+}
+
+.bi-filter-rail > .bi-chip-row--vertical {
+  padding: 0 1rem 1rem;
 }
 
 .bi-panel.card,
