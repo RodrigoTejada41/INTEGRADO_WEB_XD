@@ -323,3 +323,30 @@ Na retomada canonica mais recente, o backlog funcional estava concluido ate `P18
   - `py -3 -m pytest -q` com `33 passed, 1 skipped`.
 - Proximo passo:
   - commit, push, deploy VPS e validacao visual real no dominio.
+
+## Checkpoint visual pos-deploy - filtros e proporcoes AdminLTE - 2026-04-28
+
+- Problemas corrigidos apos validacao visual real:
+  - KPIs do dashboard ficavam comprimidos e desproporcionais.
+  - Painel lateral de filtros estourava horizontalmente.
+  - Cabecalho `Filtros globais` vazava dentro do card.
+  - Resumo/chips dos filtros nao respeitava largura da lateral.
+- Commits relevantes:
+  - `8a7bdb9` - `fix: normalize AdminLTE report layout proportions`
+  - `3eaa85d` - `fix: prevent report filter sidebar overflow`
+  - `7cc6729` - `fix: contain report filter header overflow`
+- Arquivos principais:
+  - `sync-admin/app/static/css/app.css`
+  - `sync-admin/app/templates/partials/report_dashboard_content.html`
+- Validacao local:
+  - `py -3 -m compileall sync-admin\app` OK.
+- Deploy VPS:
+  - branch `codex/restore-backend-reporting-contract`;
+  - VPS em `7cc6729`;
+  - `integrado-frontend` healthy;
+  - `integrado-nginx` healthy;
+  - `https://movisystecnologia.com.br/healthz` retornou `ok`.
+- Estado para retomada:
+  - producao esta atualizada com o ultimo hotfix visual;
+  - proximo passo e validar visual no navegador e consolidar merge em `main`;
+  - depois do merge, VPS deve voltar a seguir `main` para evitar drift.

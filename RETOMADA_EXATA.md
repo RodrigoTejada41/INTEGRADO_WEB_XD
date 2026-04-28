@@ -601,3 +601,52 @@ Este arquivo e o ponto de entrada para retomar o projeto sem redescobrir context
   - Resultado: `14 passed`
 - `py -3 -m pytest -q`
   - Resultado: `33 passed, 1 skipped`
+
+## Checkpoint visual AdminLTE em producao - 2026-04-28
+
+### Contexto
+- O painel de relatorios foi padronizado com AdminLTE, mas a validacao visual real mostrou problemas de proporcao:
+  - KPIs estreitos/verticais;
+  - filtros laterais com overflow horizontal;
+  - cabecalho `Filtros globais` e resumo de chips estourando a largura do card.
+
+### Correcoes aplicadas
+- `fix: normalize AdminLTE report layout proportions`
+  - Commit: `8a7bdb9`
+  - Corrigiu proporcao dos KPIs e conflitos entre grid proprio e `.row` do AdminLTE.
+- `fix: prevent report filter sidebar overflow`
+  - Commit: `3eaa85d`
+  - Corrigiu overflow horizontal do painel lateral de filtros.
+  - Ajustou inputs/selects, grid compacto e chips verticais.
+- `fix: contain report filter header overflow`
+  - Commit: `7cc6729`
+  - Corrigiu estouro do cabecalho `Filtros globais`.
+  - Isolou classe `bi-filter-head`.
+  - Ajustou `card-title`, descricao e chips de resumo com reticencias.
+
+### Arquivos principais
+- `sync-admin/app/static/css/app.css`
+- `sync-admin/app/templates/partials/report_dashboard_content.html`
+
+### Validacao
+- `py -3 -m compileall sync-admin\app`
+  - OK
+- Deploy VPS aplicado na branch:
+  - `codex/restore-backend-reporting-contract`
+- VPS atualizada para:
+  - `7cc6729`
+- Containers validados:
+  - `integrado-frontend` healthy
+  - `integrado-nginx` healthy
+- Smoke externo:
+  - `https://movisystecnologia.com.br/healthz`
+  - Resultado: `ok`
+
+### Estado atual para retomada
+- Workspace local estava limpo antes deste checkpoint documental.
+- Producao esta alinhada com a branch `codex/restore-backend-reporting-contract`.
+- O bug visual reportado do bloco `Filtros globais` foi tratado no CSS e publicado.
+- Proxima acao recomendada:
+  - validar visual no navegador em `https://movisystecnologia.com.br/client/dashboard`;
+  - se estiver aprovado, abrir/atualizar PR para merge em `main`;
+  - apos merge, manter VPS seguindo `main`.

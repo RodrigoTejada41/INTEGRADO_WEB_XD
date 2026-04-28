@@ -721,3 +721,58 @@ git push -u origin codex/restore-backend-reporting-contract
   - `/client/dashboard`
   - `/client/reports`
   - `/settings`
+
+## 21) Ajustes visuais AdminLTE pos-deploy - 2026-04-28
+
+### 21.1 Problema
+
+- Apos deploy e validacao visual real, a tela de relatorios apresentou problemas de layout:
+  - cards de KPI ficavam comprimidos;
+  - painel lateral de filtros estourava horizontalmente;
+  - cabecalho `Filtros globais` vazava dentro do card;
+  - chips de resumo dos filtros nao respeitavam a largura da lateral.
+
+### 21.2 Entregue
+
+- Corrigida proporcao dos KPIs no layout AdminLTE.
+- Corrigido overflow do painel lateral de filtros.
+- Criada classe visual dedicada:
+  - `bi-filter-head`
+- Cabecalho do filtro agora respeita largura, quebra/encurta texto e nao vaza.
+- Chips de resumo dos filtros passaram a usar estrutura:
+  - `label` em `<em>`
+  - valor em `<strong>`
+- Valores longos usam reticencias em vez de quebrar o layout.
+
+### 21.3 Commits publicados
+
+- `8a7bdb9` - `fix: normalize AdminLTE report layout proportions`
+- `3eaa85d` - `fix: prevent report filter sidebar overflow`
+- `7cc6729` - `fix: contain report filter header overflow`
+
+### 21.4 Deploy
+
+- Branch publicada:
+  - `codex/restore-backend-reporting-contract`
+- VPS atualizada para:
+  - `7cc6729`
+- Build/recreate aplicado no container:
+  - `frontend`
+- Nginx mantido ativo e saudavel.
+- Health externo:
+  - `https://movisystecnologia.com.br/healthz`
+  - Resultado: `ok`
+
+### 21.5 Validacao
+
+- `py -3 -m compileall sync-admin\app`
+  - OK
+- `frontend` healthy na VPS.
+- `nginx` healthy na VPS.
+- `git status --short` da VPS sem sujeira apos deploy.
+
+### 21.6 Proximo passo operacional
+
+- Validar visual final no navegador.
+- Se aprovado, consolidar PR/merge em `main`.
+- Depois do merge, atualizar VPS para seguir `main` e evitar drift entre producao e branch de trabalho.

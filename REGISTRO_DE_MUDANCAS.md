@@ -93,6 +93,18 @@
   - Criado partial reutilizável `partials/adminlte_components.html`.
   - Filtro de categoria agora filtra no backend por produto/família mantendo `empresa_id`.
   - Validação completa: `py -3 -m pytest -q` com `33 passed, 1 skipped`.
+- Ajustes visuais AdminLTE pós-deploy em 2026-04-28:
+  - Corrigida proporção dos KPIs do dashboard de relatórios.
+  - Corrigido overflow horizontal do painel lateral de filtros.
+  - Corrigido estouro do cabeçalho `Filtros globais`.
+  - Chips de filtros agora respeitam largura e usam reticências para valores longos.
+  - Commits publicados:
+    - `8a7bdb9` - `fix: normalize AdminLTE report layout proportions`
+    - `3eaa85d` - `fix: prevent report filter sidebar overflow`
+    - `7cc6729` - `fix: contain report filter header overflow`
+  - Deploy VPS aplicado na branch `codex/restore-backend-reporting-contract`.
+  - VPS validada no commit `7cc6729`.
+  - Health externo validado em `https://movisystecnologia.com.br/healthz` com retorno `ok`.
 
 ### Planejado
 - Multiempresa completa com isolamento por empresa, filial e terminal.
