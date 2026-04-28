@@ -70,7 +70,7 @@
 - Modernização BI do painel de relatórios em 2026-04-28:
   - Painel de relatórios ganhou layout executivo com KPIs, filtros globais, gráficos, comparativo, status da API local e tabela detalhada.
   - Tema claro/escuro, busca e ordenação local foram adicionados.
-  - Endpoints JSON `/api/reports/*` foram criados para atualização automática e futura migração frontend.
+  - Endpoints JSON `/reports/api/*` foram criados para atualização automática em produção; aliases `/api/reports/*` ficam preservados para ambiente local.
   - Regra de janela máxima de 14 meses foi aplicada no resolver de período.
   - Validação completa: `py -3 -m pytest -q` com `29 passed, 1 skipped`.
 

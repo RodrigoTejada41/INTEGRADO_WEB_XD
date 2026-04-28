@@ -402,6 +402,16 @@ Este arquivo e o ponto de entrada para retomar o projeto sem redescobrir context
   - ultima sincronizacao;
   - status da API local.
 - Endpoints JSON adicionados no sync-admin:
+  - caminho publico usado pela UI/Nginx:
+    - `GET /reports/api/dashboard`
+    - `GET /reports/api/kpis`
+    - `GET /reports/api/charts`
+    - `GET /reports/api/table`
+    - `GET /reports/api/sync-status`
+    - `GET /reports/api/export/pdf`
+    - `GET /reports/api/export/excel`
+    - `GET /reports/api/export/csv`
+  - aliases locais preservados:
   - `GET /api/reports/dashboard`
   - `GET /api/reports/kpis`
   - `GET /api/reports/charts`

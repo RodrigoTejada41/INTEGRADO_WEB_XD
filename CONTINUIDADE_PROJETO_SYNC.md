@@ -540,6 +540,15 @@ git push -u origin codex/restore-backend-reporting-contract
   - ultima sincronizacao recebida;
   - status da API local conectada.
 - Endpoints JSON:
+  - `/reports/api/dashboard`
+  - `/reports/api/kpis`
+  - `/reports/api/charts`
+  - `/reports/api/table`
+  - `/reports/api/sync-status`
+  - `/reports/api/export/pdf`
+  - `/reports/api/export/excel`
+  - `/reports/api/export/csv`
+- Aliases locais mantidos:
   - `/api/reports/dashboard`
   - `/api/reports/kpis`
   - `/api/reports/charts`

@@ -241,6 +241,15 @@ Na retomada canonica mais recente, o backlog funcional estava concluido ate `P18
   - tema claro/escuro;
   - responsividade desktop/tablet/celular.
 - Endpoints JSON adicionados:
+  - `/reports/api/dashboard`
+  - `/reports/api/kpis`
+  - `/reports/api/charts`
+  - `/reports/api/table`
+  - `/reports/api/sync-status`
+  - `/reports/api/export/pdf`
+  - `/reports/api/export/excel`
+  - `/reports/api/export/csv`
+- Aliases locais preservados:
   - `/api/reports/dashboard`
   - `/api/reports/kpis`
   - `/api/reports/charts`

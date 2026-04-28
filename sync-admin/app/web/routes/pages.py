@@ -1560,7 +1560,7 @@ def reports_page(
             'selected_empresa_id': selected_empresa_id,
             'api_endpoints': _report_api_params(
                 request=request,
-                base_path='/api/reports',
+                base_path='/reports/api',
                 empresa_id=selected_empresa_id,
             ),
             **payload,
@@ -1726,7 +1726,7 @@ def client_reports_page(
             'is_admin_client_preview': current_user.role == 'admin',
             'api_endpoints': _report_api_params(
                 request=request,
-                base_path='/api/reports',
+                base_path='/reports/api',
                 empresa_id=scope.empresa_id,
             ),
             'allowed_branch_codes': scope.allowed_branch_codes,
@@ -1846,6 +1846,7 @@ def _extract_report_api_payload(
     )
 
 
+@router.get('/reports/api/dashboard')
 @router.get('/api/reports/dashboard')
 def api_reports_dashboard(
     empresa_id: str | None = None,
@@ -1883,6 +1884,7 @@ def api_reports_dashboard(
     )
 
 
+@router.get('/reports/api/kpis')
 @router.get('/api/reports/kpis')
 def api_reports_kpis(
     empresa_id: str | None = None,
@@ -1911,6 +1913,7 @@ def api_reports_kpis(
     return {'items': payload['kpi_cards'], 'sync_status': payload['sync_status']}
 
 
+@router.get('/reports/api/charts')
 @router.get('/api/reports/charts')
 def api_reports_charts(
     empresa_id: str | None = None,
@@ -1945,6 +1948,7 @@ def api_reports_charts(
     }
 
 
+@router.get('/reports/api/table')
 @router.get('/api/reports/table')
 def api_reports_table(
     empresa_id: str | None = None,
@@ -1975,6 +1979,7 @@ def api_reports_table(
     return {'items': payload['recent_items'], 'limit': payload['recent_limit']}
 
 
+@router.get('/reports/api/sync-status')
 @router.get('/api/reports/sync-status')
 def api_reports_sync_status(
     empresa_id: str | None = None,
@@ -1993,6 +1998,7 @@ def api_reports_sync_status(
     return _build_sync_status(resolved_empresa_id) | {'empresa_id': resolved_empresa_id}
 
 
+@router.get('/reports/api/export/csv')
 @router.get('/api/reports/export/csv')
 @router.get('/reports/export.csv')
 def export_reports_csv(
@@ -2027,6 +2033,7 @@ def export_reports_csv(
     )
 
 
+@router.get('/reports/api/export/excel')
 @router.get('/api/reports/export/excel')
 @router.get('/reports/export.xlsx')
 def export_reports_xlsx(
@@ -2067,6 +2074,7 @@ def export_reports_xlsx(
     )
 
 
+@router.get('/reports/api/export/pdf')
 @router.get('/api/reports/export/pdf')
 @router.get('/reports/export.pdf')
 def export_reports_pdf(
