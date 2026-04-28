@@ -57,6 +57,12 @@ cd /d %~dp0
 @'
 @echo off
 cd /d %~dp0
+".\.venv\Scripts\python.exe" -m agent_local.pairing_ui
+'@ | Set-Content -Path "Abrir_Painel_Local.cmd" -Encoding ascii
+
+@'
+@echo off
+cd /d %~dp0
 ".\.venv\Scripts\python.exe" -m agent_local.main
 '@ | Set-Content -Path "Iniciar_Agente.cmd" -Encoding ascii
 
@@ -73,6 +79,6 @@ Write-Step "Instalacao concluida."
 Write-Host ""
 Write-Host "Proximos passos:"
 Write-Host "1) Execute: $InstallDir\Definir_Senha_Manual.cmd"
-Write-Host "2) Execute: $InstallDir\Abrir_Vinculacao.cmd"
+Write-Host "2) Execute: $InstallDir\Abrir_Painel_Local.cmd"
 Write-Host "3) Depois execute: $InstallDir\Iniciar_Agente.cmd"
 

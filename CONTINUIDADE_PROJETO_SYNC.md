@@ -776,3 +776,69 @@ git push -u origin codex/restore-backend-reporting-contract
 - Validar visual final no navegador.
 - Se aprovado, consolidar PR/merge em `main`.
 - Depois do merge, atualizar VPS para seguir `main` e evitar drift entre producao e branch de trabalho.
+
+## 22) API Local comercial - configuracao de banco por formulario - 2026-04-28
+
+### 22.1 Problema
+
+- O agente local ja existia, mas a configuracao do banco ainda dependia de `.env` tecnico:
+  - `AGENT_MARIADB_URL=mysql+pymysql://...`
+- Para uso comercial, o cliente deve informar apenas:
+  - tipo do banco;
+  - host;
+  - porta;
+  - banco;
+  - usuario;
+  - senha.
+
+### 22.2 Entregue
+
+- Criado modulo:
+  - `agent_local/config/database_config.py`
+- Adicionado builder seguro de URL MariaDB com escape de caracteres especiais.
+- Adicionado parser para carregar configuracao existente do `.env` no painel.
+- Painel local virou `MoviSync - Painel Local`.
+- Nova aba `Banco Local`:
+  - `Tipo do banco`;
+  - `Host/IP`;
+  - `Porta`;
+  - `Nome do banco`;
+  - `Usuario`;
+  - `Senha`;
+  - `Usar SSL no banco`;
+  - `Intervalo de sincronizacao`;
+  - `Tamanho do lote`;
+  - `Arquivo .env`.
+- Botoes:
+  - `Testar banco`;
+  - `Salvar banco`.
+- Instalador agora cria:
+  - `Abrir_Painel_Local.cmd`
+- Atalho antigo preservado:
+  - `Abrir_Vinculacao.cmd`
+
+### 22.3 Seguranca
+
+- Senha do banco permanece na maquina local do cliente.
+- API web nao recebe IP interno, usuario ou senha do banco.
+- O painel salva apenas no `.env` local do agente.
+- A URL MariaDB e montada pelo sistema, evitando erro manual de encoding.
+
+### 22.4 Validacao
+
+- `py -3 -m compileall agent_local`
+  - OK
+- `py -3 -m pytest tests\test_agent_local_database_config.py tests\test_agent_pairing_service.py -q`
+  - Resultado: `3 passed`
+- `py -3 -m pytest -q`
+  - Resultado: `35 passed, 1 skipped`
+- Smoke do instalador:
+  - release gerada em `output/client-agent-releases/local-panel-smoke`
+
+### 22.5 Proximo passo operacional
+
+- Commitar e publicar.
+- Opcional para distribuicao real:
+  - gerar release versionada oficial em `infra/client-agent/releases/vYYYY-MM-DD_HHMM`;
+  - testar instalacao em uma VM Windows limpa;
+  - adicionar execucao como servico Windows.

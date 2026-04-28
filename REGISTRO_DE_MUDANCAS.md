@@ -105,6 +105,15 @@
   - Deploy VPS aplicado na branch `codex/restore-backend-reporting-contract`.
   - VPS validada no commit `7cc6729`.
   - Health externo validado em `https://movisystecnologia.com.br/healthz` com retorno `ok`.
+- Evolução da API Local em 2026-04-28:
+  - Painel local renomeado para `MoviSync - Painel Local`.
+  - Criada aba `Banco Local` para configurar MariaDB por formulário.
+  - Cliente informa host, porta, banco, usuário, senha, SSL, intervalo e lote sem editar JSON.
+  - Criado serviço `agent_local/config/database_config.py` para montar URL MariaDB com encoding seguro.
+  - Adicionado teste real de conexão MariaDB pelo painel local.
+  - Instalador passa a criar `Abrir_Painel_Local.cmd`, mantendo `Abrir_Vinculacao.cmd`.
+  - Validação completa: `py -3 -m pytest -q` com `35 passed, 1 skipped`.
+  - Smoke de pacote instalador gerado em `output/client-agent-releases/local-panel-smoke`.
 
 ### Planejado
 - Multiempresa completa com isolamento por empresa, filial e terminal.

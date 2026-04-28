@@ -15,3 +15,10 @@
 powershell -ExecutionPolicy Bypass -File .\infra\client-agent\build-release.ps1
 ```
 
+## Proxima release
+
+- Painel local renomeado para `MoviSync - Painel Local`.
+- Nova aba `Banco Local` para configurar MariaDB por formulario.
+- Teste real de conexao MariaDB antes de iniciar sincronizacao.
+- Atalho novo `Abrir_Painel_Local.cmd`, mantendo compatibilidade com `Abrir_Vinculacao.cmd`.
+
