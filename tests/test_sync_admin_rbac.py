@@ -6,6 +6,8 @@ import io
 import zipfile
 from pathlib import Path
 
+ROOT = Path(__file__).resolve().parents[1]
+
 
 def _ensure_sync_admin_path() -> None:
     sync_admin_root = Path("sync-admin").resolve()
@@ -247,3 +249,56 @@ def test_report_csv_and_excel_are_client_readable() -> None:
     assert "Total faturado" in first_sheet
     assert "Pagamento" in sales_sheet
     assert "Familia" in sales_sheet
+
+
+def test_report_dashboard_uses_modern_bi_layout() -> None:
+    template = (
+        ROOT
+        / "sync-admin"
+        / "app"
+        / "templates"
+        / "partials"
+        / "report_dashboard_content.html"
+    ).read_text(encoding="utf-8")
+    script = (ROOT / "sync-admin" / "app" / "static" / "js" / "reports.js").read_text(
+        encoding="utf-8"
+    )
+
+    assert "Dashboard de Performance" in template
+    assert "bi-workspace-grid" in template
+    assert "bi-filter-rail" in template
+    assert "Evolucao de vendas no tempo" in template
+    assert "Distribuicao por categoria" in template
+    assert "Ranking executivo" in template
+    assert "data-table-pagination" in template
+    assert "replaceDashboardFrom" in script
+    assert "event.preventDefault()" in script
+
+
+def test_sync_admin_uses_adminlte_shell_globally() -> None:
+    base = (ROOT / "sync-admin" / "app" / "templates" / "base.html").read_text(
+        encoding="utf-8"
+    )
+    login = (ROOT / "sync-admin" / "app" / "templates" / "login.html").read_text(
+        encoding="utf-8"
+    )
+    components = (
+        ROOT
+        / "sync-admin"
+        / "app"
+        / "templates"
+        / "partials"
+        / "adminlte_components.html"
+    ).read_text(encoding="utf-8")
+
+    assert "adminlte.min.css" in base
+    assert "main-sidebar" in base
+    assert "main-header navbar" in base
+    assert "content-wrapper" in base
+    assert "content-header" in base
+    assert "main-footer" in base
+    assert "nav-sidebar" in base
+    assert "login-page" in login
+    assert "card-outline card-primary" in login
+    assert "macro small_box" in components
+    assert "macro badge_status" in components

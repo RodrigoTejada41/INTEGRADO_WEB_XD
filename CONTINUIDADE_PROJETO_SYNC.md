@@ -677,3 +677,47 @@ git push -u origin codex/restore-backend-reporting-contract
 - Push da branch.
 - Deploy na VPS.
 - Validar `https://movisystecnologia.com.br/client/dashboard?empresa_id=12345678000199` sem 404 do Nginx.
+
+## 20) Padronizacao AdminLTE global - 2026-04-28
+
+### 20.1 Objetivo
+
+- Tornar o AdminLTE o template visual oficial do `sync-admin`.
+- Remover a sensacao de layout cru/formulario tecnico nas telas internas.
+- Manter endpoints, permissoes e isolamento multiempresa fora da camada visual.
+
+### 20.2 Entregue
+
+- `base.html` virou shell AdminLTE global com sidebar, navbar, content wrapper, breadcrumb e footer.
+- `login.html` passou a usar `login-page`, `login-box` e `card-outline`.
+- Menu lateral recebeu entradas para dashboard, relatorios, empresas, usuarios, APIs conectadas, sincronizacoes, logs, configuracoes, backup e sair.
+- Relatorios agora usam AdminLTE no dashboard BI:
+  - `small-box` para KPIs;
+  - `card card-outline` para graficos;
+  - filtros compactos em card lateral;
+  - tabela responsiva com busca, ordenacao e paginacao local.
+- Criado partial de componentes reutilizaveis:
+  - `sync-admin/app/templates/partials/adminlte_components.html`
+- Filtro `Categoria` deixou de ser apenas visual e passou a filtrar no backend por produto/familia com `empresa_id`.
+
+### 20.3 Validacao
+
+- `py -3 -m compileall sync-admin/app backend`
+  - OK
+- `py -3 -m pytest tests/test_sync_admin_rbac.py tests/test_sync_upsert.py tests/test_sync_admin_sync_cockpit.py -q`
+  - Resultado: `14 passed`
+- `py -3 -m pytest -q`
+  - Resultado: `33 passed, 1 skipped`
+
+### 20.4 Proximo passo operacional
+
+- Commitar a padronizacao AdminLTE.
+- Push da branch.
+- Deploy VPS.
+- Validar visual real no navegador:
+  - `/login`
+  - `/dashboard`
+  - `/connected-apis`
+  - `/client/dashboard`
+  - `/client/reports`
+  - `/settings`

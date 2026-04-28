@@ -86,6 +86,13 @@
   - Nginx agora roteia `/client/dashboard` para o `sync-admin`.
   - Corrige `404 Not Found nginx/1.27.5` ao abrir o portal cliente por link absoluto.
   - Validação completa: `py -3 -m pytest -q` com `31 passed, 1 skipped`.
+- Padronização AdminLTE global em 2026-04-28:
+  - AdminLTE definido como base visual oficial do `sync-admin`.
+  - Login, shell autenticado, menu lateral, navbar, content wrapper, breadcrumbs e footer foram padronizados.
+  - Relatórios usam `small-box`, `card card-outline`, filtros compactos, gráficos Chart.js, ranking e tabela responsiva.
+  - Criado partial reutilizável `partials/adminlte_components.html`.
+  - Filtro de categoria agora filtra no backend por produto/família mantendo `empresa_id`.
+  - Validação completa: `py -3 -m pytest -q` com `33 passed, 1 skipped`.
 
 ### Planejado
 - Multiempresa completa com isolamento por empresa, filial e terminal.

@@ -543,3 +543,61 @@ Este arquivo e o ponto de entrada para retomar o projeto sem redescobrir context
   - Resultado: `8 passed`
 - `py -3 -m pytest -q`
   - Resultado: `31 passed, 1 skipped`
+
+## Padronizacao visual AdminLTE - 2026-04-28
+
+### Decisao tecnica
+- AdminLTE passa a ser a base visual oficial do `sync-admin`.
+- Todas as telas autenticadas usam:
+  - `main-sidebar`;
+  - `main-header navbar`;
+  - `content-wrapper`;
+  - `content-header`;
+  - breadcrumbs;
+  - `main-footer`;
+  - cards, small-boxes, badges, alerts e tabelas no padrao AdminLTE.
+
+### Entregue
+- Login migrado para layout AdminLTE (`login-page`, `login-box`, `card-outline`).
+- Menu lateral padronizado com:
+  - Dashboard;
+  - Relatorios;
+  - Empresas;
+  - Usuarios;
+  - APIs conectadas;
+  - Sincronizacoes;
+  - Logs;
+  - Configuracoes;
+  - Backup;
+  - Sair.
+- Relatorios migrados para BI com AdminLTE:
+  - KPIs em `small-box`;
+  - graficos em `card card-outline`;
+  - filtros compactos em card lateral;
+  - ranking executivo;
+  - tabela responsiva com busca, ordenacao e paginacao local;
+  - exportacao CSV, Excel e PDF preservada.
+- Criado partial reutilizavel:
+  - `sync-admin/app/templates/partials/adminlte_components.html`.
+- Filtro de categoria agora tambem e aplicado no backend por produto/familia, sempre com `empresa_id`.
+
+### Arquivos principais
+- `sync-admin/app/templates/base.html`
+- `sync-admin/app/templates/login.html`
+- `sync-admin/app/templates/partials/report_dashboard_content.html`
+- `sync-admin/app/templates/partials/adminlte_components.html`
+- `sync-admin/app/static/css/app.css`
+- `sync-admin/app/static/js/reports.js`
+- `backend/repositories/venda_repository.py`
+- `backend/services/tenant_report_service.py`
+- `backend/api/routes/tenant_admin.py`
+- `sync-admin/app/services/control_service.py`
+- `sync-admin/app/web/routes/pages.py`
+
+### Validacao
+- `py -3 -m compileall sync-admin/app backend`
+  - OK
+- `py -3 -m pytest tests/test_sync_admin_rbac.py tests/test_sync_upsert.py tests/test_sync_admin_sync_cockpit.py -q`
+  - Resultado: `14 passed`
+- `py -3 -m pytest -q`
+  - Resultado: `33 passed, 1 skipped`

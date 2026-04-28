@@ -42,6 +42,7 @@ class TenantReportService:
         end_date: date | None = None,
         branch_code: str | None = None,
         terminal_code: str | None = None,
+        category: str | None = None,
         start_time: time | None = None,
         end_time: time | None = None,
     ) -> dict[str, object]:
@@ -54,6 +55,7 @@ class TenantReportService:
             end_date=end_date,
             branch_code=branch_code,
             terminal_code=terminal_code,
+            category=category,
             start_time=start_time,
             end_time=end_time,
         )
@@ -66,6 +68,7 @@ class TenantReportService:
         end_date: date | None = None,
         branch_code: str | None = None,
         terminal_code: str | None = None,
+        category: str | None = None,
         start_time: time | None = None,
         end_time: time | None = None,
     ) -> list[dict[str, object]]:
@@ -78,6 +81,7 @@ class TenantReportService:
             end_date=end_date,
             branch_code=branch_code,
             terminal_code=terminal_code,
+            category=category,
             start_time=start_time,
             end_time=end_time,
         )
@@ -91,6 +95,7 @@ class TenantReportService:
         end_date: date | None = None,
         branch_code: str | None = None,
         terminal_code: str | None = None,
+        category: str | None = None,
         start_time: time | None = None,
         end_time: time | None = None,
     ) -> list[dict[str, object]]:
@@ -104,6 +109,7 @@ class TenantReportService:
             end_date=end_date,
             branch_code=branch_code,
             terminal_code=terminal_code,
+            category=category,
             start_time=start_time,
             end_time=end_time,
         )
@@ -118,6 +124,7 @@ class TenantReportService:
         end_date: date | None = None,
         branch_code: str | None = None,
         terminal_code: str | None = None,
+        category: str | None = None,
         start_time: time | None = None,
         end_time: time | None = None,
     ) -> list[dict[str, object]]:
@@ -137,6 +144,7 @@ class TenantReportService:
             end_date=end_date,
             branch_code=branch_code,
             terminal_code=terminal_code,
+            category=category,
             start_time=start_time,
             end_time=end_time,
         )
@@ -150,6 +158,7 @@ class TenantReportService:
         end_date: date | None = None,
         branch_code: str | None = None,
         terminal_code: str | None = None,
+        category: str | None = None,
         start_time: time | None = None,
         end_time: time | None = None,
     ):
@@ -163,6 +172,7 @@ class TenantReportService:
             end_date=end_date,
             branch_code=branch_code,
             terminal_code=terminal_code,
+            category=category,
             start_time=start_time,
             end_time=end_time,
         )

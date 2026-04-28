@@ -304,3 +304,22 @@ Na retomada canonica mais recente, o backlog funcional estava concluido ate `P18
   - `py -3 -m pytest -q` com `31 passed, 1 skipped`.
 - Proximo passo:
   - commit, push, deploy VPS e smoke real no dominio.
+
+## Atualizacao visual - AdminLTE global - 2026-04-28
+
+- Decisao:
+  - AdminLTE passa a ser a base visual oficial do `sync-admin`.
+- Entrega:
+  - shell autenticado global com sidebar, navbar, content wrapper, breadcrumb e footer;
+  - login em layout AdminLTE;
+  - menu lateral com dashboard, relatorios, empresas, usuarios, APIs conectadas, sincronizacoes, logs, configuracoes, backup e sair;
+  - relatorios em dashboard BI com `small-box`, cards AdminLTE, filtros compactos, graficos, ranking, tabela responsiva e exportacoes;
+  - partial reutilizavel `sync-admin/app/templates/partials/adminlte_components.html`.
+- Backend:
+  - filtro `Categoria` agora chega ate API/repository e filtra produto/familia com `empresa_id`.
+- Validacao:
+  - `py -3 -m compileall sync-admin/app backend` OK.
+  - `py -3 -m pytest tests/test_sync_admin_rbac.py tests/test_sync_upsert.py tests/test_sync_admin_sync_cockpit.py -q` com `14 passed`.
+  - `py -3 -m pytest -q` com `33 passed, 1 skipped`.
+- Proximo passo:
+  - commit, push, deploy VPS e validacao visual real no dominio.
