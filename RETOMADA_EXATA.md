@@ -1,6 +1,6 @@
 # RETOMADA EXATA - INTEGRADO_WEB_XD
 
-Data de atualizacao: 2026-04-27
+Data de atualizacao: 2026-04-28
 
 ## Objetivo desta nota
 Este arquivo e o ponto de entrada para retomar o projeto sem redescobrir contexto.
@@ -214,3 +214,119 @@ Este arquivo e o ponto de entrada para retomar o projeto sem redescobrir context
 - Regra operacional:
   - nao alinhar VPS com `main` sem validar antes se as funcionalidades existentes em producao estao versionadas;
   - qualquer hotfix manual em VPS deve virar commit/PR antes de novo reset/redeploy.
+
+## Evolucao de relatorios cliente/admin - 2026-04-27
+- Decisao de produto:
+  - relatorios saem da navegacao principal do admin;
+  - admin mantem `/reports` apenas como tela tecnica de teste/validacao;
+  - uso operacional principal fica no portal cliente em `/client/reports`.
+- Backend:
+  - venda canonica agora aceita dimensoes opcionais:
+    - `tipo_venda`
+    - `forma_pagamento`
+    - `familia_produto`
+  - adicionada migracao `v005_sales_report_dimensions`;
+  - relatorios ganharam filtro por horario (`start_time`, `end_time`) usando `data_atualizacao`;
+  - novo endpoint: `/admin/tenants/{empresa_id}/reports/breakdown` com `group_by` em `tipo_venda`, `forma_pagamento` ou `familia_produto`.
+- Painel:
+  - filtros adicionados:
+    - vendas do dia
+    - mensal
+    - trimestral
+    - semestral
+    - anual
+    - datas X a Y
+    - horario X a Y
+  - graficos separados:
+    - serie diaria
+    - top produtos
+    - tipo de venda
+    - forma de pagamento
+    - familia de produto
+- Validacao:
+  - `py -3 -m pytest -q` -> `27 passed, 1 skipped`.
+- Deploy final:
+  - branch em producao: `codex/restore-backend-reporting-contract`;
+  - commit em producao: `fd8fb8b`;
+  - migracao aplicada na VPS: `current_version=5`;
+  - containers saudaveis: `integrado-backend`, `integrado-frontend`, `integrado-nginx`, `integrado-db`;
+  - smoke autenticado na VPS:
+    - `health=200`
+    - `ready=200`
+    - `login=302`
+    - `reports=200`
+    - `connected_apis=200`
+- Pendente critico:
+  - abrir/mergear PR da branch `codex/restore-backend-reporting-contract` em `main`;
+  - nao fazer deploy automatico de `main` antes do merge, para nao perder a evolucao dos relatorios.
+
+## Hotfix portal cliente para admin - 2026-04-28
+
+### Problema reportado
+- Ao acessar o portal cliente autenticado como admin, a aplicacao retornava:
+  - `{"detail":"Acesso restrito ao portal do cliente."}`
+
+### Decisao tecnica
+- Admin deve conseguir abrir todos os portais de cliente em modo suporte/validacao.
+- Usuario `client` continua restrito ao proprio `empresa_id` e ao proprio escopo de filiais.
+- Admin precisa resolver o tenant pelo parametro `empresa_id`, mantendo o isolamento multi-tenant explicito.
+
+### Correcao aplicada
+- Novo guard web:
+  - `require_client_portal_access`
+  - aceita `client` com `empresa_id`;
+  - aceita `admin`;
+  - rejeita demais perfis.
+- Rotas ajustadas para admin preview:
+  - `/client/dashboard?empresa_id=<empresa_id>`
+  - `/client/reports?empresa_id=<empresa_id>`
+  - `/client/reports/export.csv?empresa_id=<empresa_id>`
+  - `/client/reports/export.xlsx?empresa_id=<empresa_id>`
+  - `/client/reports/export.pdf?empresa_id=<empresa_id>`
+- Templates do portal cliente agora exibem aviso de visualizacao administrativa quando o acesso for feito por admin.
+
+### Arquivos principais
+- `sync-admin/app/web/deps.py`
+- `sync-admin/app/web/routes/pages.py`
+- `sync-admin/app/templates/client_dashboard.html`
+- `sync-admin/app/templates/client_reports.html`
+- `tests/test_sync_admin_rbac.py`
+
+### Validacao local
+- `py -3 -m pytest tests/test_sync_admin_rbac.py -q`
+  - Resultado: `2 passed`
+- `py -3 -m pytest -q`
+  - Resultado: `28 passed, 1 skipped`
+
+### Deploy VPS
+- Branch em producao:
+  - `codex/restore-backend-reporting-contract`
+- Commit em producao:
+  - `c258d71` - `fix: allow admin client portal preview`
+- Deploy executado com sucesso via:
+  - `bash infra/scripts/deploy-prod.sh`
+- Containers validados como saudaveis:
+  - `integrado-backend`
+  - `integrado-frontend`
+  - `integrado-nginx`
+  - `integrado-db`
+
+### Links operacionais
+- Portal cliente como admin:
+  - `https://movisystecnologia.com.br/admin/client/dashboard?empresa_id=12345678000199`
+- Relatorios cliente como admin:
+  - `https://movisystecnologia.com.br/admin/client/reports?empresa_id=12345678000199`
+
+### Estado Git
+- Branch local atual:
+  - `codex/restore-backend-reporting-contract`
+- Ultimo commit:
+  - `c258d71` - `fix: allow admin client portal preview`
+- Push ja executado para GitHub.
+- `gh` local esta sem autenticacao:
+  - `gh auth status` -> nao autenticado.
+
+### Pendente obrigatorio
+- Reautenticar GitHub CLI ou usar navegador para abrir/atualizar PR.
+- Mergear `codex/restore-backend-reporting-contract` em `main`.
+- Depois do merge, voltar a VPS para seguir `main` e validar que nao houve downgrade.

@@ -10,7 +10,7 @@
       data: {
         labels,
         datasets: [{
-          label: id === 'reportTopChart' ? 'Valor por produto' : 'Vendas por dia',
+          label: canvas.dataset.label || 'Valor de vendas',
           data: values,
           borderColor: color,
           backgroundColor: `${color}33`,
@@ -24,4 +24,7 @@
 
   renderChart('reportDailyChart', 'line', '#0f766e');
   renderChart('reportTopChart', 'bar', '#b45309');
+  renderChart('reportTypeChart', 'doughnut', '#0369a1');
+  renderChart('reportPaymentChart', 'doughnut', '#15803d');
+  renderChart('reportFamilyChart', 'bar', '#7c2d12');
 })();

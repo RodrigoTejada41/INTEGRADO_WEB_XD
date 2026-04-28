@@ -9,6 +9,9 @@ class VendaPayload(BaseModel):
     uuid: str = Field(min_length=8, max_length=128)
     branch_code: str | None = Field(default=None, max_length=50)
     terminal_code: str | None = Field(default=None, max_length=50)
+    tipo_venda: str | None = Field(default=None, max_length=80)
+    forma_pagamento: str | None = Field(default=None, max_length=120)
+    familia_produto: str | None = Field(default=None, max_length=160)
     produto: str = Field(min_length=1, max_length=255)
     valor: Decimal = Field(gt=Decimal("0"))
     data: date

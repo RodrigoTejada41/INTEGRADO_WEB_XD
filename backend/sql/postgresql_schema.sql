@@ -57,6 +57,9 @@ CREATE TABLE IF NOT EXISTS vendas (
     produto VARCHAR(255) NOT NULL,
     branch_code VARCHAR(50) NULL,
     terminal_code VARCHAR(50) NULL,
+    tipo_venda VARCHAR(80) NULL,
+    forma_pagamento VARCHAR(120) NULL,
+    familia_produto VARCHAR(160) NULL,
     valor NUMERIC(14,2) NOT NULL,
     data DATE NOT NULL,
     data_atualizacao TIMESTAMPTZ NOT NULL,
@@ -77,11 +80,29 @@ ALTER TABLE vendas
 ALTER TABLE vendas
     ADD COLUMN IF NOT EXISTS terminal_code VARCHAR(50);
 
+ALTER TABLE vendas
+    ADD COLUMN IF NOT EXISTS tipo_venda VARCHAR(80);
+
+ALTER TABLE vendas
+    ADD COLUMN IF NOT EXISTS forma_pagamento VARCHAR(120);
+
+ALTER TABLE vendas
+    ADD COLUMN IF NOT EXISTS familia_produto VARCHAR(160);
+
 CREATE INDEX IF NOT EXISTS ix_vendas_empresa_branch
     ON vendas (empresa_id, branch_code);
 
 CREATE INDEX IF NOT EXISTS ix_vendas_empresa_terminal
     ON vendas (empresa_id, terminal_code);
+
+CREATE INDEX IF NOT EXISTS ix_vendas_empresa_tipo
+    ON vendas (empresa_id, tipo_venda);
+
+CREATE INDEX IF NOT EXISTS ix_vendas_empresa_pagamento
+    ON vendas (empresa_id, forma_pagamento);
+
+CREATE INDEX IF NOT EXISTS ix_vendas_empresa_familia
+    ON vendas (empresa_id, familia_produto);
 
 CREATE TABLE IF NOT EXISTS vendas_historico (
     id BIGSERIAL PRIMARY KEY,
@@ -90,6 +111,9 @@ CREATE TABLE IF NOT EXISTS vendas_historico (
     produto VARCHAR(255) NOT NULL,
     branch_code VARCHAR(50) NULL,
     terminal_code VARCHAR(50) NULL,
+    tipo_venda VARCHAR(80) NULL,
+    forma_pagamento VARCHAR(120) NULL,
+    familia_produto VARCHAR(160) NULL,
     valor NUMERIC(14,2) NOT NULL,
     data DATE NOT NULL,
     data_atualizacao TIMESTAMPTZ NOT NULL,
@@ -107,3 +131,12 @@ ALTER TABLE vendas_historico
 
 ALTER TABLE vendas_historico
     ADD COLUMN IF NOT EXISTS terminal_code VARCHAR(50);
+
+ALTER TABLE vendas_historico
+    ADD COLUMN IF NOT EXISTS tipo_venda VARCHAR(80);
+
+ALTER TABLE vendas_historico
+    ADD COLUMN IF NOT EXISTS forma_pagamento VARCHAR(120);
+
+ALTER TABLE vendas_historico
+    ADD COLUMN IF NOT EXISTS familia_produto VARCHAR(160);

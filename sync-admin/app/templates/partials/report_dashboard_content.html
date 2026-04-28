@@ -10,9 +10,9 @@
     </div>
     <div class="d-flex flex-wrap gap-2 align-items-center">
       <div class="report-company-badge">Empresa {{ report_company_label }}</div>
-      <a class="btn btn-sm btn-outline-secondary" href="{{ export_base_path }}/export.csv?empresa_id={{ selected_empresa_id or '' }}&start_date={{ start_date }}&end_date={{ end_date }}&branch_code={{ branch_code }}&terminal_code={{ terminal_code }}&recent_limit={{ recent_limit }}">CSV</a>
-      <a class="btn btn-sm btn-outline-secondary" href="{{ export_base_path }}/export.xlsx?empresa_id={{ selected_empresa_id or '' }}&start_date={{ start_date }}&end_date={{ end_date }}&branch_code={{ branch_code }}&terminal_code={{ terminal_code }}&top_limit={{ top_limit }}&recent_limit={{ recent_limit }}">XLSX</a>
-      <a class="btn btn-sm btn-outline-secondary" href="{{ export_base_path }}/export.pdf?empresa_id={{ selected_empresa_id or '' }}&start_date={{ start_date }}&end_date={{ end_date }}&branch_code={{ branch_code }}&terminal_code={{ terminal_code }}&top_limit={{ top_limit }}&recent_limit={{ recent_limit }}">PDF</a>
+      <a class="btn btn-sm btn-outline-secondary" href="{{ export_base_path }}/export.csv?empresa_id={{ selected_empresa_id or '' }}&period_preset={{ period_preset }}&start_date={{ start_date }}&end_date={{ end_date }}&start_time={{ start_time }}&end_time={{ end_time }}&branch_code={{ branch_code }}&terminal_code={{ terminal_code }}&recent_limit={{ recent_limit }}">CSV</a>
+      <a class="btn btn-sm btn-outline-secondary" href="{{ export_base_path }}/export.xlsx?empresa_id={{ selected_empresa_id or '' }}&period_preset={{ period_preset }}&start_date={{ start_date }}&end_date={{ end_date }}&start_time={{ start_time }}&end_time={{ end_time }}&branch_code={{ branch_code }}&terminal_code={{ terminal_code }}&top_limit={{ top_limit }}&recent_limit={{ recent_limit }}">XLSX</a>
+      <a class="btn btn-sm btn-outline-secondary" href="{{ export_base_path }}/export.pdf?empresa_id={{ selected_empresa_id or '' }}&period_preset={{ period_preset }}&start_date={{ start_date }}&end_date={{ end_date }}&start_time={{ start_time }}&end_time={{ end_time }}&branch_code={{ branch_code }}&terminal_code={{ terminal_code }}&top_limit={{ top_limit }}&recent_limit={{ recent_limit }}">PDF</a>
     </div>
   </div>
   <div class="d-flex flex-wrap gap-2 mt-3">
@@ -28,12 +28,31 @@
 <form method="get" class="card p-3 mb-4">
   <div class="row g-2 align-items-end">
     <div class="col-md-2">
+      <label class="form-label">Periodo rapido</label>
+      <select class="form-select" name="period_preset">
+        <option value="custom" {% if period_preset == 'custom' %}selected{% endif %}>Datas X a Y</option>
+        <option value="today" {% if period_preset == 'today' %}selected{% endif %}>Vendas do dia</option>
+        <option value="month" {% if period_preset == 'month' %}selected{% endif %}>Mensal</option>
+        <option value="quarter" {% if period_preset == 'quarter' %}selected{% endif %}>Trimestral</option>
+        <option value="semester" {% if period_preset == 'semester' %}selected{% endif %}>Semestral</option>
+        <option value="year" {% if period_preset == 'year' %}selected{% endif %}>Anual</option>
+      </select>
+    </div>
+    <div class="col-md-2">
       <label class="form-label">Data inicial</label>
       <input class="form-control" type="date" name="start_date" value="{{ start_date }}" />
     </div>
     <div class="col-md-2">
       <label class="form-label">Data final</label>
       <input class="form-control" type="date" name="end_date" value="{{ end_date }}" />
+    </div>
+    <div class="col-md-2">
+      <label class="form-label">Hora inicial</label>
+      <input class="form-control" type="time" name="start_time" value="{{ start_time }}" />
+    </div>
+    <div class="col-md-2">
+      <label class="form-label">Hora final</label>
+      <input class="form-control" type="time" name="end_time" value="{{ end_time }}" />
     </div>
     <div class="col-md-2">
       <label class="form-label">Filial</label>
@@ -78,9 +97,67 @@
 </div>
 
 <div class="row g-3 mb-4">
+  <div class="col-md-4">
+    <div class="card p-3">
+      <h6>Vendas por tipo</h6>
+      <div class="chart-sm">
+        <canvas id="reportTypeChart" data-labels='{{ type_chart_labels|safe }}' data-values='{{ type_chart_values|safe }}'></canvas>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="card p-3">
+      <h6>Vendas por pagamento</h6>
+      <div class="chart-sm">
+        <canvas id="reportPaymentChart" data-labels='{{ payment_chart_labels|safe }}' data-values='{{ payment_chart_values|safe }}'></canvas>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="card p-3">
+      <h6>Vendas por familia</h6>
+      <div class="chart-sm">
+        <canvas id="reportFamilyChart" data-labels='{{ family_chart_labels|safe }}' data-values='{{ family_chart_values|safe }}'></canvas>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="row g-3 mb-4">
   <div class="col-md-4"><div class="card p-3 report-stat"><small>Valor total</small><h4>{{ overview.total_sales_value }}</h4><span class="text-muted">Receita acumulada no periodo filtrado.</span></div></div>
   <div class="col-md-4"><div class="card p-3 report-stat"><small>Primeira venda</small><h4>{{ overview.first_sale_date or '-' }}</h4><span class="text-muted">Inicio da janela com movimento.</span></div></div>
   <div class="col-md-4"><div class="card p-3 report-stat"><small>Ultima venda</small><h4>{{ overview.last_sale_date or '-' }}</h4><span class="text-muted">Ultimo evento encontrado no recorte.</span></div></div>
+</div>
+
+<div class="row g-3 mb-4">
+  {% for section in [
+    {'title': 'Por tipo de venda', 'items': type_items},
+    {'title': 'Por forma de pagamento', 'items': payment_items},
+    {'title': 'Por familia do produto', 'items': family_items},
+  ] %}
+  <div class="col-md-4">
+    <div class="card p-3 h-100">
+      <h6>{{ section.title }}</h6>
+      <div class="table-responsive">
+        <table class="table table-sm table-striped align-middle">
+          <thead><tr><th>Grupo</th><th>Registros</th><th>Valor</th></tr></thead>
+          <tbody>
+            {% for item in section['items'] %}
+            <tr>
+              <td>{{ item.label }}</td>
+              <td>{{ item.total_records }}</td>
+              <td>{{ item.total_sales_value }}</td>
+            </tr>
+            {% endfor %}
+            {% if section['items']|length == 0 %}
+            <tr><td colspan="3" class="text-muted">Sem dados no filtro atual.</td></tr>
+            {% endif %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+  {% endfor %}
 </div>
 
 <div class="row g-3 mb-4">
@@ -209,7 +286,7 @@
   </div>
   <div class="table-responsive">
     <table class="table table-sm table-striped align-middle">
-      <thead><tr><th>UUID</th><th>Produto</th><th>Valor</th><th>Data</th><th>Atualizacao</th><th>Filial</th><th>Terminal</th></tr></thead>
+      <thead><tr><th>UUID</th><th>Produto</th><th>Valor</th><th>Data</th><th>Pagamento</th><th>Tipo</th><th>Familia</th><th>Filial</th><th>Terminal</th></tr></thead>
       <tbody>
         {% for item in recent_items %}
         <tr>
@@ -217,13 +294,15 @@
           <td>{{ item.produto }}</td>
           <td>{{ item.valor }}</td>
           <td>{{ item.data }}</td>
-          <td>{{ item.data_atualizacao or '-' }}</td>
+          <td>{{ item.forma_pagamento or '-' }}</td>
+          <td>{{ item.tipo_venda or '-' }}</td>
+          <td>{{ item.familia_produto or '-' }}</td>
           <td>{{ item.branch_code or '-' }}</td>
           <td>{{ item.terminal_code or '-' }}</td>
         </tr>
         {% endfor %}
         {% if recent_items|length == 0 %}
-        <tr><td colspan="7" class="text-muted">Sem vendas recentes para o filtro atual.</td></tr>
+        <tr><td colspan="9" class="text-muted">Sem vendas recentes para o filtro atual.</td></tr>
         {% endif %}
       </tbody>
     </table>

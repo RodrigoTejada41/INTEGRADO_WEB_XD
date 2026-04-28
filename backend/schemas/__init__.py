@@ -18,6 +18,8 @@ from backend.schemas.tenant_reports import (
     TenantRecentSaleResponse,
     TenantRecentSalesResponse,
     TenantReportOverviewResponse,
+    TenantSalesBreakdownItemResponse,
+    TenantSalesBreakdownResponse,
     TenantTopProductResponse,
     TenantTopProductsResponse,
 )
@@ -44,4 +46,6 @@ __all__ = [
     "TenantTopProductsResponse",
     "TenantRecentSaleResponse",
     "TenantRecentSalesResponse",
+    "TenantSalesBreakdownItemResponse",
+    "TenantSalesBreakdownResponse",
 ]

@@ -80,3 +80,14 @@ def require_client_user(user: User = Depends(require_web_user)) -> User:
             detail='Acesso restrito ao portal do cliente.',
         )
     return user
+
+
+def require_client_portal_access(user: User = Depends(require_web_user)) -> User:
+    if user.role == 'client' and user.empresa_id:
+        return user
+    if user.role == 'admin':
+        return user
+    raise HTTPException(
+        status_code=status.HTTP_403_FORBIDDEN,
+        detail='Acesso restrito ao portal do cliente.',
+    )

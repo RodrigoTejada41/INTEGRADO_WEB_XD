@@ -1,7 +1,7 @@
-from datetime import UTC, date, datetime
+from datetime import UTC, date, datetime, time
 from decimal import Decimal
 
-from sqlalchemy import delete, desc, func, insert, select
+from sqlalchemy import Time, cast, delete, desc, func, insert, select
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.dialects.sqlite import insert as sqlite_insert
 from sqlalchemy.orm import Session
@@ -36,6 +36,9 @@ class VendaRepository:
                         "empresa_id": empresa_id,
                         "branch_code": item.get("branch_code"),
                         "terminal_code": item.get("terminal_code"),
+                        "tipo_venda": item.get("tipo_venda"),
+                        "forma_pagamento": item.get("forma_pagamento"),
+                        "familia_produto": item.get("familia_produto"),
                         "produto": item["produto"],
                         "valor": item["valor"],
                         "data": item["data"],
@@ -52,6 +55,9 @@ class VendaRepository:
                     set_={
                         "branch_code": stmt.excluded.branch_code,
                         "terminal_code": stmt.excluded.terminal_code,
+                        "tipo_venda": stmt.excluded.tipo_venda,
+                        "forma_pagamento": stmt.excluded.forma_pagamento,
+                        "familia_produto": stmt.excluded.familia_produto,
                         "produto": stmt.excluded.produto,
                         "valor": stmt.excluded.valor,
                         "data": stmt.excluded.data,
@@ -67,6 +73,9 @@ class VendaRepository:
                     set_={
                         "branch_code": stmt.excluded.branch_code,
                         "terminal_code": stmt.excluded.terminal_code,
+                        "tipo_venda": stmt.excluded.tipo_venda,
+                        "forma_pagamento": stmt.excluded.forma_pagamento,
+                        "familia_produto": stmt.excluded.familia_produto,
                         "produto": stmt.excluded.produto,
                         "valor": stmt.excluded.valor,
                         "data": stmt.excluded.data,
@@ -98,6 +107,9 @@ class VendaRepository:
                     "empresa_id",
                     "branch_code",
                     "terminal_code",
+                    "tipo_venda",
+                    "forma_pagamento",
+                    "familia_produto",
                     "produto",
                     "valor",
                     "data",
@@ -109,6 +121,9 @@ class VendaRepository:
                     Venda.empresa_id,
                     Venda.branch_code,
                     Venda.terminal_code,
+                    Venda.tipo_venda,
+                    Venda.forma_pagamento,
+                    Venda.familia_produto,
                     Venda.produto,
                     Venda.valor,
                     Venda.data,
@@ -130,6 +145,8 @@ class VendaRepository:
         end_date: date | None = None,
         branch_code: str | None = None,
         terminal_code: str | None = None,
+        start_time: time | None = None,
+        end_time: time | None = None,
     ) -> dict[str, object]:
         stmt = select(
             func.count(Venda.id).label("total_records"),
@@ -147,6 +164,8 @@ class VendaRepository:
             end_date=end_date,
             branch_code=branch_code,
             terminal_code=terminal_code,
+            start_time=start_time,
+            end_time=end_time,
         )
         row = self.session.execute(stmt).one()
         return {
@@ -167,6 +186,8 @@ class VendaRepository:
         end_date: date | None = None,
         branch_code: str | None = None,
         terminal_code: str | None = None,
+        start_time: time | None = None,
+        end_time: time | None = None,
     ) -> list[dict[str, object]]:
         stmt = select(
             Venda.data.label("day"),
@@ -180,6 +201,8 @@ class VendaRepository:
             end_date=end_date,
             branch_code=branch_code,
             terminal_code=terminal_code,
+            start_time=start_time,
+            end_time=end_time,
         )
         rows = self.session.execute(stmt).all()
         return [
@@ -200,6 +223,8 @@ class VendaRepository:
         end_date: date | None = None,
         branch_code: str | None = None,
         terminal_code: str | None = None,
+        start_time: time | None = None,
+        end_time: time | None = None,
     ) -> list[dict[str, object]]:
         stmt = (
             select(
@@ -218,11 +243,63 @@ class VendaRepository:
             end_date=end_date,
             branch_code=branch_code,
             terminal_code=terminal_code,
+            start_time=start_time,
+            end_time=end_time,
         )
         rows = self.session.execute(stmt).all()
         return [
             {
                 "produto": row.produto,
+                "total_records": int(row.total_records or 0),
+                "total_sales_value": Decimal(str(row.total_sales_value or 0)),
+            }
+            for row in rows
+        ]
+
+    def report_sales_breakdown(
+        self,
+        *,
+        empresa_id: str,
+        group_by: str,
+        limit: int,
+        start_date: date | None = None,
+        end_date: date | None = None,
+        branch_code: str | None = None,
+        terminal_code: str | None = None,
+        start_time: time | None = None,
+        end_time: time | None = None,
+    ) -> list[dict[str, object]]:
+        group_columns = {
+            "tipo_venda": Venda.tipo_venda,
+            "forma_pagamento": Venda.forma_pagamento,
+            "familia_produto": Venda.familia_produto,
+        }
+        group_column = group_columns[group_by]
+        label = func.coalesce(group_column, "Nao informado")
+        stmt = (
+            select(
+                label.label("label"),
+                func.count(Venda.id).label("total_records"),
+                func.coalesce(func.sum(Venda.valor), 0).label("total_sales_value"),
+            )
+            .group_by(label)
+            .order_by(desc("total_sales_value"), desc("total_records"), label.asc())
+            .limit(limit)
+        )
+        stmt = self._apply_report_filters(
+            stmt,
+            empresa_id=empresa_id,
+            start_date=start_date,
+            end_date=end_date,
+            branch_code=branch_code,
+            terminal_code=terminal_code,
+            start_time=start_time,
+            end_time=end_time,
+        )
+        rows = self.session.execute(stmt).all()
+        return [
+            {
+                "label": row.label,
                 "total_records": int(row.total_records or 0),
                 "total_sales_value": Decimal(str(row.total_sales_value or 0)),
             }
@@ -238,6 +315,8 @@ class VendaRepository:
         end_date: date | None = None,
         branch_code: str | None = None,
         terminal_code: str | None = None,
+        start_time: time | None = None,
+        end_time: time | None = None,
     ) -> list[Venda]:
         stmt = select(Venda).order_by(Venda.data_atualizacao.desc(), Venda.id.desc()).limit(limit)
         stmt = self._apply_report_filters(
@@ -247,6 +326,8 @@ class VendaRepository:
             end_date=end_date,
             branch_code=branch_code,
             terminal_code=terminal_code,
+            start_time=start_time,
+            end_time=end_time,
         )
         return list(self.session.scalars(stmt).all())
 
@@ -287,8 +368,8 @@ class VendaRepository:
     def _chunked(records: list[dict], size: int) -> list[list[dict]]:
         return [records[index : index + size] for index in range(0, len(records), size)]
 
-    @staticmethod
     def _apply_report_filters(
+        self,
         stmt,
         *,
         empresa_id: str,
@@ -296,6 +377,8 @@ class VendaRepository:
         end_date: date | None = None,
         branch_code: str | None = None,
         terminal_code: str | None = None,
+        start_time: time | None = None,
+        end_time: time | None = None,
     ):
         stmt = stmt.where(Venda.empresa_id == empresa_id)
         if start_date is not None:
@@ -306,4 +389,20 @@ class VendaRepository:
             stmt = stmt.where(Venda.branch_code == branch_code)
         if terminal_code:
             stmt = stmt.where(Venda.terminal_code == terminal_code)
+        if start_time is not None:
+            stmt = stmt.where(self._time_expression() >= self._time_filter_value(start_time))
+        if end_time is not None:
+            stmt = stmt.where(self._time_expression() <= self._time_filter_value(end_time))
         return stmt
+
+    def _time_expression(self):
+        dialect_name = self.session.bind.dialect.name if self.session.bind else "default"
+        if dialect_name == "sqlite":
+            return func.strftime("%H:%M", Venda.data_atualizacao)
+        return cast(Venda.data_atualizacao, Time)
+
+    def _time_filter_value(self, value: time):
+        dialect_name = self.session.bind.dialect.name if self.session.bind else "default"
+        if dialect_name == "sqlite":
+            return value.strftime("%H:%M")
+        return value

@@ -374,3 +374,105 @@ git push -u origin codex/restore-backend-reporting-contract
   - `https://movisystecnologia.com.br/admin/api/health/ready`
   - `https://movisystecnologia.com.br/admin/connected-apis`
   - `https://movisystecnologia.com.br/admin/reports`
+
+## 13) Relatorios cliente/admin evoluidos - 2026-04-27
+
+### 13.1 Decisao de produto
+
+- Relatorios nao devem ser modulo operacional principal do admin.
+- Cliente acessa relatorios em `/client/reports`.
+- Admin mantem `/reports` apenas para teste tecnico e suporte.
+- Menu principal do admin nao exibe mais `Relatorios`.
+
+### 13.2 Entregue
+
+- Filtros de relatorio:
+  - vendas do dia;
+  - mensal;
+  - trimestral;
+  - semestral;
+  - anual;
+  - datas X a Y;
+  - horario X a Y;
+  - filial;
+  - terminal.
+- Novos graficos:
+  - serie diaria;
+  - top produtos;
+  - tipo de venda;
+  - forma de pagamento;
+  - familia do produto.
+- Modelo canonico de venda expandido com campos opcionais:
+  - `tipo_venda`;
+  - `forma_pagamento`;
+  - `familia_produto`.
+- Novo endpoint backend:
+  - `/admin/tenants/{empresa_id}/reports/breakdown`
+- Nova migracao:
+  - `v005_sales_report_dimensions`
+
+### 13.3 Validacao
+
+- Local:
+  - `py -3 -m pytest -q`
+  - Resultado: `27 passed, 1 skipped`
+- VPS:
+  - branch: `codex/restore-backend-reporting-contract`
+  - commit: `fd8fb8b`
+  - migracao: `current_version=5`
+  - smoke:
+    - `health=200`
+    - `ready=200`
+    - `login=302`
+    - `reports=200`
+    - `connected_apis=200`
+
+### 13.4 Pendente
+
+- Abrir PR da branch `codex/restore-backend-reporting-contract`.
+- Fazer merge em `main`.
+- So depois voltar a VPS para seguir `main`.
+
+## 14) Portal cliente acessivel por admin - 2026-04-28
+
+### 14.1 Decisao
+
+- Admin pode acessar qualquer portal de cliente em modo suporte.
+- Acesso deve ser sempre filtrado por `empresa_id`.
+- O perfil `client` permanece limitado ao seu proprio tenant e escopo de filiais.
+- Perfis nao autorizados continuam recebendo `403`.
+
+### 14.2 Entregue
+
+- Guard dedicado para portal cliente:
+  - `require_client_portal_access`
+- Rotas do portal cliente aceitando preview administrativo:
+  - `/client/dashboard?empresa_id=<empresa_id>`
+  - `/client/reports?empresa_id=<empresa_id>`
+  - exportacoes CSV/XLSX/PDF com `empresa_id`.
+- Templates exibem aviso quando o admin esta visualizando portal cliente.
+- Teste automatizado cobre resolucao de escopo admin para qualquer `empresa_id`.
+
+### 14.3 Validacao
+
+- `py -3 -m pytest tests/test_sync_admin_rbac.py -q`
+  - Resultado: `2 passed`
+- `py -3 -m pytest -q`
+  - Resultado: `28 passed, 1 skipped`
+
+### 14.4 Deploy
+
+- Branch:
+  - `codex/restore-backend-reporting-contract`
+- Commit:
+  - `c258d71` - `fix: allow admin client portal preview`
+- VPS:
+  - deploy executado;
+  - containers saudaveis;
+  - commit aplicado em `/opt/integrado_web_xd`.
+
+### 14.5 Pendente
+
+- GitHub CLI local esta desautenticado.
+- Criar/atualizar PR da branch `codex/restore-backend-reporting-contract` para `main` apos reautenticacao.
+- Nao fazer deploy de `main` antes de mergear essa branch.

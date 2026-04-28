@@ -171,3 +171,48 @@ Na retomada canonica mais recente, o backlog funcional estava concluido ate `P18
 - O backend avancado foi restaurado para cobrir relatorios por tenant, APIs conectadas, pareamento por codigo, readiness, auditoria correlacionada, metricas e scheduler/worker com retry/DLQ.
 - Validacao local completa: `py -3 -m pytest -q` com `26 passed, 1 skipped`.
 - Proximo movimento seguro: commit, push, PR para `main`, merge aprovado e deploy na VPS com validacao autenticada de `/admin/reports` e `/admin/connected-apis`.
+
+## Atualizacao de produto - relatorios - 2026-04-27
+
+- Relatorios foram reposicionados:
+  - cliente: uso principal em `/client/reports`;
+  - admin: acesso a `/reports` apenas para teste tecnico/diagnostico.
+- A navegacao principal do admin nao deve tratar relatorios como modulo operacional.
+- O modelo canonico de venda passou a aceitar dimensoes opcionais para analise comercial:
+  - tipo de venda;
+  - forma de pagamento;
+  - familia do produto.
+- Filtros novos:
+  - vendas do dia;
+  - mensal, trimestral, semestral e anual;
+  - intervalo de datas X a Y;
+  - intervalo de horario X a Y baseado em `data_atualizacao`.
+- Validacao local completa: `py -3 -m pytest -q` com `27 passed, 1 skipped`.
+- Deploy final na VPS:
+  - branch: `codex/restore-backend-reporting-contract`;
+  - commit: `fd8fb8b`;
+  - migracao: `current_version=5`;
+  - smoke autenticado: `health=200`, `ready=200`, `login=302`, `reports=200`, `connected_apis=200`.
+- Pendente obrigatorio:
+  - mergear essa branch em `main` antes de qualquer deploy automatico de `main`.
+
+## Atualizacao operacional - portal cliente por admin - 2026-04-28
+
+- Admin pode acessar o portal cliente em modo suporte por `empresa_id`.
+- Rotas principais:
+  - `https://movisystecnologia.com.br/admin/client/dashboard?empresa_id=12345678000199`
+  - `https://movisystecnologia.com.br/admin/client/reports?empresa_id=12345678000199`
+- A regra de seguranca foi preservada:
+  - `client` continua limitado ao proprio tenant;
+  - `admin` precisa operar com `empresa_id` resolvido;
+  - demais perfis continuam sem acesso ao portal cliente.
+- Commit aplicado e publicado:
+  - `c258d71` - `fix: allow admin client portal preview`
+- Validacao local:
+  - `py -3 -m pytest -q` com `28 passed, 1 skipped`.
+- Deploy VPS:
+  - branch `codex/restore-backend-reporting-contract`;
+  - containers saudaveis apos `deploy-prod.sh`.
+- Pendente:
+  - GitHub CLI esta sem autenticacao local;
+  - abrir/atualizar PR e mergear em `main` antes de qualquer deploy automatico de `main`.

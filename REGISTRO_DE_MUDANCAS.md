@@ -47,6 +47,21 @@
   - Restaurado contrato backend avançado em `codex/restore-backend-reporting-contract`.
   - Relatórios por tenant, APIs conectadas, pareamento por código, readiness, auditoria correlacionada, métricas HTTP e scheduler/worker avançados voltaram a compor o código versionado.
   - Validação local completa: `py -3 -m pytest -q` com `26 passed, 1 skipped`.
+- Evolução de relatórios cliente/admin em 2026-04-27:
+  - Relatórios removidos da navegação principal do admin; `/reports` fica como validação técnica.
+  - Portal cliente concentra a experiência operacional em `/client/reports`.
+  - Novos filtros por período rápido, datas X a Y e horário X a Y.
+  - Novas dimensões de venda: tipo de venda, forma de pagamento e família do produto.
+  - Novos gráficos por tipo, pagamento, produto, família e série diária.
+  - Validação local completa: `py -3 -m pytest -q` com `27 passed, 1 skipped`.
+  - Deploy validado na VPS no commit `fd8fb8b`, com migração `v005` aplicada e smoke `reports=200`.
+- Hotfix portal cliente/admin em 2026-04-28:
+  - Admin agora pode acessar portal e relatórios de qualquer cliente por `empresa_id`.
+  - Cliente permanece isolado ao próprio tenant e escopo de filiais.
+  - Exportações do portal cliente aceitam preview administrativo com `empresa_id`.
+  - Telas exibem aviso de visualização administrativa.
+  - Validação local completa: `py -3 -m pytest -q` com `28 passed, 1 skipped`.
+  - Deploy validado na VPS no commit `c258d71`.
 
 ### Planejado
 - Multiempresa completa com isolamento por empresa, filial e terminal.

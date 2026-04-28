@@ -3,8 +3,13 @@
 {% set report_title = "Relatorios do Cliente" %}
 {% set report_heading = "Leitura executiva da sua operacao" %}
 {% set report_description = "Veja desempenho, tendencia e concentracao por produto apenas dentro do escopo autorizado da sua empresa." %}
-{% set report_company_label = current_user.empresa_id %}
+{% set report_company_label = selected_empresa_id or current_user.empresa_id %}
 {% set report_root_path = "/client/reports" %}
 {% set export_base_path = "/client/reports" %}
+{% if is_admin_client_preview %}
+<div class="alert alert-warning">
+  Visualizacao administrativa do portal cliente. Escopo ativo: <code>{{ selected_empresa_id }}</code>.
+</div>
+{% endif %}
 {% include "partials/report_dashboard_content.html" %}
 {% endblock %}
