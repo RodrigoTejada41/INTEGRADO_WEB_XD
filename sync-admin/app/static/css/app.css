@@ -590,7 +590,7 @@ body[data-theme="dark"] .bi-status-row {
   position: static;
   z-index: auto;
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   gap: 0.7rem;
   align-items: end;
   padding: 0;
@@ -605,9 +605,15 @@ body[data-theme="dark"] .bi-status-row {
   grid-column: 1 / -1;
 }
 
+.bi-filter-field {
+  min-width: 0;
+}
+
 .bi-filter-panel--compact .form-control,
 .bi-filter-panel--compact .form-select,
 .bi-table-tools .form-control {
+  width: 100%;
+  min-width: 0;
   min-height: 42px;
   border-color: rgba(148, 163, 184, 0.32);
   border-radius: 0.9rem;
@@ -629,7 +635,21 @@ body[data-theme="dark"] .bi-status-row {
 .bi-chip-row--vertical .bi-chip {
   display: flex;
   justify-content: space-between;
+  gap: 0.5rem;
+  min-width: 0;
   border-radius: 0.85rem;
+}
+
+.bi-chip-row--vertical .bi-chip,
+.bi-chip-row--vertical .bi-chip em {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bi-chip-row--vertical .bi-chip em {
+  flex: 0 0 auto;
+  max-width: 44%;
 }
 
 .bi-analytics-canvas {
@@ -846,10 +866,17 @@ body[data-theme="dark"] .bi-ranking-item:hover {
   .bi-filter-panel--compact { grid-template-columns: repeat(4, minmax(130px, 1fr)); }
 }
 
+@media (min-width: 1321px) {
+  .bi-filter-rail .bi-filter-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
 @media (max-width: 992px) {
   .bi-exec-header,
   .bi-chart-grid--modern { grid-template-columns: 1fr; }
-  .bi-filter-panel--compact { grid-template-columns: repeat(2, minmax(130px, 1fr)); }
+  .bi-filter-panel--compact { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .bi-table-tools { justify-content: flex-start; }
 }
 
@@ -1054,6 +1081,10 @@ body[data-theme="dark"] .bi-ranking-item:hover {
 
 .bi-filter-rail.card .card-body {
   padding: 1rem;
+}
+
+.bi-filter-rail {
+  overflow-x: hidden;
 }
 
 .bi-panel.card,
