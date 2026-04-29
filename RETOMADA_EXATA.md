@@ -89,7 +89,11 @@ Data de atualizacao: 2026-04-28
 - Branch em producao:
   - `codex/local-agent-db-panel`
 - Commit em producao:
+  - `ef3030a` - merge de `origin/main` na branch `codex/local-agent-db-panel`
+- Commit funcional do deploy:
   - `902bccd` - `feat: expand commercial reporting module`
+- Commit de autorizacoes/documentacao:
+  - `8f1f9b4` - `docs: record deployment authorization and VPS status`
 - Comando executado na VPS:
   - `bash infra/scripts/deploy-prod.sh`
 - Resultado do deploy:
@@ -113,6 +117,10 @@ Data de atualizacao: 2026-04-28
   - `/admin/tenants/12345678000199/produto-de-para?limit=1` -> `200`;
   - `/admin/tenants/12345678000199/produto-de-para/unmapped?limit=1` -> `200`.
 - Antes do checkout, a VPS tinha alteracoes locais. Elas foram preservadas em stash e em `infra/deploy-safety/`.
+- A branch foi sincronizada com `origin/main` apos o deploy:
+  - merge commit local/remoto: `ef3030a`;
+  - `py -3 -m pytest -q` -> `49 passed, 1 skipped`;
+  - checkout da VPS atualizado para `ef3030a` sem rebuild adicional.
 
 ## Objetivo desta nota
 Este arquivo e o ponto de entrada para retomar o projeto sem redescobrir contexto.

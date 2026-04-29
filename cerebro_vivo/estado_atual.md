@@ -479,7 +479,8 @@ Na retomada canonica mais recente, o backlog funcional estava concluido ate `P18
   - `py -3 -m pytest -q` com `49 passed, 1 skipped`.
 - Deploy VPS:
   - branch `codex/local-agent-db-panel`;
-  - commit `902bccd`;
+  - commit funcional `902bccd`;
+  - commit atual apos merge com `origin/main`: `ef3030a`;
   - migration `current_version=6`;
   - containers backend/frontend/nginx saudaveis;
   - health publico `200`;

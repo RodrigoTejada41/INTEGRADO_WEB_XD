@@ -222,7 +222,8 @@
 
 - Deploy executado na VPS em `/opt/integrado_web_xd`.
 - Branch em producao: `codex/local-agent-db-panel`.
-- Commit em producao: `902bccd`.
+- Commit funcional implantado: `902bccd`.
+- Commit atual da branch/VPS apos sincronizar com `origin/main`: `ef3030a`.
 - Migration aplicada: `current_version=6`.
 - Schema validado:
   - tabela `produto_de_para`;
