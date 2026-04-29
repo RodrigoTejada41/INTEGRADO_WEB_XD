@@ -478,12 +478,15 @@ Na retomada canonica mais recente, o backlog funcional estava concluido ate `P18
 - Suite completa:
   - `py -3 -m pytest -q` com `49 passed, 1 skipped`.
 - Deploy VPS:
-  - branch `codex/local-agent-db-panel`;
+  - branch final `main`;
+  - PR final `#21`;
+  - commit final em producao `b198512`;
   - commit funcional `902bccd`;
   - commit atual apos merge com `origin/main`: `ef3030a`;
   - migration `current_version=6`;
   - containers backend/frontend/nginx saudaveis;
   - health publico `200`;
   - rotas `reports/overview`, `produto-de-para` e `produto-de-para/unmapped` validadas com `200`.
+  - arquivos rastreados da VPS limpos; apenas backups/certs/deploy-safety permanecem nao versionados.
 - Autorizacoes operacionais:
   - registradas em `docs/autorizacoes_operacionais.md`.
