@@ -1127,7 +1127,10 @@ def client_login_submit(
 
 @router.post('/logout')
 def logout(request: Request):
+    user_role = request.session.get('user_role')
     request.session.clear()
+    if user_role == 'client':
+        return RedirectResponse('/client/login', status_code=status.HTTP_302_FOUND)
     return RedirectResponse('/login', status_code=status.HTTP_302_FOUND)
 
 
@@ -1668,54 +1671,8 @@ def client_dashboard_page(
     current_user: User = Depends(require_client_portal_access),
     db: Session = Depends(get_db),
 ):
-    scope = _resolve_client_portal_scope(
-        current_user=current_user,
-        db=db,
-        requested_empresa_id=empresa_id,
-        requested_branch_code=branch_code,
-        start_date=start_date,
-        end_date=end_date,
-        terminal_code=terminal_code,
-    )
-    control = ControlService()
-    overview = control.fetch_report_overview(
-        empresa_id=scope.empresa_id,
-        start_date=start_date,
-        end_date=end_date,
-        branch_code=scope.selected_branch_code,
-        terminal_code=terminal_code,
-        start_time=start_time,
-        end_time=end_time,
-    )
-    recent_sales = control.fetch_report_recent_sales(
-        empresa_id=scope.empresa_id,
-        start_date=start_date,
-        end_date=end_date,
-        branch_code=scope.selected_branch_code,
-        terminal_code=terminal_code,
-        start_time=start_time,
-        end_time=end_time,
-        limit=10,
-    )
-    return templates.TemplateResponse(
-        request,
-        'client_dashboard.html',
-        {
-            'request': request,
-            'current_user': current_user,
-            'selected_empresa_id': scope.empresa_id,
-            'is_admin_client_preview': current_user.role == 'admin',
-            'overview': overview,
-            'recent_items': list(recent_sales.get('items', [])),
-            'allowed_branch_codes': scope.allowed_branch_codes,
-            'start_date': start_date or '',
-            'end_date': end_date or '',
-            'branch_code': scope.selected_branch_code or '',
-            'terminal_code': terminal_code or '',
-            'start_time': start_time or '',
-            'end_time': end_time or '',
-        },
-    )
+    query = f'?{request.url.query}' if request.url.query else ''
+    return RedirectResponse(f'/client/reports{query}', status_code=status.HTTP_302_FOUND)
 
 
 @router.get('/client/reports', response_class=HTMLResponse)

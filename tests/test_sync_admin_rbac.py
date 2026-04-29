@@ -320,3 +320,22 @@ def test_sync_admin_uses_adminlte_shell_globally() -> None:
     assert "card-outline card-success" in client_login
     assert "macro small_box" in components
     assert "macro badge_status" in components
+
+
+def test_client_portal_uses_separated_reports_only_shell() -> None:
+    client_base = (
+        ROOT / "sync-admin" / "app" / "templates" / "client_base.html"
+    ).read_text(encoding="utf-8")
+    client_reports = (
+        ROOT / "sync-admin" / "app" / "templates" / "client_reports.html"
+    ).read_text(encoding="utf-8")
+
+    assert 'extends "client_base.html"' in client_reports
+    assert "client-portal-shell" in client_base
+    assert "Portal do Cliente" in client_base
+    assert "Relatorios" in client_base
+    assert "APIs conectadas" not in client_base
+    assert "Sincronizacoes" not in client_base
+    assert "ADMINISTRACAO" not in client_base
+    assert "main-sidebar" not in client_base
+    assert "content-wrapper" not in client_base
