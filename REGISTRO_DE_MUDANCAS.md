@@ -217,3 +217,23 @@
 - `backend.services.__init__` passou a usar lazy import para evitar inicializacao indevida de settings em imports parciais.
 - Validacao focada: `20 passed`.
 - Suite completa: `49 passed, 1 skipped`.
+
+# 2026-04-29 - Deploy VPS relatorios comerciais
+
+- Deploy executado na VPS em `/opt/integrado_web_xd`.
+- Branch em producao: `codex/local-agent-db-panel`.
+- Commit em producao: `902bccd`.
+- Migration aplicada: `current_version=6`.
+- Schema validado:
+  - tabela `produto_de_para`;
+  - colunas detalhadas em `vendas`.
+- Rotas validadas:
+  - relatorio overview;
+  - CRUD/listagem `produto-de-para`;
+  - produtos sem DE/PARA.
+- Health publico validado com status `200`.
+
+# 2026-04-29 - Autorizacoes operacionais
+
+- Criado `docs/autorizacoes_operacionais.md`.
+- Registrado fluxo autorizado para Git, SSH, deploy VPS, migrations e validacoes.

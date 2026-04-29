@@ -79,6 +79,41 @@ Data de atualizacao: 2026-04-28
 - `py -3 -m pytest tests\test_produto_de_para.py tests\test_sync_admin_rbac.py tests\test_xd_sales_mapper.py tests\test_sync_upsert.py -q` -> `20 passed`.
 - `py -3 -m pytest -q` -> `49 passed, 1 skipped`.
 
+### Autorizacoes operacionais
+- Arquivo criado:
+  - `docs/autorizacoes_operacionais.md`
+- Objetivo:
+  - registrar autorizacoes recorrentes para Git, SSH, deploy VPS, migrations e validacoes sem rediscutir o fluxo a cada execucao.
+
+### Deploy VPS executado - 2026-04-29
+- Branch em producao:
+  - `codex/local-agent-db-panel`
+- Commit em producao:
+  - `902bccd` - `feat: expand commercial reporting module`
+- Comando executado na VPS:
+  - `bash infra/scripts/deploy-prod.sh`
+- Resultado do deploy:
+  - build backend/frontend OK;
+  - containers recriados;
+  - migration aplicada com `current_version=6`;
+  - `integrado-backend` healthy;
+  - `integrado-frontend` healthy;
+  - `integrado-nginx` healthy.
+- Validacao publica:
+  - `https://movisystecnologia.com.br/healthz` -> `200`;
+  - `https://movisystecnologia.com.br/readyz/backend` -> `200`;
+  - `https://movisystecnologia.com.br/readyz/sync-admin` -> `200`;
+  - `https://movisystecnologia.com.br/admin/api/health/ready` -> `200`.
+- Validacao de schema na VPS:
+  - `version=6`;
+  - `produto_de_para=produto_de_para`;
+  - `vendas_detail_columns=5`.
+- Validacao de rotas backend na VPS:
+  - `/admin/tenants/12345678000199/reports/overview` -> `200`;
+  - `/admin/tenants/12345678000199/produto-de-para?limit=1` -> `200`;
+  - `/admin/tenants/12345678000199/produto-de-para/unmapped?limit=1` -> `200`.
+- Antes do checkout, a VPS tinha alteracoes locais. Elas foram preservadas em stash e em `infra/deploy-safety/`.
+
 ## Objetivo desta nota
 Este arquivo e o ponto de entrada para retomar o projeto sem redescobrir contexto.
 

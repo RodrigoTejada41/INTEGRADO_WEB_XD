@@ -477,3 +477,12 @@ Na retomada canonica mais recente, o backlog funcional estava concluido ate `P18
   - `py -3 -m pytest tests\test_produto_de_para.py tests\test_sync_admin_rbac.py tests\test_xd_sales_mapper.py tests\test_sync_upsert.py -q` com `20 passed`.
 - Suite completa:
   - `py -3 -m pytest -q` com `49 passed, 1 skipped`.
+- Deploy VPS:
+  - branch `codex/local-agent-db-panel`;
+  - commit `902bccd`;
+  - migration `current_version=6`;
+  - containers backend/frontend/nginx saudaveis;
+  - health publico `200`;
+  - rotas `reports/overview`, `produto-de-para` e `produto-de-para/unmapped` validadas com `200`.
+- Autorizacoes operacionais:
+  - registradas em `docs/autorizacoes_operacionais.md`.
