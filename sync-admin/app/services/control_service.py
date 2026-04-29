@@ -565,6 +565,15 @@ class ControlService:
         branch_code: str | None = None,
         terminal_code: str | None = None,
         category: str | None = None,
+        product: str | None = None,
+        product_code: str | None = None,
+        family: str | None = None,
+        payment_method: str | None = None,
+        card_brand: str | None = None,
+        status_filter: str | None = None,
+        canceled: str | None = None,
+        operator: str | None = None,
+        customer: str | None = None,
         start_time: str | None = None,
         end_time: str | None = None,
     ) -> dict:
@@ -576,6 +585,15 @@ class ControlService:
                 'branch_code': branch_code,
                 'terminal_code': terminal_code,
                 'category': category,
+                'product': product,
+                'product_code': product_code,
+                'family': family,
+                'payment_method': payment_method,
+                'card_brand': card_brand,
+                'status_filter': status_filter,
+                'canceled': canceled,
+                'operator': operator,
+                'customer': customer,
                 'start_time': start_time,
                 'end_time': end_time,
             }.items()
@@ -599,6 +617,15 @@ class ControlService:
         branch_code: str | None = None,
         terminal_code: str | None = None,
         category: str | None = None,
+        product: str | None = None,
+        product_code: str | None = None,
+        family: str | None = None,
+        payment_method: str | None = None,
+        card_brand: str | None = None,
+        status_filter: str | None = None,
+        canceled: str | None = None,
+        operator: str | None = None,
+        customer: str | None = None,
         start_time: str | None = None,
         end_time: str | None = None,
     ) -> dict:
@@ -610,6 +637,15 @@ class ControlService:
                 'branch_code': branch_code,
                 'terminal_code': terminal_code,
                 'category': category,
+                'product': product,
+                'product_code': product_code,
+                'family': family,
+                'payment_method': payment_method,
+                'card_brand': card_brand,
+                'status_filter': status_filter,
+                'canceled': canceled,
+                'operator': operator,
+                'customer': customer,
                 'start_time': start_time,
                 'end_time': end_time,
             }.items()
@@ -633,6 +669,15 @@ class ControlService:
         branch_code: str | None = None,
         terminal_code: str | None = None,
         category: str | None = None,
+        product: str | None = None,
+        product_code: str | None = None,
+        family: str | None = None,
+        payment_method: str | None = None,
+        card_brand: str | None = None,
+        status_filter: str | None = None,
+        canceled: str | None = None,
+        operator: str | None = None,
+        customer: str | None = None,
         start_time: str | None = None,
         end_time: str | None = None,
         limit: int = 10,
@@ -645,6 +690,15 @@ class ControlService:
                 'branch_code': branch_code,
                 'terminal_code': terminal_code,
                 'category': category,
+                'product': product,
+                'product_code': product_code,
+                'family': family,
+                'payment_method': payment_method,
+                'card_brand': card_brand,
+                'status_filter': status_filter,
+                'canceled': canceled,
+                'operator': operator,
+                'customer': customer,
                 'start_time': start_time,
                 'end_time': end_time,
                 'limit': limit,
@@ -670,6 +724,15 @@ class ControlService:
         branch_code: str | None = None,
         terminal_code: str | None = None,
         category: str | None = None,
+        product: str | None = None,
+        product_code: str | None = None,
+        family: str | None = None,
+        payment_method: str | None = None,
+        card_brand: str | None = None,
+        status_filter: str | None = None,
+        canceled: str | None = None,
+        operator: str | None = None,
+        customer: str | None = None,
         start_time: str | None = None,
         end_time: str | None = None,
         limit: int = 10,
@@ -683,6 +746,15 @@ class ControlService:
                 'branch_code': branch_code,
                 'terminal_code': terminal_code,
                 'category': category,
+                'product': product,
+                'product_code': product_code,
+                'family': family,
+                'payment_method': payment_method,
+                'card_brand': card_brand,
+                'status_filter': status_filter,
+                'canceled': canceled,
+                'operator': operator,
+                'customer': customer,
                 'start_time': start_time,
                 'end_time': end_time,
                 'limit': limit,
@@ -707,6 +779,15 @@ class ControlService:
         branch_code: str | None = None,
         terminal_code: str | None = None,
         category: str | None = None,
+        product: str | None = None,
+        product_code: str | None = None,
+        family: str | None = None,
+        payment_method: str | None = None,
+        card_brand: str | None = None,
+        status_filter: str | None = None,
+        canceled: str | None = None,
+        operator: str | None = None,
+        customer: str | None = None,
         start_time: str | None = None,
         end_time: str | None = None,
         limit: int = 20,
@@ -719,6 +800,15 @@ class ControlService:
                 'branch_code': branch_code,
                 'terminal_code': terminal_code,
                 'category': category,
+                'product': product,
+                'product_code': product_code,
+                'family': family,
+                'payment_method': payment_method,
+                'card_brand': card_brand,
+                'status_filter': status_filter,
+                'canceled': canceled,
+                'operator': operator,
+                'customer': customer,
                 'start_time': start_time,
                 'end_time': end_time,
                 'limit': limit,
@@ -760,6 +850,105 @@ class ControlService:
             response.raise_for_status()
             data = response.json()
         return [str(item) for item in data.get('items', [])]
+
+    def fetch_produto_de_para(
+        self,
+        *,
+        empresa_id: str | None = None,
+        search: str | None = None,
+        limit: int = 100,
+        offset: int = 0,
+    ) -> list[dict]:
+        target_empresa = empresa_id or settings.control_empresa_id
+        params = {'limit': max(1, min(limit, 500)), 'offset': max(offset, 0)}
+        if search:
+            params['search'] = search
+        with httpx.Client(timeout=15.0) as client:
+            response = client.get(
+                f'{self.base_url}/admin/tenants/{target_empresa}/produto-de-para',
+                headers=self.admin_headers,
+                params=params,
+            )
+            response.raise_for_status()
+            data = response.json()
+        return list(data.get('items', []))
+
+    def fetch_produtos_sem_de_para(
+        self,
+        *,
+        empresa_id: str | None = None,
+        limit: int = 100,
+    ) -> list[dict]:
+        target_empresa = empresa_id or settings.control_empresa_id
+        with httpx.Client(timeout=15.0) as client:
+            response = client.get(
+                f'{self.base_url}/admin/tenants/{target_empresa}/produto-de-para/unmapped',
+                headers=self.admin_headers,
+                params={'limit': max(1, min(limit, 500))},
+            )
+            response.raise_for_status()
+            data = response.json()
+        return list(data.get('items', []))
+
+    def create_produto_de_para(
+        self,
+        *,
+        empresa_id: str | None = None,
+        payload: dict,
+        actor: str | None = None,
+    ) -> dict:
+        target_empresa = empresa_id or settings.control_empresa_id
+        headers = dict(self.admin_headers)
+        if actor:
+            headers['X-Audit-Actor'] = actor
+        with httpx.Client(timeout=15.0) as client:
+            response = client.post(
+                f'{self.base_url}/admin/tenants/{target_empresa}/produto-de-para',
+                headers=headers,
+                json=payload,
+            )
+            response.raise_for_status()
+            return response.json()
+
+    def update_produto_de_para(
+        self,
+        *,
+        empresa_id: str | None = None,
+        mapping_id: int,
+        payload: dict,
+        actor: str | None = None,
+    ) -> dict:
+        target_empresa = empresa_id or settings.control_empresa_id
+        headers = dict(self.admin_headers)
+        if actor:
+            headers['X-Audit-Actor'] = actor
+        with httpx.Client(timeout=15.0) as client:
+            response = client.put(
+                f'{self.base_url}/admin/tenants/{target_empresa}/produto-de-para/{mapping_id}',
+                headers=headers,
+                json=payload,
+            )
+            response.raise_for_status()
+            return response.json()
+
+    def delete_produto_de_para(
+        self,
+        *,
+        empresa_id: str | None = None,
+        mapping_id: int,
+        actor: str | None = None,
+    ) -> dict:
+        target_empresa = empresa_id or settings.control_empresa_id
+        headers = dict(self.admin_headers)
+        if actor:
+            headers['X-Audit-Actor'] = actor
+        with httpx.Client(timeout=15.0) as client:
+            response = client.delete(
+                f'{self.base_url}/admin/tenants/{target_empresa}/produto-de-para/{mapping_id}',
+                headers=headers,
+            )
+            response.raise_for_status()
+            return response.json()
 
     def queue_remote_force_sync(self, client_id: str, *, actor: str | None = None) -> dict:
         headers = dict(self.admin_headers)

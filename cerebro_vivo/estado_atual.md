@@ -4,7 +4,7 @@
 
 O projeto e uma plataforma de sincronizacao de dados multi-tenant com memoria local-first em `.cerebro-vivo/` e uma camada executiva visivel em `cerebro_vivo/` para coordenacao multi-agentes.
 
-Checkpoint mais recente em 2026-04-27: producao foi corrigida para as telas `APIs Conectadas` e `Relatorios`. O problema inicial era roteamento Nginx ausente para caminhos absolutos do `sync-admin`. Em seguida foi identificado erro backend por schema antigo de `vendas` sem `branch_code` e `terminal_code`. A VPS ja recebeu a correcao operacional e as mudancas locais estao staged na branch `codex/fix-connected-apis-nginx`, mas ainda sem commit final porque a sessao foi interrompida.
+Checkpoint mais recente em 2026-04-29: o modulo de relatorios comerciais/financeiros foi ampliado localmente com filtros avancados, agrupamentos comerciais, exportacoes detalhadas e preservacao do `codigo_produto_local`. O arquivo `TABELAS DO BANCO XD/REFERENCIA TABELAS BD XD SOFTWARE.xlsx` foi usado para reforcar o mapeamento MariaDB local: preferencia por `salesdocumentsreportview` e fallback por `Documentsbodys + Documentsheaders`. Foram criadas rotas de diagnostico `/settings/xd-mapping` e `/settings/xd-mapping/routes`. Validacao local: `py -3 -m pytest -q` com `45 passed, 1 skipped`.
 
 Na governanca oficial atual, `backend/`, `agent_local/`, `sync-admin/` e `infra/` sao as fontes canonicas operacionais. `backend/src`, `frontend`, `database`, `devops` e `docker-compose.yml` na raiz permanecem como camadas de compatibilidade e onboarding.
 
@@ -59,16 +59,18 @@ Na retomada canonica mais recente, o backlog funcional estava concluido ate `P18
 26. Auditoria local com severidade visual: a tela `settings` agora classifica eventos de acesso como `critico`, `atencao` ou `informativo` e destaca sinais como troca de empresa, troca de perfil, desativacao de usuario, mudanca de escopo e reducao de filiais autorizadas
 27. Hotfix operacional de producao: Nginx passou a rotear `/connected-apis`, `/reports` e `/client/reports` para o `sync-admin`, eliminando 404 nas telas administrativas.
 28. Schema de vendas alinhado aos relatorios: `vendas` e `vendas_historico` passaram a incluir `branch_code` e `terminal_code`, com persistencia no upsert e indices para filtros por filial/terminal.
+29. Relatorios comerciais/financeiros ampliados: vendas agora preservam codigo local do produto, categoria, unidade, operador, cliente, status, cancelamento, quantidade, bruto, desconto, acrescimo e liquido; painel e exportacoes usam esses filtros e campos.
+30. DE/PARA de produtos criado: tabela `produto_de_para` separada por `empresa_id`, com chave unica em `empresa_id + codigo_produto_local`, sem substituir o codigo local original.
+31. Referencia XD Software integrada ao agente local: fallback automatico para `Documentsbodys + Documentsheaders`, enriquecimento por pagamentos/familia quando as tabelas existem e diagnostico via rotas protegidas no `sync-admin`.
 
 ## Proximos passos mapeados
 
-1. Criar commit com as mudancas staged: `fix: restore reports route and sales branch schema`
-2. Fazer push da branch `codex/fix-connected-apis-nginx`
-3. Abrir/atualizar PR para `main`, porque `main` esta protegida
-4. Depois do merge, confirmar que a VPS continua em estado convergente com o repositorio
-5. Priorizar backlog pos-P20 com foco em risco operacional, seguranca e continuidade do produto
-6. Revisar apenas itens residuais fora do escopo conservador de P20, se ainda houver necessidade operacional
-7. Consolidar melhorias de UX e governanca no painel admin, incluindo refinamento visual da edicao de usuarios e eventual ampliacao visual da auditoria local de acessos
+1. Revisar visualmente `/reports` e `/client/reports` com dados reais.
+2. Acessar `/settings/xd-mapping` no ambiente local do cliente para confirmar origem detectada.
+3. Aplicar migration v006 no ambiente alvo antes de deploy.
+4. Abrir PR com a evolucao de relatorios.
+5. Validar exportacoes PDF, Excel e CSV em producao com filtros combinados.
+6. Evoluir tela administrativa do DE/PARA para edicao manual e listagem de produtos sem mapeamento quando o cliente exigir cadastro web equivalente.
 
 ## Atualizacao desta continuidade
 
@@ -457,3 +459,21 @@ Na retomada canonica mais recente, o backlog funcional estava concluido ate `P18
   - codigo implementado localmente;
   - producao ainda nao atualizada nesta etapa;
   - proximo passo e commit/push/PR e deploy apos merge.
+
+## Relatorios comerciais e DE/PARA de produtos - 2026-04-29
+
+- Relatorios ampliados com filtros avancados, agrupamentos, totais financeiros e exportacao CSV/XLSX/PDF.
+- Agente local usa a planilha `TABELAS DO BANCO XD/REFERENCIA TABELAS BD XD SOFTWARE.xlsx` como referencia de tabelas XD.
+- Fallback MariaDB implementado:
+  - `salesdocumentsreportview`;
+  - `Documentsbodys + Documentsheaders`;
+  - `Invoicepaymentdetails + Xconfigpaymenttypes`;
+  - `Itemsgroups`.
+- `codigo_produto_local` preservado como referencia principal.
+- CRUD `produto_de_para` implementado no backend e na tela `/settings`.
+- Produtos sem DE/PARA aparecem em lista administrativa e seguem nos relatorios usando dados locais.
+- Validacao focada:
+  - `py -3 -m compileall agent_local backend sync-admin\app` OK;
+  - `py -3 -m pytest tests\test_produto_de_para.py tests\test_sync_admin_rbac.py tests\test_xd_sales_mapper.py tests\test_sync_upsert.py -q` com `20 passed`.
+- Suite completa:
+  - `py -3 -m pytest -q` com `49 passed, 1 skipped`.

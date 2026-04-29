@@ -184,3 +184,36 @@
 - O repositório foi versionado com a tag `v0.1.0`.
 - O foco desta base é a evolução incremental para a fase comercial multi-tenant completa.
 
+# 2026-04-29 - Relatorios comerciais/financeiros
+
+- Ampliado contrato canonico de vendas com codigo local do produto, familia, categoria, unidade, operador, cliente, status, cancelamento e valores detalhados.
+- Criada migration `v006_sales_report_detail_fields`.
+- Criada tabela `produto_de_para` separada por empresa.
+- Relatorios agora suportam filtros avancados e agrupamentos comerciais/financeiros.
+- Exportacoes CSV, Excel e PDF passam a incluir campos detalhados e respeitar filtros avancados.
+- Documentacao criada em `docs/relatorios_comerciais_financeiros.md`.
+- Validacao: `41 passed, 1 skipped`.
+
+# 2026-04-29 - Referencia XD Software para MariaDB local
+
+- Usado o arquivo `TABELAS DO BANCO XD/REFERENCIA TABELAS BD XD SOFTWARE.xlsx` como base tecnica.
+- Agente local passa a suportar fallback automatico por `Documentsbodys + Documentsheaders` quando `salesdocumentsreportview` nao existir.
+- Mapeamento preserva `ItemKeyId` como `codigo_produto_local`.
+- Pagamento e familia sao enriquecidos por `Invoicepaymentdetails`, `Xconfigpaymenttypes` e `Itemsgroups` quando disponiveis.
+- Criadas rotas `GET /settings/xd-mapping` e `GET /settings/xd-mapping/routes` para diagnostico local.
+- Validacao: `45 passed, 1 skipped`.
+
+# 2026-04-29 - CRUD DE/PARA Produtos
+
+- Criadas camadas `ProdutoDeParaRepository`, `ProdutoDeParaService` e schemas dedicados.
+- Criadas rotas admin para listar, criar/atualizar, editar, remover e consultar produtos sem DE/PARA.
+- Tela `/settings` recebeu painel `DE/PARA Produtos` com formulario, listagem, edicao, remocao e produtos pendentes.
+- `sync-admin` passou a consumir o CRUD central com `X-Admin-Token` e `X-Audit-Actor`.
+- Regras validadas:
+  - isolamento por empresa;
+  - rejeicao de CNPJ divergente;
+  - produto sem mapeamento continua reportavel pelo codigo local;
+  - auditoria em mutacoes administrativas.
+- `backend.services.__init__` passou a usar lazy import para evitar inicializacao indevida de settings em imports parciais.
+- Validacao focada: `20 passed`.
+- Suite completa: `49 passed, 1 skipped`.

@@ -411,6 +411,181 @@
   </div>
 </div>
 
+<div class="row g-3 mt-1" id="produto-de-para">
+  <div class="col-12">
+    <div class="card p-3">
+      <div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-3">
+        <div>
+          <h5 class="mb-1">DE/PARA Produtos</h5>
+          <small class="text-muted">Chave principal: empresa_id + codigo_produto_local.</small>
+        </div>
+        <a class="btn btn-outline-secondary btn-sm" href="/settings/xd-mapping/routes">Rotas XD</a>
+      </div>
+
+      <form method="post" action="/settings/produto-de-para" class="row g-2 mb-3">
+        <input type="hidden" name="empresa_id" value="{{ default_empresa_id }}" />
+        <input type="hidden" name="cnpj" value="{{ default_empresa_id }}" />
+        <div class="col-md-2">
+          <label class="form-label">Codigo local</label>
+          <input class="form-control" type="text" name="codigo_produto_local" required />
+        </div>
+        <div class="col-md-2">
+          <label class="form-label">Codigo web</label>
+          <input class="form-control" type="text" name="codigo_produto_web" />
+        </div>
+        <div class="col-md-3">
+          <label class="form-label">Descricao local</label>
+          <input class="form-control" type="text" name="descricao_produto_local" />
+        </div>
+        <div class="col-md-3">
+          <label class="form-label">Descricao web</label>
+          <input class="form-control" type="text" name="descricao_produto_web" />
+        </div>
+        <div class="col-md-2">
+          <label class="form-label">Ativo</label>
+          <select class="form-select" name="ativo">
+            <option value="true">ativo</option>
+            <option value="false">inativo</option>
+          </select>
+        </div>
+        <div class="col-md-3">
+          <label class="form-label">Familia local</label>
+          <input class="form-control" type="text" name="familia_local" />
+        </div>
+        <div class="col-md-3">
+          <label class="form-label">Familia web</label>
+          <input class="form-control" type="text" name="familia_web" />
+        </div>
+        <div class="col-md-3">
+          <label class="form-label">Categoria local</label>
+          <input class="form-control" type="text" name="categoria_local" />
+        </div>
+        <div class="col-md-3">
+          <label class="form-label">Categoria web</label>
+          <input class="form-control" type="text" name="categoria_web" />
+        </div>
+        <div class="col-12">
+          <button class="btn btn-primary btn-sm" type="submit">Salvar DE/PARA</button>
+        </div>
+      </form>
+
+      <div class="table-responsive mb-3">
+        <table class="table table-sm align-middle">
+          <thead>
+            <tr>
+              <th>Codigo local</th>
+              <th>Descricao</th>
+              <th>Codigo web</th>
+              <th>Familia</th>
+              <th>Categoria</th>
+              <th>Status</th>
+              <th>Acoes</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for mapping in produto_de_para_rows %}
+            <tr>
+              <td><code>{{ mapping.codigo_produto_local }}</code></td>
+              <td>
+                <div>{{ mapping.descricao_produto_local or '-' }}</div>
+                <small class="text-muted">{{ mapping.descricao_produto_web or '-' }}</small>
+              </td>
+              <td><code>{{ mapping.codigo_produto_web or '-' }}</code></td>
+              <td>
+                <div>{{ mapping.familia_local or '-' }}</div>
+                <small class="text-muted">{{ mapping.familia_web or '-' }}</small>
+              </td>
+              <td>
+                <div>{{ mapping.categoria_local or '-' }}</div>
+                <small class="text-muted">{{ mapping.categoria_web or '-' }}</small>
+              </td>
+              <td>
+                <span class="badge text-bg-{{ 'success' if mapping.ativo else 'secondary' }}">{{ 'ativo' if mapping.ativo else 'inativo' }}</span>
+              </td>
+              <td>
+                <details>
+                  <summary class="btn btn-outline-primary btn-sm">Editar</summary>
+                  <form method="post" action="/settings/produto-de-para/{{ mapping.id }}" class="row g-2 mt-2">
+                    <input type="hidden" name="empresa_id" value="{{ mapping.empresa_id }}" />
+                    <input type="hidden" name="cnpj" value="{{ mapping.cnpj }}" />
+                    <div class="col-md-3"><input class="form-control form-control-sm" type="text" name="codigo_produto_web" value="{{ mapping.codigo_produto_web or '' }}" placeholder="codigo web" /></div>
+                    <div class="col-md-3"><input class="form-control form-control-sm" type="text" name="descricao_produto_local" value="{{ mapping.descricao_produto_local or '' }}" placeholder="descricao local" /></div>
+                    <div class="col-md-3"><input class="form-control form-control-sm" type="text" name="descricao_produto_web" value="{{ mapping.descricao_produto_web or '' }}" placeholder="descricao web" /></div>
+                    <div class="col-md-3">
+                      <select class="form-select form-select-sm" name="ativo">
+                        <option value="true" {% if mapping.ativo %}selected{% endif %}>ativo</option>
+                        <option value="false" {% if not mapping.ativo %}selected{% endif %}>inativo</option>
+                      </select>
+                    </div>
+                    <div class="col-md-3"><input class="form-control form-control-sm" type="text" name="familia_local" value="{{ mapping.familia_local or '' }}" placeholder="familia local" /></div>
+                    <div class="col-md-3"><input class="form-control form-control-sm" type="text" name="familia_web" value="{{ mapping.familia_web or '' }}" placeholder="familia web" /></div>
+                    <div class="col-md-3"><input class="form-control form-control-sm" type="text" name="categoria_local" value="{{ mapping.categoria_local or '' }}" placeholder="categoria local" /></div>
+                    <div class="col-md-3"><input class="form-control form-control-sm" type="text" name="categoria_web" value="{{ mapping.categoria_web or '' }}" placeholder="categoria web" /></div>
+                    <div class="col-12 d-flex gap-2">
+                      <button class="btn btn-primary btn-sm" type="submit">Salvar</button>
+                    </div>
+                  </form>
+                  <form method="post" action="/settings/produto-de-para/{{ mapping.id }}/delete" class="mt-2">
+                    <input type="hidden" name="empresa_id" value="{{ mapping.empresa_id }}" />
+                    <button class="btn btn-outline-danger btn-sm" type="submit">Remover</button>
+                  </form>
+                </details>
+              </td>
+            </tr>
+            {% endfor %}
+            {% if produto_de_para_rows|length == 0 %}
+            <tr><td colspan="7" class="text-muted">Nenhum DE/PARA cadastrado.</td></tr>
+            {% endif %}
+          </tbody>
+        </table>
+      </div>
+
+      <h6 class="mb-2">Produtos sem DE/PARA</h6>
+      <div class="table-responsive">
+        <table class="table table-sm align-middle">
+          <thead>
+            <tr>
+              <th>Codigo local</th>
+              <th>Descricao local</th>
+              <th>Familia</th>
+              <th>Categoria</th>
+              <th>Vendas</th>
+              <th>Acoes</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for product in produtos_sem_de_para %}
+            <tr>
+              <td><code>{{ product.codigo_produto_local }}</code></td>
+              <td>{{ product.descricao_produto_local or '-' }}</td>
+              <td>{{ product.familia_local or '-' }}</td>
+              <td>{{ product.categoria_local or '-' }}</td>
+              <td>{{ product.vendas_count }}</td>
+              <td>
+                <form method="post" action="/settings/produto-de-para" class="d-flex gap-2 flex-wrap">
+                  <input type="hidden" name="empresa_id" value="{{ default_empresa_id }}" />
+                  <input type="hidden" name="cnpj" value="{{ default_empresa_id }}" />
+                  <input type="hidden" name="codigo_produto_local" value="{{ product.codigo_produto_local }}" />
+                  <input type="hidden" name="descricao_produto_local" value="{{ product.descricao_produto_local or '' }}" />
+                  <input type="hidden" name="familia_local" value="{{ product.familia_local or '' }}" />
+                  <input type="hidden" name="categoria_local" value="{{ product.categoria_local or '' }}" />
+                  <input class="form-control form-control-sm" style="max-width: 140px" type="text" name="codigo_produto_web" placeholder="codigo web" />
+                  <input class="form-control form-control-sm" style="max-width: 220px" type="text" name="descricao_produto_web" placeholder="descricao web" />
+                  <button class="btn btn-outline-primary btn-sm" type="submit">Mapear</button>
+                </form>
+              </td>
+            </tr>
+            {% endfor %}
+            {% if produtos_sem_de_para|length == 0 %}
+            <tr><td colspan="6" class="text-muted">Nenhum produto pendente encontrado.</td></tr>
+            {% endif %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
 <div class="row g-3 mt-1">
   <div class="col-12">
     <div class="card p-3">

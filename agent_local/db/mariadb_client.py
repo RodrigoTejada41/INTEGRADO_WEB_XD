@@ -80,10 +80,44 @@ class MariaDBClient:
 
     def _discover_source_query(self, session: Session) -> str:
         tables = self._list_tables(session)
-        if "salesdocumentsreportview" not in tables:
-            raise RuntimeError("Auto-mapeamento requer salesdocumentsreportview no MariaDB local.")
-        columns = self._list_columns(session, "salesdocumentsreportview")
-        return build_xd_salesdocuments_query(columns=columns, tables=tables)
+        table_columns = self._list_columns_for_reference_tables(session, tables)
+        sales_view = self._find_table(tables, "salesdocumentsreportview")
+        columns = self._list_columns(session, sales_view) if sales_view else set()
+        return build_xd_salesdocuments_query(
+            columns=columns,
+            tables=tables,
+            table_columns=table_columns,
+        )
+
+    def inspect_xd_mapping(self) -> dict[str, object]:
+        with self.session_factory() as session:
+            tables = self._list_tables(session)
+            table_columns = self._list_columns_for_reference_tables(session, tables)
+            has_sales_view = self._find_table(tables, "salesdocumentsreportview") is not None
+            has_documents_fallback = (
+                self._find_table(tables, "documentsbodys") is not None
+                and self._find_table(tables, "documentsheaders") is not None
+            )
+            source_kind = "salesdocumentsreportview" if has_sales_view else "documentsbodys_documentsheaders"
+            try:
+                self._discover_source_query(session)
+                status = "ok"
+                error = ""
+            except Exception as exc:
+                status = "error"
+                error = str(exc)
+            return {
+                "status": status,
+                "source_kind": source_kind,
+                "error": error,
+                "tables_present": sorted(tables),
+                "has_salesdocumentsreportview": has_sales_view,
+                "has_documents_fallback": has_documents_fallback,
+                "reference_tables": {
+                    table: sorted(columns)
+                    for table, columns in sorted(table_columns.items(), key=lambda item: item[0].lower())
+                },
+            }
 
     def _list_tables(self, session: Session) -> set[str]:
         rows = session.execute(text("SHOW FULL TABLES")).fetchall()
@@ -93,6 +127,33 @@ class MariaDBClient:
         safe_table_name = table_name.replace("`", "")
         rows = session.execute(text(f"SHOW COLUMNS FROM `{safe_table_name}`")).fetchall()
         return {str(row[0]) for row in rows}
+
+    def _list_columns_for_reference_tables(self, session: Session, tables: set[str]) -> dict[str, set[str]]:
+        reference_names = {
+            "salesdocumentsreportview",
+            "documentsbodys",
+            "documentsheaders",
+            "documentsbodysdeleted",
+            "invoicepaymentdetails",
+            "xconfigpaymenttypes",
+            "itemsgroups",
+            "items",
+            "xconfigitemsunits",
+            "entities",
+        }
+        result: dict[str, set[str]] = {}
+        for reference_name in reference_names:
+            table_name = self._find_table(tables, reference_name)
+            if table_name:
+                result[table_name] = self._list_columns(session, table_name)
+        return result
+
+    @staticmethod
+    def _find_table(tables: set[str], expected_name: str) -> str | None:
+        for table in tables:
+            if table.lower() == expected_name.lower():
+                return table
+        return None
 
     def _discover_company_name(self, session: Session, tables: set[str]) -> str | None:
         if "xconfig" in tables:

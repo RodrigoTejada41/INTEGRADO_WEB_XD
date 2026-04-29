@@ -11,7 +11,21 @@ OPTIONAL_CANONICAL_FIELDS = (
     "terminal_code",
     "tipo_venda",
     "forma_pagamento",
+    "bandeira_cartao",
     "familia_produto",
+    "categoria_produto",
+    "codigo_produto_local",
+    "unidade",
+    "operador",
+    "cliente",
+    "status_venda",
+    "cancelada",
+    "quantidade",
+    "valor_unitario",
+    "valor_bruto",
+    "desconto",
+    "acrescimo",
+    "valor_liquido",
 )
 
 
@@ -32,12 +46,21 @@ def canonicalize_sales_row(row: Mapping[str, object]) -> dict[str, object]:
     for field in OPTIONAL_CANONICAL_FIELDS:
         value = row.get(field)
         if value is not None and str(value).strip():
-            item[field] = str(value).strip()
+            item[field] = value if isinstance(value, bool) else str(value).strip()
 
     return item
 
 
-def build_xd_salesdocuments_query(columns: set[str], tables: set[str]) -> str:
+def build_xd_salesdocuments_query(
+    columns: set[str],
+    tables: set[str],
+    table_columns: Mapping[str, set[str]] | None = None,
+) -> str:
+    if "salesdocumentsreportview" not in {table.lower() for table in tables}:
+        if table_columns is None:
+            raise RuntimeError("Auto-mapeamento requer salesdocumentsreportview ou Documentsbodys/Documentsheaders.")
+        return build_xd_documents_query(tables=tables, table_columns=table_columns)
+
     required_columns = {
         "DocumentKeyId",
         "ItemKeyId",
@@ -51,13 +74,23 @@ def build_xd_salesdocuments_query(columns: set[str], tables: set[str]) -> str:
         missing_list = ", ".join(sorted(missing))
         raise RuntimeError(f"salesdocumentsreportview sem colunas obrigatorias: {missing_list}")
 
+    tables_lower = {table.lower() for table in tables}
     optional_selects = [
         _literal("'0001'", "branch_code"),
         _column("v", "Terminal", "terminal_code", columns),
         _column("v", "DocumentDescription", "tipo_venda", columns),
+        _column("v", "ItemKeyId", "codigo_produto_local", columns),
+        _column("v", "Quantity", "quantidade", columns),
+        _column("v", "UnitPrice", "valor_unitario", columns),
+        _column("v", "GrossAmount", "valor_bruto", columns),
+        _column("v", "DiscountAmount", "desconto", columns),
+        _column("v", "OtherCostsAmount", "acrescimo", columns),
+        _column("v", "TotalAmount", "valor_liquido", columns),
+        _literal("'finalizada'", "status_venda"),
+        _literal("0", "cancelada"),
     ]
 
-    if {"itemsgroups"} <= tables and "ItemGroupId" in columns:
+    if "itemsgroups" in tables_lower and "ItemGroupId" in columns:
         optional_selects.append(
             "(\n"
             "                        SELECT ig.Description\n"
@@ -71,7 +104,12 @@ def build_xd_salesdocuments_query(columns: set[str], tables: set[str]) -> str:
     else:
         optional_selects.append(_literal("NULL", "familia_produto"))
 
-    if {"invoicepaymentdetails", "xconfigpaymenttypes"} <= tables and {"Number", "SerieId"} <= columns:
+    optional_selects.append(_literal("NULL", "categoria_produto"))
+    optional_selects.append(_literal("NULL", "unidade"))
+    optional_selects.append(_literal("NULL", "operador"))
+    optional_selects.append(_literal("NULL", "cliente"))
+
+    if {"invoicepaymentdetails", "xconfigpaymenttypes"} <= tables_lower and {"Number", "SerieId"} <= columns:
         optional_selects.append(
             "(\n"
             "                        SELECT GROUP_CONCAT(DISTINCT xpt.Description ORDER BY xpt.Description SEPARATOR ', ')\n"
@@ -110,6 +148,107 @@ def build_xd_salesdocuments_query(columns: set[str], tables: set[str]) -> str:
                 """
 
 
+def build_xd_documents_query(*, tables: set[str], table_columns: Mapping[str, set[str]]) -> str:
+    tables_lower = {table.lower() for table in tables}
+    if not {"documentsbodys", "documentsheaders"} <= tables_lower:
+        raise RuntimeError("Auto-mapeamento por tabelas requer Documentsbodys e Documentsheaders.")
+
+    body_columns = _columns_for(table_columns, "documentsbodys")
+    header_columns = _columns_for(table_columns, "documentsheaders")
+    required_body = {"Guid", "ItemKeyId", "ItemDescription"}
+    required_header = {"SerieId", "Number"}
+    missing = (required_body - body_columns) | (required_header - header_columns)
+    if missing:
+        raise RuntimeError(f"Documentsbodys/Documentsheaders sem colunas obrigatorias: {', '.join(sorted(missing))}")
+
+    body_date = _coalesce_columns("b", ("CloseDate", "CreationDate", "TaxPointDate"), body_columns)
+    header_date = _coalesce_columns("h", ("CloseDate", "CreationDate", "TaxPointDate"), header_columns)
+    event_date = body_date if body_date != "NULL" else header_date
+    if event_date == "NULL":
+        raise RuntimeError("Documentsbodys/Documentsheaders sem coluna de data utilizavel.")
+
+    value_expr = _first_existing_column("b", ("TotalAmount", "NetTotal", "TotalNetAmount", "Price"), body_columns, "0")
+    gross_expr = _first_existing_column("b", ("GrossAmount", "TotalGrossAmount", "TotalAmount"), body_columns, value_expr)
+    discount_expr = _first_existing_column("b", ("DiscountAmount", "DiscountValue", "Discount"), body_columns, "0")
+    surcharge_expr = _first_existing_column("b", ("OtherCostsAmount", "SurchargeAmount", "ChargesAmount"), body_columns, "0")
+    quantity_expr = _first_existing_column("b", ("Quantity", "Qty"), body_columns, "1")
+    unit_expr = _first_existing_column("b", ("UnitPrice", "Price"), body_columns, "NULL")
+    terminal_expr = _first_existing_column("b", ("Terminal",), body_columns, _first_existing_column("h", ("Terminal",), header_columns, "NULL"))
+    branch_expr = _first_existing_column("h", ("SerieId",), header_columns, "'0001'")
+    customer_expr = _first_existing_column("h", ("EntityName", "EntityDescription", "EntityKeyId"), header_columns, "NULL")
+    status_expr = _literal("'finalizada'", "status_venda")
+
+    family_expr = _literal("NULL", "familia_produto")
+    if "itemsgroups" in tables_lower and "ItemGroupId" in body_columns:
+        family_expr = (
+            "(\n"
+            "                        SELECT ig.Description\n"
+            "                        FROM itemsgroups ig\n"
+            "                        WHERE ig.Id = b.ItemGroupId\n"
+            "                        LIMIT 1\n"
+            "                    ) AS familia_produto"
+        )
+
+    payment_expr = _literal("NULL", "forma_pagamento")
+    if {"invoicepaymentdetails", "xconfigpaymenttypes"} <= tables_lower:
+        payment_expr = (
+            "(\n"
+            "                        SELECT GROUP_CONCAT(DISTINCT xpt.Description ORDER BY xpt.Description SEPARATOR ', ')\n"
+            "                        FROM invoicepaymentdetails ipd\n"
+            "                        INNER JOIN xconfigpaymenttypes xpt ON xpt.Id = ipd.PaymentTypeId\n"
+            "                        WHERE ipd.InvoiceNumber = h.Number\n"
+            "                          AND ipd.SerieId = h.SerieId\n"
+            "                    ) AS forma_pagamento"
+        )
+
+    return f"""
+                SELECT
+                    SHA2(
+                        CONCAT(
+                            IFNULL(b.Guid, ''),
+                            '|',
+                            IFNULL(h.SerieId, ''),
+                            '|',
+                            IFNULL(h.Number, ''),
+                            '|',
+                            DATE_FORMAT({event_date}, '%Y-%m-%d %H:%i:%s')
+                        ),
+                        256
+                    ) AS uuid,
+                    :empresa_id AS empresa_id,
+                    COALESCE(b.ItemDescription, 'SEM_DESCRICAO') AS produto,
+                    COALESCE({value_expr}, 0) AS valor,
+                    DATE({event_date}) AS data,
+                    {event_date} AS data_atualizacao,
+                    {branch_expr} AS branch_code,
+                    {terminal_expr} AS terminal_code,
+                    {_first_existing_column('h', ('DocumentDescription', 'DocumentType', 'DocumentTypeId'), header_columns, 'NULL')} AS tipo_venda,
+                    {payment_expr},
+                    NULL AS bandeira_cartao,
+                    {family_expr},
+                    NULL AS categoria_produto,
+                    b.ItemKeyId AS codigo_produto_local,
+                    {_first_existing_column('b', ('Unit', 'UnitDescription'), body_columns, 'NULL')} AS unidade,
+                    {_first_existing_column('h', ('OperatorName', 'SalesmanName', 'EmployeeName'), header_columns, 'NULL')} AS operador,
+                    {customer_expr} AS cliente,
+                    {status_expr},
+                    0 AS cancelada,
+                    COALESCE({quantity_expr}, 1) AS quantidade,
+                    {unit_expr} AS valor_unitario,
+                    COALESCE({gross_expr}, {value_expr}, 0) AS valor_bruto,
+                    COALESCE({discount_expr}, 0) AS desconto,
+                    COALESCE({surcharge_expr}, 0) AS acrescimo,
+                    COALESCE({value_expr}, 0) AS valor_liquido
+                FROM Documentsbodys b
+                INNER JOIN Documentsheaders h
+                    ON h.SerieId = b.SerieId
+                   AND h.Number = b.Number
+                WHERE {event_date} > :since
+                ORDER BY {event_date} ASC
+                LIMIT :limit
+                """
+
+
 def _column(alias: str, column: str, output: str, columns: set[str]) -> str:
     if column not in columns:
         return _literal("NULL", output)
@@ -118,3 +257,24 @@ def _column(alias: str, column: str, output: str, columns: set[str]) -> str:
 
 def _literal(value: str, output: str) -> str:
     return f"{value} AS {output}"
+
+
+def _columns_for(table_columns: Mapping[str, set[str]], table_name: str) -> set[str]:
+    for key, value in table_columns.items():
+        if key.lower() == table_name.lower():
+            return value
+    return set()
+
+
+def _first_existing_column(alias: str, candidates: tuple[str, ...], columns: set[str], fallback: str) -> str:
+    for column in candidates:
+        if column in columns:
+            return f"{alias}.{column}"
+    return fallback
+
+
+def _coalesce_columns(alias: str, candidates: tuple[str, ...], columns: set[str]) -> str:
+    available = [f"{alias}.{column}" for column in candidates if column in columns]
+    if not available:
+        return "NULL"
+    return "COALESCE(" + ", ".join(available) + ")"

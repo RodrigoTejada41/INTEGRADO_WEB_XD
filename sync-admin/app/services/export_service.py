@@ -76,13 +76,24 @@ def report_recent_sales_to_csv(rows: list[dict]) -> str:
         output,
         fieldnames=[
             'Data',
+            'Codigo Produto',
             'Produto',
+            'Quantidade',
+            'Valor Bruto',
+            'Desconto',
+            'Acrescimo',
             'Valor',
             'Pagamento',
+            'Bandeira',
             'Tipo',
             'Familia',
+            'Categoria',
             'Filial',
             'Terminal',
+            'Operador',
+            'Cliente',
+            'Status',
+            'Cancelada',
             'Codigo',
         ],
         delimiter=';',
@@ -104,6 +115,10 @@ def report_to_xlsx_bytes(
         {'Indicador': 'Empresa', 'Valor': overview.get('empresa_id', '-')},
         {'Indicador': 'Periodo', 'Valor': f'{overview.get("start_date", "-")} ate {overview.get("end_date", "-")}'},
         {'Indicador': 'Total faturado', 'Valor': overview.get('total_sales_value', 0)},
+        {'Indicador': 'Total bruto', 'Valor': overview.get('total_gross_value', 0)},
+        {'Indicador': 'Total descontos', 'Valor': overview.get('total_discount_value', 0)},
+        {'Indicador': 'Total acrescimos', 'Valor': overview.get('total_surcharge_value', 0)},
+        {'Indicador': 'Quantidade vendida', 'Valor': overview.get('total_quantity', 0)},
         {'Indicador': 'Total de registros', 'Valor': overview.get('total_records', 0)},
         {'Indicador': 'Produtos distintos', 'Valor': overview.get('distinct_products', 0)},
         {'Indicador': 'Filiais distintas', 'Valor': overview.get('distinct_branches', 0)},
@@ -122,7 +137,14 @@ def report_to_xlsx_bytes(
     top_export_rows = [
         {
             'Produto': row.get('produto', '-'),
+            'Codigo Produto': row.get('codigo_produto_local', '-'),
+            'Familia': row.get('familia_produto', '-'),
+            'Categoria': row.get('categoria_produto', '-'),
             'Registros': row.get('total_records', 0),
+            'Quantidade': row.get('quantity_sold', 0),
+            'Valor Bruto': row.get('gross_value', 0),
+            'Desconto': row.get('discount_value', 0),
+            'Acrescimo': row.get('surcharge_value', 0),
             'Valor': row.get('total_sales_value', 0),
         }
         for row in top_rows
@@ -133,10 +155,46 @@ def report_to_xlsx_bytes(
             ('Resumo', ['Indicador', 'Valor'], overview_rows),
             (
                 'Vendas',
-                ['Data', 'Produto', 'Valor', 'Pagamento', 'Tipo', 'Familia', 'Filial', 'Terminal', 'Codigo'],
+                [
+                    'Data',
+                    'Codigo Produto',
+                    'Produto',
+                    'Quantidade',
+                    'Valor Bruto',
+                    'Desconto',
+                    'Acrescimo',
+                    'Valor',
+                    'Pagamento',
+                    'Bandeira',
+                    'Tipo',
+                    'Familia',
+                    'Categoria',
+                    'Filial',
+                    'Terminal',
+                    'Operador',
+                    'Cliente',
+                    'Status',
+                    'Cancelada',
+                    'Codigo',
+                ],
                 recent_export_rows,
             ),
-            ('Produtos', ['Produto', 'Registros', 'Valor'], top_export_rows),
+            (
+                'Produtos',
+                [
+                    'Codigo Produto',
+                    'Produto',
+                    'Familia',
+                    'Categoria',
+                    'Registros',
+                    'Quantidade',
+                    'Valor Bruto',
+                    'Desconto',
+                    'Acrescimo',
+                    'Valor',
+                ],
+                top_export_rows,
+            ),
             ('Dias', ['Dia', 'Registros', 'Valor'], daily_export_rows),
         ]
     )
@@ -145,13 +203,24 @@ def report_to_xlsx_bytes(
 def _client_sale_row(row: dict) -> dict[str, object]:
     return {
         'Data': row.get('data') or row.get('data_atualizacao') or '-',
+        'Codigo Produto': row.get('codigo_produto_local') or '-',
         'Produto': row.get('produto') or '-',
+        'Quantidade': row.get('quantidade') or row.get('quantity_sold') or 0,
+        'Valor Bruto': row.get('valor_bruto') or row.get('gross_value') or 0,
+        'Desconto': row.get('desconto') or row.get('discount_value') or 0,
+        'Acrescimo': row.get('acrescimo') or row.get('surcharge_value') or 0,
         'Valor': row.get('valor') or row.get('total_sales_value') or 0,
         'Pagamento': row.get('forma_pagamento') or '-',
+        'Bandeira': row.get('bandeira_cartao') or '-',
         'Tipo': row.get('tipo_venda') or '-',
         'Familia': row.get('familia_produto') or '-',
+        'Categoria': row.get('categoria_produto') or '-',
         'Filial': row.get('branch_code') or '-',
         'Terminal': row.get('terminal_code') or '-',
+        'Operador': row.get('operador') or '-',
+        'Cliente': row.get('cliente') or '-',
+        'Status': row.get('status_venda') or '-',
+        'Cancelada': 'sim' if row.get('cancelada') else 'nao',
         'Codigo': row.get('uuid') or '-',
     }
 
@@ -184,6 +253,10 @@ def report_to_pdf_bytes(
         [
             ('Total de registros', overview.get('total_records', 0)),
             ('Total faturado', overview.get('total_sales_value', 0)),
+            ('Total bruto', overview.get('total_gross_value', 0)),
+            ('Descontos', overview.get('total_discount_value', 0)),
+            ('Acrescimos', overview.get('total_surcharge_value', 0)),
+            ('Quantidade', overview.get('total_quantity', 0)),
             ('Produtos distintos', overview.get('distinct_products', 0)),
             ('Filiais distintas', overview.get('distinct_branches', 0)),
             ('Terminais distintos', overview.get('distinct_terminals', 0)),
@@ -203,21 +276,33 @@ def report_to_pdf_bytes(
     )
     document.table(
         title='Top produtos',
-        headers=['Produto', 'Registros', 'Valor'],
+        headers=['Codigo', 'Produto', 'Qtd', 'Valor'],
         rows=[
-            [row.get('produto', '-'), row.get('total_records', 0), row.get('total_sales_value', 0)]
+            [
+                row.get('codigo_produto_local', '-'),
+                row.get('produto', '-'),
+                row.get('quantity_sold', row.get('total_records', 0)),
+                row.get('total_sales_value', 0),
+            ]
             for row in top_rows[:25]
         ],
-        widths=[260, 80, 110],
+        widths=[80, 230, 70, 100],
     )
     document.table(
         title='Vendas recentes',
-        headers=['UUID', 'Produto', 'Valor', 'Data'],
+        headers=['Codigo', 'Produto', 'Qtd', 'Valor', 'Pagamento', 'Data'],
         rows=[
-            [row.get('uuid', '-'), row.get('produto', '-'), row.get('valor', 0), row.get('data', '-')]
+            [
+                row.get('codigo_produto_local') or row.get('uuid', '-'),
+                row.get('produto', '-'),
+                row.get('quantidade', 1),
+                row.get('valor_liquido') or row.get('valor', 0),
+                row.get('forma_pagamento', '-'),
+                row.get('data', '-'),
+            ]
             for row in recent_rows[:35]
         ],
-        widths=[145, 210, 80, 85],
+        widths=[75, 180, 45, 70, 90, 70],
     )
     return document.render()
 

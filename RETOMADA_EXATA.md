@@ -2,6 +2,83 @@
 
 Data de atualizacao: 2026-04-28
 
+## Checkpoint relatorios comerciais/financeiros - 2026-04-29
+
+### Entrega local
+- Modulo de relatorios ampliado para BI comercial/financeiro:
+  - filtros por produto, codigo local, familia, forma de pagamento, bandeira, operador, cliente, cancelamento e status;
+  - agrupamentos adicionais por pagamento, bandeira, familia, categoria, terminal, filial, operador, cliente, status e codigo local;
+  - totais detalhados: bruto, descontos, acrescimos, liquido e quantidade;
+  - exportacao CSV/Excel/PDF preservando filtros aplicados;
+  - painel com filtros avancados e tabela detalhada;
+  - tabela `produto_de_para` por empresa, usando `codigo_produto_local` como referencia principal.
+- Migration nova:
+  - `backend/db/migrations/v006_sales_report_detail_fields.py`.
+- Documentacao nova:
+  - `docs/relatorios_comerciais_financeiros.md`.
+
+### Validacao local
+- `py -3 -m compileall backend sync-admin\app` -> OK.
+- `py -3 -m pytest tests\test_sync_upsert.py tests\test_sync_admin_rbac.py -q` -> `12 passed`.
+- `py -3 -m pytest -q` -> `41 passed, 1 skipped`.
+
+### Proximo passo seguro
+1. Revisar visualmente `/reports` e `/client/reports`.
+2. Aplicar migration v006 no ambiente alvo antes do deploy.
+3. Subir branch/PR e validar exportacoes com dados reais do cliente.
+
+## Checkpoint referencia XD Software - 2026-04-29
+
+### Arquivo consultado
+- `TABELAS DO BANCO XD/REFERENCIA TABELAS BD XD SOFTWARE.xlsx`
+
+### Entrega local adicional
+- `agent_local/db/xd_sales_mapper.py` agora usa a referencia XD para fallback automatico:
+  - origem preferencial: `salesdocumentsreportview`;
+  - origem alternativa: `Documentsbodys + Documentsheaders`;
+  - pagamentos: `Invoicepaymentdetails + Xconfigpaymenttypes`;
+  - familia: `Itemsgroups`;
+  - codigo local do produto: `ItemKeyId -> codigo_produto_local`.
+- Criadas rotas de diagnostico no `sync-admin`:
+  - `GET /settings/xd-mapping`;
+  - `GET /settings/xd-mapping/routes`.
+- O diagnostico mostra tabelas/colunas detectadas e tipo de origem usada sem expor senha.
+
+### Validacao local
+- `py -3 -m pytest tests\test_xd_sales_mapper.py tests\test_sync_admin_rbac.py tests\test_sync_upsert.py -q` -> `16 passed`.
+- `py -3 -m pytest -q` -> `45 passed, 1 skipped`.
+
+## Checkpoint CRUD DE/PARA Produtos - 2026-04-29
+
+### Entrega local adicional
+- CRUD administrativo completo de `produto_de_para`:
+  - `GET /admin/tenants/{empresa_id}/produto-de-para`;
+  - `POST /admin/tenants/{empresa_id}/produto-de-para`;
+  - `PUT /admin/tenants/{empresa_id}/produto-de-para/{mapping_id}`;
+  - `DELETE /admin/tenants/{empresa_id}/produto-de-para/{mapping_id}`;
+  - `GET /admin/tenants/{empresa_id}/produto-de-para/unmapped`.
+- Tela `/settings` recebeu secao `DE/PARA Produtos`:
+  - cadastro manual;
+  - edicao;
+  - remocao;
+  - produtos sincronizados sem mapeamento.
+- Implementadas camadas separadas:
+  - repository;
+  - service;
+  - schemas;
+  - rotas API;
+  - client do `sync-admin`.
+- Regras aplicadas:
+  - isolamento por `empresa_id`;
+  - `cnpj` deve bater com `empresa_id`;
+  - `codigo_produto_local` permanece como chave principal;
+  - auditoria administrativa em criacao, atualizacao e remocao.
+
+### Validacao local
+- `py -3 -m compileall agent_local backend sync-admin\app` -> OK.
+- `py -3 -m pytest tests\test_produto_de_para.py tests\test_sync_admin_rbac.py tests\test_xd_sales_mapper.py tests\test_sync_upsert.py -q` -> `20 passed`.
+- `py -3 -m pytest -q` -> `49 passed, 1 skipped`.
+
 ## Objetivo desta nota
 Este arquivo e o ponto de entrada para retomar o projeto sem redescobrir contexto.
 

@@ -74,5 +74,5 @@ class SyncRunner:
         for field in OPTIONAL_CANONICAL_FIELDS:
             value = record.get(field)
             if value is not None and str(value).strip():
-                payload_record[field] = str(value).strip()
+                payload_record[field] = value if isinstance(value, bool) else str(value).strip()
         return payload_record

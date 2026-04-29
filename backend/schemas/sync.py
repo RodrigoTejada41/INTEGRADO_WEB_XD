@@ -11,8 +11,22 @@ class VendaPayload(BaseModel):
     terminal_code: str | None = Field(default=None, max_length=50)
     tipo_venda: str | None = Field(default=None, max_length=80)
     forma_pagamento: str | None = Field(default=None, max_length=120)
+    bandeira_cartao: str | None = Field(default=None, max_length=80)
     familia_produto: str | None = Field(default=None, max_length=160)
+    categoria_produto: str | None = Field(default=None, max_length=160)
+    codigo_produto_local: str | None = Field(default=None, max_length=120)
+    unidade: str | None = Field(default=None, max_length=30)
+    operador: str | None = Field(default=None, max_length=120)
+    cliente: str | None = Field(default=None, max_length=160)
+    status_venda: str | None = Field(default=None, max_length=80)
+    cancelada: bool = False
     produto: str = Field(min_length=1, max_length=255)
+    quantidade: Decimal = Field(default=Decimal("1"), gt=Decimal("0"))
+    valor_unitario: Decimal | None = Field(default=None, ge=Decimal("0"))
+    valor_bruto: Decimal | None = Field(default=None, ge=Decimal("0"))
+    desconto: Decimal = Field(default=Decimal("0"), ge=Decimal("0"))
+    acrescimo: Decimal = Field(default=Decimal("0"), ge=Decimal("0"))
+    valor_liquido: Decimal | None = Field(default=None, ge=Decimal("0"))
     valor: Decimal = Field(gt=Decimal("0"))
     data: date
     data_atualizacao: datetime

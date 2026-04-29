@@ -103,6 +103,42 @@
           <input class="form-control" type="search" name="category" value="{{ category }}" placeholder="Familia ou produto" />
         </div>
         <div class="bi-filter-field">
+          <label>Produto</label>
+          <input class="form-control" type="search" name="product" value="{{ product }}" placeholder="Nome do produto" />
+        </div>
+        <div class="bi-filter-field">
+          <label>Codigo local</label>
+          <input class="form-control" type="search" name="product_code" value="{{ product_code }}" placeholder="Codigo do produto" />
+        </div>
+        <div class="bi-filter-field">
+          <label>Familia</label>
+          <input class="form-control" type="search" name="family" value="{{ family }}" placeholder="Familia" />
+        </div>
+        <div class="bi-filter-field">
+          <label>Pagamento</label>
+          <input class="form-control" type="search" name="payment_method" value="{{ payment_method }}" placeholder="Pix, dinheiro, credito" />
+        </div>
+        <div class="bi-filter-field">
+          <label>Bandeira</label>
+          <input class="form-control" type="search" name="card_brand" value="{{ card_brand }}" placeholder="Visa, Master..." />
+        </div>
+        <div class="bi-filter-field">
+          <label>Operador</label>
+          <input class="form-control" type="search" name="operator" value="{{ operator }}" placeholder="Usuario/caixa" />
+        </div>
+        <div class="bi-filter-field">
+          <label>Cliente</label>
+          <input class="form-control" type="search" name="customer" value="{{ customer }}" placeholder="Cliente" />
+        </div>
+        <div class="bi-filter-field">
+          <label>Cancelada</label>
+          <select class="form-select" name="canceled">
+            <option value="" {% if not canceled %}selected{% endif %}>Todas</option>
+            <option value="false" {% if canceled == 'false' %}selected{% endif %}>Nao canceladas</option>
+            <option value="true" {% if canceled == 'true' %}selected{% endif %}>Canceladas</option>
+          </select>
+        </div>
+        <div class="bi-filter-field">
           <label>Status</label>
           <select class="form-select" name="status_filter">
             <option value="" {% if not status_filter %}selected{% endif %}>Todos</option>
@@ -263,9 +299,9 @@
           <div class="bi-table-tools">
             <input class="form-control bi-table-search" type="search" placeholder="Buscar produto, pagamento, filial..." data-table-search />
             <div class="btn-group">
-              <a class="btn btn-sm btn-outline-secondary" href="{{ export_base_path }}/export.csv?empresa_id={{ selected_empresa_id or '' }}&period_preset={{ period_preset }}&start_date={{ start_date }}&end_date={{ end_date }}&start_time={{ start_time }}&end_time={{ end_time }}&branch_code={{ branch_code }}&terminal_code={{ terminal_code }}&category={{ category }}&recent_limit={{ recent_limit }}">CSV</a>
-              <a class="btn btn-sm btn-outline-secondary" href="{{ export_base_path }}/export.xlsx?empresa_id={{ selected_empresa_id or '' }}&period_preset={{ period_preset }}&start_date={{ start_date }}&end_date={{ end_date }}&start_time={{ start_time }}&end_time={{ end_time }}&branch_code={{ branch_code }}&terminal_code={{ terminal_code }}&category={{ category }}&top_limit={{ top_limit }}&recent_limit={{ recent_limit }}">Excel</a>
-              <a class="btn btn-sm btn-primary" href="{{ export_base_path }}/export.pdf?empresa_id={{ selected_empresa_id or '' }}&period_preset={{ period_preset }}&start_date={{ start_date }}&end_date={{ end_date }}&start_time={{ start_time }}&end_time={{ end_time }}&branch_code={{ branch_code }}&terminal_code={{ terminal_code }}&category={{ category }}&top_limit={{ top_limit }}&recent_limit={{ recent_limit }}">PDF</a>
+              <a class="btn btn-sm btn-outline-secondary" href="{{ export_base_path }}/export.csv?empresa_id={{ selected_empresa_id or '' }}&period_preset={{ period_preset }}&start_date={{ start_date }}&end_date={{ end_date }}&start_time={{ start_time }}&end_time={{ end_time }}&branch_code={{ branch_code }}&terminal_code={{ terminal_code }}&category={{ category }}&product={{ product }}&product_code={{ product_code }}&family={{ family }}&payment_method={{ payment_method }}&card_brand={{ card_brand }}&operator={{ operator }}&customer={{ customer }}&canceled={{ canceled }}&recent_limit={{ recent_limit }}">CSV</a>
+              <a class="btn btn-sm btn-outline-secondary" href="{{ export_base_path }}/export.xlsx?empresa_id={{ selected_empresa_id or '' }}&period_preset={{ period_preset }}&start_date={{ start_date }}&end_date={{ end_date }}&start_time={{ start_time }}&end_time={{ end_time }}&branch_code={{ branch_code }}&terminal_code={{ terminal_code }}&category={{ category }}&product={{ product }}&product_code={{ product_code }}&family={{ family }}&payment_method={{ payment_method }}&card_brand={{ card_brand }}&operator={{ operator }}&customer={{ customer }}&canceled={{ canceled }}&top_limit={{ top_limit }}&recent_limit={{ recent_limit }}">Excel</a>
+              <a class="btn btn-sm btn-primary" href="{{ export_base_path }}/export.pdf?empresa_id={{ selected_empresa_id or '' }}&period_preset={{ period_preset }}&start_date={{ start_date }}&end_date={{ end_date }}&start_time={{ start_time }}&end_time={{ end_time }}&branch_code={{ branch_code }}&terminal_code={{ terminal_code }}&category={{ category }}&product={{ product }}&product_code={{ product_code }}&family={{ family }}&payment_method={{ payment_method }}&card_brand={{ card_brand }}&operator={{ operator }}&customer={{ customer }}&canceled={{ canceled }}&top_limit={{ top_limit }}&recent_limit={{ recent_limit }}">PDF</a>
             </div>
           </div>
         </div>
@@ -274,6 +310,8 @@
             <thead>
               <tr>
                 <th data-sort="text">Produto</th>
+                <th data-sort="text">Codigo local</th>
+                <th data-sort="number">Qtd</th>
                 <th data-sort="number">Valor</th>
                 <th data-sort="text">Data</th>
                 <th data-sort="text">Pagamento</th>
@@ -281,6 +319,8 @@
                 <th data-sort="text">Familia</th>
                 <th data-sort="text">Filial</th>
                 <th data-sort="text">Terminal</th>
+                <th data-sort="text">Operador</th>
+                <th data-sort="text">Status</th>
                 <th data-sort="text">Codigo</th>
               </tr>
             </thead>
@@ -288,6 +328,8 @@
               {% for item in recent_items %}
               <tr>
                 <td>{{ item.produto }}</td>
+                <td>{{ item.codigo_produto_local or '-' }}</td>
+                <td>{{ item.quantidade or '1' }}</td>
                 <td>{{ item.valor }}</td>
                 <td>{{ item.data }}</td>
                 <td>{{ item.forma_pagamento or '-' }}</td>
@@ -295,11 +337,13 @@
                 <td>{{ item.familia_produto or '-' }}</td>
                 <td>{{ item.branch_code or '-' }}</td>
                 <td>{{ item.terminal_code or '-' }}</td>
+                <td>{{ item.operador or '-' }}</td>
+                <td>{{ item.status_venda or '-' }}</td>
                 <td><code>{{ item.uuid }}</code></td>
               </tr>
               {% endfor %}
               {% if recent_items|length == 0 %}
-              <tr><td colspan="9" class="text-muted">Sem vendas recentes para o filtro atual.</td></tr>
+              <tr><td colspan="13" class="text-muted">Sem vendas recentes para o filtro atual.</td></tr>
               {% endif %}
             </tbody>
           </table>
