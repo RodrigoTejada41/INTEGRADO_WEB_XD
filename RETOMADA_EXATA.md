@@ -34,6 +34,28 @@ Validacao local:
 - `py -3 -m pytest tests\test_agent_local_sales_mapping.py tests\test_sync_upsert.py -q` -> `9 passed`.
 - `py -3 -m pytest -q` -> `51 passed, 1 skipped`.
 
+Git/VPS:
+
+- PR:
+  - `#25` - `Fix XD product family mapping in reports`.
+- Commit em `main`:
+  - `b3fb936` - `fix: map XD product families through items (#25)`.
+- Deploy VPS:
+  - `/opt/integrado_web_xd` em `b3fb936`;
+  - `bash infra/scripts/deploy-prod.sh` executado com sucesso;
+  - migration sem pendencias: `current_version=6`;
+  - containers `integrado-backend`, `integrado-frontend`, `integrado-nginx` healthy.
+- Pos-deploy:
+  - `infra/nginx/default.conf` foi restaurado para a versao Git e recarregado com `nginx -s reload`;
+  - HTTPS validado por GET a partir da VPS:
+    - `/healthz` -> `200`;
+    - `/readyz/backend` -> `200`;
+    - `/readyz/sync-admin` -> `200`;
+    - `/admin/api/health/ready` -> `200`.
+- API interna validada:
+  - `/admin/tenants/12345678000199/reports/breakdown?group_by=familia_produto&limit=10` -> `200`;
+  - retorno atual: `Nao informado`, `total_records=485`, `total_sales_value=20132.21`.
+
 Ponto operacional:
 
 - Para a empresa `12345678000199`, a producao so passara a mostrar familias reais depois de atualizar o agente local e reenviar/reprocessar as vendas do periodo, porque os registros atuais no banco central nao possuem a informacao.
