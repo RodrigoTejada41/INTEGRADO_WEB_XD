@@ -794,3 +794,41 @@ Este arquivo e o ponto de entrada para retomar o projeto sem redescobrir context
   - abrir PR de `codex/local-agent-db-panel` para `main`;
   - apos merge, atualizar VPS para `main`;
   - gerar release versionada oficial do instalador do cliente.
+
+## Checkpoint: primeira carga canonica enriquecida - 2026-04-28
+
+### Objetivo
+- Ao configurar a API local, a primeira carga deve transformar o MariaDB local em modelo canonico para relatorios.
+- O agente local nao deve enviar estrutura bruta do banco.
+- A API web deve receber dimensoes necessarias para BI:
+  - `forma_pagamento`;
+  - `familia_produto`;
+  - `tipo_venda`;
+  - `terminal_code`;
+  - `branch_code`;
+  - metadados de origem (`cnpj`, `company_name`, `payment_methods`).
+
+### Entrega
+- Criado auto-mapeamento `AGENT_SOURCE_QUERY=auto`.
+- Quando detectar `salesdocumentsreportview`, o agente monta query canonica automaticamente.
+- Familia de produto vem de `itemsgroups`.
+- Forma de pagamento vem de `invoicepaymentdetails` + `xconfigpaymenttypes`.
+- O payload `/sync` passou a preservar campos de relatorio no envio.
+- O backend passou a aceitar `source_metadata`.
+- O backend rejeita `source_metadata.cnpj` diferente do tenant autenticado.
+- O backend atualiza `Tenant.nome` quando a origem local informar `company_name`.
+
+### Validacao
+- Teste unitario/local:
+  - `py -3 -m pytest -q`
+  - resultado: `40 passed, 1 skipped`
+- Teste real contra MariaDB local:
+  - `source_query=auto`;
+  - retornou registro com `branch_code`, `terminal_code`, `tipo_venda`, `forma_pagamento` e `familia_produto`;
+  - metadados retornaram `cnpj` e `payment_methods`;
+  - `payment_methods_count=7`.
+
+### Proximo passo seguro
+- Commitar a entrega.
+- Abrir/atualizar PR da branch `codex/local-agent-db-panel`.
+- Depois do merge, atualizar VPS.

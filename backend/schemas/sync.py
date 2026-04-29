@@ -25,10 +25,19 @@ class VendaPayload(BaseModel):
         return value
 
 
+class SyncSourceMetadata(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    cnpj: str | None = Field(default=None, min_length=3, max_length=32)
+    company_name: str | None = Field(default=None, min_length=1, max_length=120)
+    payment_methods: list[str] = Field(default_factory=list, max_length=100)
+
+
 class SyncRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     empresa_id: str = Field(min_length=3, max_length=32)
+    source_metadata: SyncSourceMetadata | None = None
     records: list[VendaPayload] = Field(min_length=1)
 
 

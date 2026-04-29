@@ -124,6 +124,22 @@
     - `https://movisystecnologia.com.br/client/dashboard?empresa_id=12345678000199`
     - `https://movisystecnologia.com.br/client/reports?empresa_id=12345678000199&start_date=2026-01-14&end_date=2026-04-28`
   - Chave local `agent_local/data/agent_api_key.txt` foi adicionada ao `.gitignore`.
+- Primeira carga canonica enriquecida em 2026-04-28:
+  - `AGENT_SOURCE_QUERY=auto` passa a detectar o schema XD local.
+  - Agente local monta query canonica sobre `salesdocumentsreportview`.
+  - Enriquecimento automatico:
+    - forma de pagamento por `invoicepaymentdetails` + `xconfigpaymenttypes`;
+    - familia de produto por `itemsgroups`;
+    - tipo de venda por `DocumentDescription`;
+    - terminal por `Terminal`;
+    - filial padrao `0001`.
+  - Payload `/sync` preserva dimensoes de relatorio.
+  - Payload `/sync` inclui `source_metadata` com `cnpj`, `company_name` quando existir e `payment_methods`.
+  - Backend valida que `source_metadata.cnpj` bate com o tenant autenticado.
+  - Backend atualiza `Tenant.nome` quando a origem local envia nome da empresa.
+  - Validacao completa:
+    - `py -3 -m pytest -q` com `40 passed, 1 skipped`;
+    - teste real no MariaDB local confirmou dimensoes e `payment_methods_count=7`.
 
 ### Planejado
 - Multiempresa completa com isolamento por empresa, filial e terminal.

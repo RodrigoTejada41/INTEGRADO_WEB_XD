@@ -1,5 +1,6 @@
 from fastapi import HTTPException, status
 
+from backend.repositories.tenant_repository import TenantRepository
 from backend.repositories.venda_repository import VendaRepository
 from backend.schemas.sync import SyncRequest, SyncResponse
 from backend.utils.metrics import metrics_registry
@@ -9,10 +10,12 @@ class SyncService:
     def __init__(
         self,
         venda_repository: VendaRepository,
+        tenant_repository: TenantRepository | None = None,
         ingestion_enabled: bool = True,
         max_batch_size: int = 1000,
     ):
         self.venda_repository = venda_repository
+        self.tenant_repository = tenant_repository
         self.ingestion_enabled = ingestion_enabled
         self.max_batch_size = max_batch_size
 
@@ -34,6 +37,8 @@ class SyncService:
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="empresa_id do payload difere da credencial.",
             )
+
+        self._apply_source_metadata(tenant_empresa_id, payload)
 
         records = []
         for record in payload.records:
@@ -69,3 +74,15 @@ class SyncService:
             updated_count=updated_count,
             processed_count=processed_count,
         )
+
+    def _apply_source_metadata(self, tenant_empresa_id: str, payload: SyncRequest) -> None:
+        metadata = payload.source_metadata
+        if metadata is None:
+            return
+        if metadata.cnpj and metadata.cnpj != tenant_empresa_id:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="cnpj da origem difere da credencial.",
+            )
+        if self.tenant_repository is not None and metadata.company_name:
+            self.tenant_repository.update_nome(tenant_empresa_id, metadata.company_name)

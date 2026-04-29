@@ -920,3 +920,74 @@ git push -u origin codex/restore-backend-reporting-contract
 - Mergear em `main`.
 - Atualizar VPS para `main`.
 - Gerar release oficial do instalador local para cliente.
+
+## 24) Primeira carga canonica enriquecida da API local - 2026-04-28
+
+### 24.1 Objetivo
+
+- Fazer a configuracao inicial do agente local ja preparar a primeira carga para relatorios reais.
+- Buscar e converter dados do MariaDB local para o contrato canonico da API web.
+- Alimentar relatorios com:
+  - formas de pagamento;
+  - familia/categoria do produto;
+  - tipo de venda;
+  - terminal;
+  - filial padrao;
+  - metadados de origem.
+
+### 24.2 Decisao tecnica
+
+- Usar `AGENT_SOURCE_QUERY=auto` como default.
+- Manter suporte a query manual para cenarios fora do XD padrao.
+- Preservar isolamento multi-tenant:
+  - `empresa_id` continua vindo da credencial;
+  - `source_metadata.cnpj` deve ser igual ao tenant autenticado.
+
+### 24.3 Entrega
+
+- `agent_local/db/xd_sales_mapper.py`
+  - monta query automatica para `salesdocumentsreportview`;
+  - normaliza registros para campos canonicos.
+- `agent_local/db/mariadb_client.py`
+  - descobre colunas/tabelas do XD local;
+  - busca formas de pagamento em `xconfigpaymenttypes`;
+  - busca familia em `itemsgroups`;
+  - envia metadados `cnpj`, `company_name` quando houver e `payment_methods`.
+- `agent_local/sync/sync_runner.py`
+  - preserva dimensoes canonicas no payload `/sync`;
+  - inclui `source_metadata`.
+- `backend/schemas/sync.py`
+  - aceita `source_metadata`.
+- `backend/services/sync_service.py`
+  - valida CNPJ da origem contra tenant autenticado;
+  - atualiza nome do tenant quando origem informar nome da empresa.
+- `agent_local/.env.example`
+  - default alterado para `AGENT_SOURCE_QUERY=auto`.
+
+### 24.4 Validacao
+
+- Suíte:
+  - `py -3 -m pytest -q`
+  - `40 passed, 1 skipped`
+- MariaDB local real:
+  - `records=1`;
+  - campos retornados:
+    - `branch_code`;
+    - `terminal_code`;
+    - `tipo_venda`;
+    - `forma_pagamento`;
+    - `familia_produto`;
+  - metadados:
+    - `cnpj`;
+    - `payment_methods`;
+  - `payment_methods_count=7`.
+
+### 24.5 Estado
+
+- Implementacao local validada.
+- Producao ainda nao foi alterada nesta etapa.
+- Proximo passo:
+  - commit;
+  - push;
+  - PR;
+  - deploy na VPS apos merge/aprovacao.

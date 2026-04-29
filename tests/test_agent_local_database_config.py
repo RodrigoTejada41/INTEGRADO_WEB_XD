@@ -59,6 +59,7 @@ def test_save_local_database_config_updates_env_without_json_manual() -> None:
 
     env_text = env_file.read_text(encoding="utf-8")
     assert "AGENT_MARIADB_URL=mysql+pymysql://root:root@127.0.0.1:3308/xd?charset=utf8mb4" in env_text
+    assert "AGENT_SOURCE_QUERY=auto" in env_text
     assert "SYNC_INTERVAL_MINUTES=16" in env_text
     assert "BATCH_SIZE=750" in env_text
     assert result.host == "127.0.0.1"

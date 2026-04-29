@@ -6,6 +6,7 @@ from pathlib import Path
 from sqlalchemy.engine import URL, make_url
 
 from agent_local.db.mariadb_client import MariaDBClient
+from agent_local.db.xd_sales_mapper import AUTO_SOURCE_QUERY
 from agent_local.pairing.env_store import EnvStore
 
 
@@ -22,7 +23,7 @@ class LocalDatabaseConfig:
     username: str
     password: str
     ssl_enabled: bool = False
-    source_query: str | None = None
+    source_query: str | None = AUTO_SOURCE_QUERY
     sync_interval_minutes: int = 15
     batch_size: int = 500
 
@@ -93,8 +94,7 @@ class LocalDatabaseConfigService:
             "SYNC_INTERVAL_MINUTES": str(config.sync_interval_minutes),
             "BATCH_SIZE": str(config.batch_size),
         }
-        if config.source_query is not None:
-            updates["AGENT_SOURCE_QUERY"] = config.source_query
+        updates["AGENT_SOURCE_QUERY"] = (config.source_query or AUTO_SOURCE_QUERY).strip() or AUTO_SOURCE_QUERY
 
         EnvStore(Path(env_file)).update_values(updates)
         return LocalDatabaseConfigResult(

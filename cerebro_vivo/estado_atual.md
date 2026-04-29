@@ -417,3 +417,22 @@ Na retomada canonica mais recente, o backlog funcional estava concluido ate `P18
   - mergear em `main`;
   - atualizar VPS;
   - gerar release oficial do instalador cliente.
+
+## Primeira carga enriquecida para relatorios - 2026-04-28
+
+- Objetivo:
+  - configurar o agente local para que a primeira carga ja alimente relatorios com dimensoes comerciais reais.
+- Entrega:
+  - `AGENT_SOURCE_QUERY=auto` como default;
+  - auto-mapeamento de `salesdocumentsreportview`;
+  - enriquecimento de `forma_pagamento`, `familia_produto`, `tipo_venda`, `terminal_code` e `branch_code`;
+  - metadados `source_metadata` com `cnpj`, `company_name` quando detectado e `payment_methods`;
+  - backend valida CNPJ da origem contra tenant autenticado;
+  - backend atualiza nome do tenant quando o banco local informa nome da empresa.
+- Validacao:
+  - `py -3 -m pytest -q` com `40 passed, 1 skipped`;
+  - MariaDB local real retornou dimensoes de relatorio e `payment_methods_count=7`.
+- Estado:
+  - codigo implementado localmente;
+  - producao ainda nao atualizada nesta etapa;
+  - proximo passo e commit/push/PR e deploy apos merge.
