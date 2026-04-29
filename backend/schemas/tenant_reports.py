@@ -16,6 +16,10 @@ class TenantReportOverviewResponse(BaseModel):
     end_time: str | None = None
     total_records: int
     total_sales_value: Decimal
+    total_gross_value: Decimal = Decimal("0")
+    total_discount_value: Decimal = Decimal("0")
+    total_surcharge_value: Decimal = Decimal("0")
+    total_quantity: Decimal = Decimal("0")
     distinct_products: int
     distinct_branches: int
     distinct_terminals: int
@@ -30,14 +34,26 @@ class TenantDailySalesPointResponse(BaseModel):
 
 
 class TenantTopProductResponse(BaseModel):
+    codigo_produto_local: str | None = None
     produto: str
+    familia_produto: str | None = None
+    categoria_produto: str | None = None
     total_records: int
+    quantity_sold: Decimal = Decimal("0")
+    average_unit_value: Decimal = Decimal("0")
+    gross_value: Decimal = Decimal("0")
+    discount_value: Decimal = Decimal("0")
+    surcharge_value: Decimal = Decimal("0")
     total_sales_value: Decimal
 
 
 class TenantSalesBreakdownItemResponse(BaseModel):
     label: str
     total_records: int
+    quantity_sold: Decimal = Decimal("0")
+    gross_value: Decimal = Decimal("0")
+    discount_value: Decimal = Decimal("0")
+    surcharge_value: Decimal = Decimal("0")
     total_sales_value: Decimal
 
 
@@ -49,8 +65,22 @@ class TenantRecentSaleResponse(BaseModel):
     terminal_code: str | None = None
     tipo_venda: str | None = None
     forma_pagamento: str | None = None
+    bandeira_cartao: str | None = None
     familia_produto: str | None = None
+    categoria_produto: str | None = None
+    codigo_produto_local: str | None = None
+    unidade: str | None = None
+    operador: str | None = None
+    cliente: str | None = None
+    status_venda: str | None = None
+    cancelada: bool = False
     produto: str
+    quantidade: Decimal = Decimal("1")
+    valor_unitario: Decimal | None = None
+    valor_bruto: Decimal | None = None
+    desconto: Decimal = Decimal("0")
+    acrescimo: Decimal = Decimal("0")
+    valor_liquido: Decimal | None = None
     valor: Decimal
     data: date
     data_atualizacao: datetime

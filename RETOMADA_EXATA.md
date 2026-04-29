@@ -2,6 +2,126 @@
 
 Data de atualizacao: 2026-04-28
 
+## Checkpoint relatorios comerciais/financeiros - 2026-04-29
+
+### Entrega local
+- Modulo de relatorios ampliado para BI comercial/financeiro:
+  - filtros por produto, codigo local, familia, forma de pagamento, bandeira, operador, cliente, cancelamento e status;
+  - agrupamentos adicionais por pagamento, bandeira, familia, categoria, terminal, filial, operador, cliente, status e codigo local;
+  - totais detalhados: bruto, descontos, acrescimos, liquido e quantidade;
+  - exportacao CSV/Excel/PDF preservando filtros aplicados;
+  - painel com filtros avancados e tabela detalhada;
+  - tabela `produto_de_para` por empresa, usando `codigo_produto_local` como referencia principal.
+- Migration nova:
+  - `backend/db/migrations/v006_sales_report_detail_fields.py`.
+- Documentacao nova:
+  - `docs/relatorios_comerciais_financeiros.md`.
+
+### Validacao local
+- `py -3 -m compileall backend sync-admin\app` -> OK.
+- `py -3 -m pytest tests\test_sync_upsert.py tests\test_sync_admin_rbac.py -q` -> `12 passed`.
+- `py -3 -m pytest -q` -> `41 passed, 1 skipped`.
+
+### Proximo passo seguro
+1. Revisar visualmente `/reports` e `/client/reports`.
+2. Aplicar migration v006 no ambiente alvo antes do deploy.
+3. Subir branch/PR e validar exportacoes com dados reais do cliente.
+
+## Checkpoint referencia XD Software - 2026-04-29
+
+### Arquivo consultado
+- `TABELAS DO BANCO XD/REFERENCIA TABELAS BD XD SOFTWARE.xlsx`
+
+### Entrega local adicional
+- `agent_local/db/xd_sales_mapper.py` agora usa a referencia XD para fallback automatico:
+  - origem preferencial: `salesdocumentsreportview`;
+  - origem alternativa: `Documentsbodys + Documentsheaders`;
+  - pagamentos: `Invoicepaymentdetails + Xconfigpaymenttypes`;
+  - familia: `Itemsgroups`;
+  - codigo local do produto: `ItemKeyId -> codigo_produto_local`.
+- Criadas rotas de diagnostico no `sync-admin`:
+  - `GET /settings/xd-mapping`;
+  - `GET /settings/xd-mapping/routes`.
+- O diagnostico mostra tabelas/colunas detectadas e tipo de origem usada sem expor senha.
+
+### Validacao local
+- `py -3 -m pytest tests\test_xd_sales_mapper.py tests\test_sync_admin_rbac.py tests\test_sync_upsert.py -q` -> `16 passed`.
+- `py -3 -m pytest -q` -> `45 passed, 1 skipped`.
+
+## Checkpoint CRUD DE/PARA Produtos - 2026-04-29
+
+### Entrega local adicional
+- CRUD administrativo completo de `produto_de_para`:
+  - `GET /admin/tenants/{empresa_id}/produto-de-para`;
+  - `POST /admin/tenants/{empresa_id}/produto-de-para`;
+  - `PUT /admin/tenants/{empresa_id}/produto-de-para/{mapping_id}`;
+  - `DELETE /admin/tenants/{empresa_id}/produto-de-para/{mapping_id}`;
+  - `GET /admin/tenants/{empresa_id}/produto-de-para/unmapped`.
+- Tela `/settings` recebeu secao `DE/PARA Produtos`:
+  - cadastro manual;
+  - edicao;
+  - remocao;
+  - produtos sincronizados sem mapeamento.
+- Implementadas camadas separadas:
+  - repository;
+  - service;
+  - schemas;
+  - rotas API;
+  - client do `sync-admin`.
+- Regras aplicadas:
+  - isolamento por `empresa_id`;
+  - `cnpj` deve bater com `empresa_id`;
+  - `codigo_produto_local` permanece como chave principal;
+  - auditoria administrativa em criacao, atualizacao e remocao.
+
+### Validacao local
+- `py -3 -m compileall agent_local backend sync-admin\app` -> OK.
+- `py -3 -m pytest tests\test_produto_de_para.py tests\test_sync_admin_rbac.py tests\test_xd_sales_mapper.py tests\test_sync_upsert.py -q` -> `20 passed`.
+- `py -3 -m pytest -q` -> `49 passed, 1 skipped`.
+
+### Autorizacoes operacionais
+- Arquivo criado:
+  - `docs/autorizacoes_operacionais.md`
+- Objetivo:
+  - registrar autorizacoes recorrentes para Git, SSH, deploy VPS, migrations e validacoes sem rediscutir o fluxo a cada execucao.
+
+### Deploy VPS executado - 2026-04-29
+- Branch em producao:
+  - `codex/local-agent-db-panel`
+- Commit em producao:
+  - `ef3030a` - merge de `origin/main` na branch `codex/local-agent-db-panel`
+- Commit funcional do deploy:
+  - `902bccd` - `feat: expand commercial reporting module`
+- Commit de autorizacoes/documentacao:
+  - `8f1f9b4` - `docs: record deployment authorization and VPS status`
+- Comando executado na VPS:
+  - `bash infra/scripts/deploy-prod.sh`
+- Resultado do deploy:
+  - build backend/frontend OK;
+  - containers recriados;
+  - migration aplicada com `current_version=6`;
+  - `integrado-backend` healthy;
+  - `integrado-frontend` healthy;
+  - `integrado-nginx` healthy.
+- Validacao publica:
+  - `https://movisystecnologia.com.br/healthz` -> `200`;
+  - `https://movisystecnologia.com.br/readyz/backend` -> `200`;
+  - `https://movisystecnologia.com.br/readyz/sync-admin` -> `200`;
+  - `https://movisystecnologia.com.br/admin/api/health/ready` -> `200`.
+- Validacao de schema na VPS:
+  - `version=6`;
+  - `produto_de_para=produto_de_para`;
+  - `vendas_detail_columns=5`.
+- Validacao de rotas backend na VPS:
+  - `/admin/tenants/12345678000199/reports/overview` -> `200`;
+  - `/admin/tenants/12345678000199/produto-de-para?limit=1` -> `200`;
+  - `/admin/tenants/12345678000199/produto-de-para/unmapped?limit=1` -> `200`.
+- Antes do checkout, a VPS tinha alteracoes locais. Elas foram preservadas em stash e em `infra/deploy-safety/`.
+- A branch foi sincronizada com `origin/main` apos o deploy:
+  - merge commit local/remoto: `ef3030a`;
+  - `py -3 -m pytest -q` -> `49 passed, 1 skipped`;
+  - checkout da VPS atualizado para `ef3030a` sem rebuild adicional.
+
 ## Objetivo desta nota
 Este arquivo e o ponto de entrada para retomar o projeto sem redescobrir contexto.
 
@@ -794,3 +914,70 @@ Este arquivo e o ponto de entrada para retomar o projeto sem redescobrir context
   - abrir PR de `codex/local-agent-db-panel` para `main`;
   - apos merge, atualizar VPS para `main`;
   - gerar release versionada oficial do instalador do cliente.
+
+## Checkpoint: primeira carga canonica enriquecida - 2026-04-28
+
+### Objetivo
+- Ao configurar a API local, a primeira carga deve transformar o MariaDB local em modelo canonico para relatorios.
+- O agente local nao deve enviar estrutura bruta do banco.
+- A API web deve receber dimensoes necessarias para BI:
+  - `forma_pagamento`;
+  - `familia_produto`;
+  - `tipo_venda`;
+  - `terminal_code`;
+  - `branch_code`;
+  - metadados de origem (`cnpj`, `company_name`, `payment_methods`).
+
+### Entrega
+- Criado auto-mapeamento `AGENT_SOURCE_QUERY=auto`.
+- Quando detectar `salesdocumentsreportview`, o agente monta query canonica automaticamente.
+- Familia de produto vem de `itemsgroups`.
+- Forma de pagamento vem de `invoicepaymentdetails` + `xconfigpaymenttypes`.
+- O payload `/sync` passou a preservar campos de relatorio no envio.
+- O backend passou a aceitar `source_metadata`.
+- O backend rejeita `source_metadata.cnpj` diferente do tenant autenticado.
+- O backend atualiza `Tenant.nome` quando a origem local informar `company_name`.
+
+### Validacao
+- Teste unitario/local:
+  - `py -3 -m pytest -q`
+  - resultado: `40 passed, 1 skipped`
+- Teste real contra MariaDB local:
+  - `source_query=auto`;
+  - retornou registro com `branch_code`, `terminal_code`, `tipo_venda`, `forma_pagamento` e `familia_produto`;
+  - metadados retornaram `cnpj` e `payment_methods`;
+  - `payment_methods_count=7`.
+
+### Proximo passo seguro
+- Commitar a entrega.
+- Abrir/atualizar PR da branch `codex/local-agent-db-panel`.
+- Depois do merge, atualizar VPS.
+
+## Checkpoint: usuario cliente padrao e portal separado - 2026-04-28
+
+### Entrega
+- Seed automatico do usuario cliente:
+  - usuario: `adm`;
+  - perfil: `client`;
+  - escopo: `company`;
+  - empresa padrao: `CONTROL_EMPRESA_ID`;
+  - senha configurada por `INITIAL_CLIENT_PASSWORD` e armazenada somente como hash no banco.
+- Criado login separado do portal do cliente:
+  - `/client/login`;
+  - publico via Nginx em `/MoviRelatorios/login`.
+- Cliente autenticado vai para:
+  - `/client/reports`.
+- Cliente nao acessa dashboard/admin:
+  - `/dashboard` retorna `403` para perfil `client`.
+- Admin continua podendo visualizar o portal cliente para suporte/teste.
+- Nginx passou a mapear:
+  - `/MoviRelatorios/*` -> `/client/*`;
+  - `/admin/*` permanece separado.
+
+### Validacao
+- Testes focados:
+  - `py -3 -m pytest tests\test_sync_admin_rbac.py tests\test_production_operations.py -q`
+  - `15 passed`
+- Suite completa:
+  - `py -3 -m pytest -q`
+  - `40 passed, 1 skipped`

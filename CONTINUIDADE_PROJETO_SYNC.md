@@ -920,3 +920,120 @@ git push -u origin codex/restore-backend-reporting-contract
 - Mergear em `main`.
 - Atualizar VPS para `main`.
 - Gerar release oficial do instalador local para cliente.
+
+## 24) Primeira carga canonica enriquecida da API local - 2026-04-28
+
+### 24.1 Objetivo
+
+- Fazer a configuracao inicial do agente local ja preparar a primeira carga para relatorios reais.
+- Buscar e converter dados do MariaDB local para o contrato canonico da API web.
+- Alimentar relatorios com:
+  - formas de pagamento;
+  - familia/categoria do produto;
+  - tipo de venda;
+  - terminal;
+  - filial padrao;
+  - metadados de origem.
+
+### 24.2 Decisao tecnica
+
+- Usar `AGENT_SOURCE_QUERY=auto` como default.
+- Manter suporte a query manual para cenarios fora do XD padrao.
+- Preservar isolamento multi-tenant:
+  - `empresa_id` continua vindo da credencial;
+  - `source_metadata.cnpj` deve ser igual ao tenant autenticado.
+
+### 24.3 Entrega
+
+- `agent_local/db/xd_sales_mapper.py`
+  - monta query automatica para `salesdocumentsreportview`;
+  - normaliza registros para campos canonicos.
+- `agent_local/db/mariadb_client.py`
+  - descobre colunas/tabelas do XD local;
+  - busca formas de pagamento em `xconfigpaymenttypes`;
+  - busca familia em `itemsgroups`;
+  - envia metadados `cnpj`, `company_name` quando houver e `payment_methods`.
+- `agent_local/sync/sync_runner.py`
+  - preserva dimensoes canonicas no payload `/sync`;
+  - inclui `source_metadata`.
+- `backend/schemas/sync.py`
+  - aceita `source_metadata`.
+- `backend/services/sync_service.py`
+  - valida CNPJ da origem contra tenant autenticado;
+  - atualiza nome do tenant quando origem informar nome da empresa.
+- `agent_local/.env.example`
+  - default alterado para `AGENT_SOURCE_QUERY=auto`.
+
+### 24.4 Validacao
+
+- Suíte:
+  - `py -3 -m pytest -q`
+  - `40 passed, 1 skipped`
+- MariaDB local real:
+  - `records=1`;
+  - campos retornados:
+    - `branch_code`;
+    - `terminal_code`;
+    - `tipo_venda`;
+    - `forma_pagamento`;
+    - `familia_produto`;
+  - metadados:
+    - `cnpj`;
+    - `payment_methods`;
+  - `payment_methods_count=7`.
+
+### 24.5 Estado
+
+- Implementacao local validada.
+- Producao ainda nao foi alterada nesta etapa.
+- Proximo passo:
+  - commit;
+  - push;
+  - PR;
+  - deploy na VPS apos merge/aprovacao.
+
+## 25) Usuario cliente padrao e separacao do portal - 2026-04-28
+
+### 25.1 Objetivo
+
+- Criar acesso inicial de cliente sem misturar com o painel administrativo.
+- Manter o admin operacional em `/admin`.
+- Manter o portal de relatorios do cliente em `/MoviRelatorios`.
+
+### 25.2 Entrega
+
+- Configuracoes novas do `sync-admin`:
+  - `INITIAL_CLIENT_ENABLED`;
+  - `INITIAL_CLIENT_USERNAME`;
+  - `INITIAL_CLIENT_PASSWORD`;
+  - `INITIAL_CLIENT_FULL_NAME`;
+  - `INITIAL_CLIENT_EMPRESA_ID`.
+- Usuario seed padrao:
+  - `adm`;
+  - role `client`;
+  - escopo `company`;
+  - senha gravada com hash bcrypt no banco.
+- Login separado:
+  - interno: `/client/login`;
+  - publico: `/MoviRelatorios/login`.
+- Cliente autenticado e redirecionado para `/client/reports`.
+- Cliente nao acessa `/dashboard`.
+- Admin continua autorizado no portal cliente para suporte e validacao.
+- Nginx separado:
+  - `/MoviRelatorios/*` reescreve para `/client/*`;
+  - `/admin/*` continua para o painel administrativo.
+
+### 25.3 Validacao
+
+- Testes focados:
+  - `py -3 -m pytest tests\test_sync_admin_rbac.py tests\test_production_operations.py -q`
+  - `15 passed`
+- Suite completa:
+  - `py -3 -m pytest -q`
+  - `40 passed, 1 skipped`
+
+### 25.4 Proximo passo
+
+- Commit/push da entrega.
+- Abrir/atualizar PR.
+- Deploy na VPS apos merge.

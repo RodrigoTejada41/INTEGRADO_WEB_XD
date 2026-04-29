@@ -45,8 +45,22 @@ def test_bulk_upsert_insert() -> None:
             "terminal_code": "PDV-01",
             "tipo_venda": "presencial",
             "forma_pagamento": "cartao_credito",
+            "bandeira_cartao": "Visa",
             "familia_produto": "bebidas",
+            "categoria_produto": "refrigerantes",
+            "codigo_produto_local": "789001",
+            "unidade": "UN",
+            "operador": "Caixa 01",
+            "cliente": "Cliente A",
+            "status_venda": "finalizada",
+            "cancelada": False,
             "produto": "Produto A",
+            "quantidade": Decimal("2.000"),
+            "valor_unitario": Decimal("5.0000"),
+            "valor_bruto": Decimal("12.00"),
+            "desconto": Decimal("2.00"),
+            "acrescimo": Decimal("0.00"),
+            "valor_liquido": Decimal("10.00"),
             "valor": Decimal("10.00"),
             "data": date(2026, 4, 16),
             "data_atualizacao": datetime(2026, 4, 16, 10, 0, tzinfo=UTC),
@@ -64,7 +78,14 @@ def test_bulk_upsert_insert() -> None:
     assert venda.terminal_code == "PDV-01"
     assert venda.tipo_venda == "presencial"
     assert venda.forma_pagamento == "cartao_credito"
+    assert venda.bandeira_cartao == "Visa"
     assert venda.familia_produto == "bebidas"
+    assert venda.categoria_produto == "refrigerantes"
+    assert venda.codigo_produto_local == "789001"
+    assert venda.quantidade == Decimal("2.000")
+    assert venda.valor_bruto == Decimal("12.00")
+    assert venda.desconto == Decimal("2.00")
+    assert venda.valor_liquido == Decimal("10.00")
 
 
 def test_bulk_upsert_update() -> None:
@@ -167,6 +188,12 @@ def test_report_breakdowns_and_time_filter() -> None:
                 "tipo_venda": "presencial",
                 "forma_pagamento": "pix",
                 "familia_produto": "bebidas",
+                "categoria_produto": "agua",
+                "codigo_produto_local": "AGUA01",
+                "quantidade": Decimal("2"),
+                "valor_bruto": Decimal("12.00"),
+                "desconto": Decimal("2.00"),
+                "valor_liquido": Decimal("10.00"),
                 "produto": "Agua",
                 "valor": Decimal("10.00"),
                 "data": date(2026, 4, 16),
@@ -176,7 +203,12 @@ def test_report_breakdowns_and_time_filter() -> None:
                 "uuid": "55555555-5555-5555-5555-555555555555",
                 "tipo_venda": "delivery",
                 "forma_pagamento": "cartao",
+                "bandeira_cartao": "Master",
                 "familia_produto": "lanches",
+                "categoria_produto": "sanduiches",
+                "codigo_produto_local": "LANCHE01",
+                "operador": "Caixa 02",
+                "status_venda": "finalizada",
                 "produto": "Sanduiche",
                 "valor": Decimal("40.00"),
                 "data": date(2026, 4, 16),
@@ -222,3 +254,19 @@ def test_report_breakdowns_and_time_filter() -> None:
         category="sand",
     )
     assert [sale.produto for sale in category_recent_sales] == ["Sanduiche"]
+
+    product_code_overview = repository.report_overview(
+        empresa_id="11111111000101",
+        product_code="AGUA01",
+    )
+    assert product_code_overview["total_records"] == 1
+    assert product_code_overview["total_quantity"] == Decimal("2.000")
+    assert product_code_overview["total_gross_value"] == Decimal("12.00")
+    assert product_code_overview["total_discount_value"] == Decimal("2.00")
+
+    operator_breakdown = repository.report_sales_breakdown(
+        empresa_id="11111111000101",
+        group_by="operador",
+        limit=10,
+    )
+    assert operator_breakdown[0]["label"] == "Caixa 02"

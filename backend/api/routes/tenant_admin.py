@@ -14,6 +14,16 @@ from backend.repositories.tenant_config_repository import TenantConfigRepository
 from backend.repositories.tenant_sync_job_repository import TenantSyncJobRepository
 from backend.repositories.tenant_repository import TenantRepository
 from backend.repositories.venda_repository import VendaRepository
+from backend.repositories.produto_de_para_repository import ProdutoDeParaRepository
+from backend.schemas.produto_de_para import (
+    ProdutoDeParaCreateRequest,
+    ProdutoDeParaDeleteResponse,
+    ProdutoDeParaListResponse,
+    ProdutoDeParaResponse,
+    ProdutoDeParaUpdateRequest,
+    ProdutoSemDeParaListResponse,
+    ProdutoSemDeParaResponse,
+)
 from backend.schemas.tenant_audit import TenantAuditEventResponse, TenantAuditSummaryResponse
 from backend.schemas.server_settings import ServerSettingsResponse, ServerSettingsUpdateRequest
 from backend.schemas.secure_connection_configs import (
@@ -53,6 +63,7 @@ from backend.services.admin_service import AdminService
 from backend.services.tenant_audit_service import TenantAuditService
 from backend.services.tenant_job_service import TenantJobService
 from backend.services.tenant_report_service import TenantReportService
+from backend.services.produto_de_para_service import ProdutoDeParaService
 from backend.services.server_settings_service import ServerSettingsService
 from backend.services.connection_secret_service import ConnectionSecretService
 from backend.services.tenant_config_service import TenantConfigService
@@ -80,6 +91,49 @@ def _connection_secret_service(session: Session) -> ConnectionSecretService:
 
 def _tenant_report_service(session: Session) -> TenantReportService:
     return TenantReportService(TenantRepository(session), VendaRepository(session))
+
+
+def _produto_de_para_service(session: Session) -> ProdutoDeParaService:
+    return ProdutoDeParaService(TenantRepository(session), ProdutoDeParaRepository(session))
+
+
+def _report_filter_kwargs(
+    *,
+    start_date: date | None,
+    end_date: date | None,
+    branch_code: str | None,
+    terminal_code: str | None,
+    category: str | None,
+    product: str | None,
+    product_code: str | None,
+    family: str | None,
+    payment_method: str | None,
+    card_brand: str | None,
+    status_filter: str | None,
+    canceled: bool | None,
+    operator: str | None,
+    customer: str | None,
+    start_time: time | None,
+    end_time: time | None,
+) -> dict[str, object]:
+    return {
+        "start_date": start_date,
+        "end_date": end_date,
+        "branch_code": branch_code,
+        "terminal_code": terminal_code,
+        "category": category,
+        "product": product,
+        "product_code": product_code,
+        "family": family,
+        "payment_method": payment_method,
+        "card_brand": card_brand,
+        "status_filter": status_filter,
+        "canceled": canceled,
+        "operator": operator,
+        "customer": customer,
+        "start_time": start_time,
+        "end_time": end_time,
+    }
 
 
 def _audit_context(request: Request) -> dict[str, str]:
@@ -992,6 +1046,15 @@ def get_report_overview(
     branch_code: str | None = None,
     terminal_code: str | None = None,
     category: str | None = None,
+    product: str | None = None,
+    product_code: str | None = None,
+    family: str | None = None,
+    payment_method: str | None = None,
+    card_brand: str | None = None,
+    status_filter: str | None = None,
+    canceled: bool | None = None,
+    operator: str | None = None,
+    customer: str | None = None,
     start_time: time | None = None,
     end_time: time | None = None,
     session: Session = Depends(get_session),
@@ -999,13 +1062,24 @@ def get_report_overview(
     service = _tenant_report_service(session)
     snapshot = service.get_overview(
         empresa_id=empresa_id,
-        start_date=start_date,
-        end_date=end_date,
-        branch_code=branch_code,
-        terminal_code=terminal_code,
-        category=category,
-        start_time=start_time,
-        end_time=end_time,
+        **_report_filter_kwargs(
+            start_date=start_date,
+            end_date=end_date,
+            branch_code=branch_code,
+            terminal_code=terminal_code,
+            category=category,
+            product=product,
+            product_code=product_code,
+            family=family,
+            payment_method=payment_method,
+            card_brand=card_brand,
+            status_filter=status_filter,
+            canceled=canceled,
+            operator=operator,
+            customer=customer,
+            start_time=start_time,
+            end_time=end_time,
+        ),
     )
     return TenantReportOverviewResponse(
         empresa_id=empresa_id,
@@ -1031,6 +1105,15 @@ def get_daily_sales_report(
     branch_code: str | None = None,
     terminal_code: str | None = None,
     category: str | None = None,
+    product: str | None = None,
+    product_code: str | None = None,
+    family: str | None = None,
+    payment_method: str | None = None,
+    card_brand: str | None = None,
+    status_filter: str | None = None,
+    canceled: bool | None = None,
+    operator: str | None = None,
+    customer: str | None = None,
     start_time: time | None = None,
     end_time: time | None = None,
     session: Session = Depends(get_session),
@@ -1038,13 +1121,24 @@ def get_daily_sales_report(
     service = _tenant_report_service(session)
     items = service.get_daily_sales(
         empresa_id=empresa_id,
-        start_date=start_date,
-        end_date=end_date,
-        branch_code=branch_code,
-        terminal_code=terminal_code,
-        category=category,
-        start_time=start_time,
-        end_time=end_time,
+        **_report_filter_kwargs(
+            start_date=start_date,
+            end_date=end_date,
+            branch_code=branch_code,
+            terminal_code=terminal_code,
+            category=category,
+            product=product,
+            product_code=product_code,
+            family=family,
+            payment_method=payment_method,
+            card_brand=card_brand,
+            status_filter=status_filter,
+            canceled=canceled,
+            operator=operator,
+            customer=customer,
+            start_time=start_time,
+            end_time=end_time,
+        ),
     )
     return TenantDailySalesResponse(
         empresa_id=empresa_id,
@@ -1071,6 +1165,15 @@ def get_top_products_report(
     branch_code: str | None = None,
     terminal_code: str | None = None,
     category: str | None = None,
+    product: str | None = None,
+    product_code: str | None = None,
+    family: str | None = None,
+    payment_method: str | None = None,
+    card_brand: str | None = None,
+    status_filter: str | None = None,
+    canceled: bool | None = None,
+    operator: str | None = None,
+    customer: str | None = None,
     start_time: time | None = None,
     end_time: time | None = None,
     session: Session = Depends(get_session),
@@ -1079,13 +1182,24 @@ def get_top_products_report(
     items = service.get_top_products(
         empresa_id=empresa_id,
         limit=max(1, min(limit, 100)),
-        start_date=start_date,
-        end_date=end_date,
-        branch_code=branch_code,
-        terminal_code=terminal_code,
-        category=category,
-        start_time=start_time,
-        end_time=end_time,
+        **_report_filter_kwargs(
+            start_date=start_date,
+            end_date=end_date,
+            branch_code=branch_code,
+            terminal_code=terminal_code,
+            category=category,
+            product=product,
+            product_code=product_code,
+            family=family,
+            payment_method=payment_method,
+            card_brand=card_brand,
+            status_filter=status_filter,
+            canceled=canceled,
+            operator=operator,
+            customer=customer,
+            start_time=start_time,
+            end_time=end_time,
+        ),
     )
     return TenantTopProductsResponse(
         empresa_id=empresa_id,
@@ -1114,6 +1228,15 @@ def get_sales_breakdown_report(
     branch_code: str | None = None,
     terminal_code: str | None = None,
     category: str | None = None,
+    product: str | None = None,
+    product_code: str | None = None,
+    family: str | None = None,
+    payment_method: str | None = None,
+    card_brand: str | None = None,
+    status_filter: str | None = None,
+    canceled: bool | None = None,
+    operator: str | None = None,
+    customer: str | None = None,
     start_time: time | None = None,
     end_time: time | None = None,
     session: Session = Depends(get_session),
@@ -1124,13 +1247,24 @@ def get_sales_breakdown_report(
         empresa_id=empresa_id,
         group_by=group_by,
         limit=bounded_limit,
-        start_date=start_date,
-        end_date=end_date,
-        branch_code=branch_code,
-        terminal_code=terminal_code,
-        category=category,
-        start_time=start_time,
-        end_time=end_time,
+        **_report_filter_kwargs(
+            start_date=start_date,
+            end_date=end_date,
+            branch_code=branch_code,
+            terminal_code=terminal_code,
+            category=category,
+            product=product,
+            product_code=product_code,
+            family=family,
+            payment_method=payment_method,
+            card_brand=card_brand,
+            status_filter=status_filter,
+            canceled=canceled,
+            operator=operator,
+            customer=customer,
+            start_time=start_time,
+            end_time=end_time,
+        ),
     )
     return TenantSalesBreakdownResponse(
         empresa_id=empresa_id,
@@ -1159,6 +1293,15 @@ def get_recent_sales_report(
     branch_code: str | None = None,
     terminal_code: str | None = None,
     category: str | None = None,
+    product: str | None = None,
+    product_code: str | None = None,
+    family: str | None = None,
+    payment_method: str | None = None,
+    card_brand: str | None = None,
+    status_filter: str | None = None,
+    canceled: bool | None = None,
+    operator: str | None = None,
+    customer: str | None = None,
     start_time: time | None = None,
     end_time: time | None = None,
     session: Session = Depends(get_session),
@@ -1168,13 +1311,24 @@ def get_recent_sales_report(
     items = service.get_recent_sales(
         empresa_id=empresa_id,
         limit=bounded_limit,
-        start_date=start_date,
-        end_date=end_date,
-        branch_code=branch_code,
-        terminal_code=terminal_code,
-        category=category,
-        start_time=start_time,
-        end_time=end_time,
+        **_report_filter_kwargs(
+            start_date=start_date,
+            end_date=end_date,
+            branch_code=branch_code,
+            terminal_code=terminal_code,
+            category=category,
+            product=product,
+            product_code=product_code,
+            family=family,
+            payment_method=payment_method,
+            card_brand=card_brand,
+            status_filter=status_filter,
+            canceled=canceled,
+            operator=operator,
+            customer=customer,
+            start_time=start_time,
+            end_time=end_time,
+        ),
     )
     return TenantRecentSalesResponse(
         empresa_id=empresa_id,
@@ -1214,4 +1368,168 @@ def get_report_branches(
         end_date=end_date,
         terminal_code=terminal_code,
         items=items,
+    )
+
+
+@router.get(
+    "/tenants/{empresa_id}/produto-de-para",
+    response_model=ProdutoDeParaListResponse,
+    dependencies=[Depends(require_admin_token)],
+)
+def list_produto_de_para(
+    empresa_id: str,
+    search: str | None = None,
+    limit: int = 100,
+    offset: int = 0,
+    session: Session = Depends(get_session),
+) -> ProdutoDeParaListResponse:
+    service = _produto_de_para_service(session)
+    items = service.list(
+        empresa_id=empresa_id,
+        search=search,
+        limit=max(1, min(limit, 500)),
+        offset=max(offset, 0),
+    )
+    return ProdutoDeParaListResponse(
+        empresa_id=empresa_id,
+        items=[ProdutoDeParaResponse.model_validate(item) for item in items],
+    )
+
+
+@router.post(
+    "/tenants/{empresa_id}/produto-de-para",
+    response_model=ProdutoDeParaResponse,
+    dependencies=[Depends(require_admin_token)],
+)
+def create_produto_de_para(
+    empresa_id: str,
+    payload: ProdutoDeParaCreateRequest,
+    request: Request,
+    session: Session = Depends(get_session),
+) -> ProdutoDeParaResponse:
+    service = _produto_de_para_service(session)
+    try:
+        mapping = service.create_or_update(empresa_id=empresa_id, payload=payload)
+    except Exception as exc:
+        session.rollback()
+        _record_admin_failure(
+            session=session,
+            request=request,
+            empresa_id=empresa_id,
+            action="produto_de_para.upsert",
+            resource_type="produto_de_para",
+            resource_id=payload.codigo_produto_local,
+            exc=exc,
+        )
+        session.commit()
+        raise
+    _record_admin_audit(
+        session=session,
+        request=request,
+        empresa_id=empresa_id,
+        action="produto_de_para.upsert",
+        resource_type="produto_de_para",
+        resource_id=payload.codigo_produto_local,
+        detail={"codigo_produto_local": payload.codigo_produto_local},
+    )
+    session.commit()
+    return ProdutoDeParaResponse.model_validate(mapping)
+
+
+@router.put(
+    "/tenants/{empresa_id}/produto-de-para/{mapping_id}",
+    response_model=ProdutoDeParaResponse,
+    dependencies=[Depends(require_admin_token)],
+)
+def update_produto_de_para(
+    empresa_id: str,
+    mapping_id: int,
+    payload: ProdutoDeParaUpdateRequest,
+    request: Request,
+    session: Session = Depends(get_session),
+) -> ProdutoDeParaResponse:
+    service = _produto_de_para_service(session)
+    try:
+        mapping = service.update(empresa_id=empresa_id, mapping_id=mapping_id, payload=payload)
+    except Exception as exc:
+        session.rollback()
+        _record_admin_failure(
+            session=session,
+            request=request,
+            empresa_id=empresa_id,
+            action="produto_de_para.update",
+            resource_type="produto_de_para",
+            resource_id=str(mapping_id),
+            exc=exc,
+        )
+        session.commit()
+        raise
+    _record_admin_audit(
+        session=session,
+        request=request,
+        empresa_id=empresa_id,
+        action="produto_de_para.update",
+        resource_type="produto_de_para",
+        resource_id=str(mapping_id),
+        detail=payload.model_dump(exclude_unset=True),
+    )
+    session.commit()
+    return ProdutoDeParaResponse.model_validate(mapping)
+
+
+@router.delete(
+    "/tenants/{empresa_id}/produto-de-para/{mapping_id}",
+    response_model=ProdutoDeParaDeleteResponse,
+    dependencies=[Depends(require_admin_token)],
+)
+def delete_produto_de_para(
+    empresa_id: str,
+    mapping_id: int,
+    request: Request,
+    session: Session = Depends(get_session),
+) -> ProdutoDeParaDeleteResponse:
+    service = _produto_de_para_service(session)
+    try:
+        service.delete(empresa_id=empresa_id, mapping_id=mapping_id)
+    except Exception as exc:
+        session.rollback()
+        _record_admin_failure(
+            session=session,
+            request=request,
+            empresa_id=empresa_id,
+            action="produto_de_para.delete",
+            resource_type="produto_de_para",
+            resource_id=str(mapping_id),
+            exc=exc,
+        )
+        session.commit()
+        raise
+    _record_admin_audit(
+        session=session,
+        request=request,
+        empresa_id=empresa_id,
+        action="produto_de_para.delete",
+        resource_type="produto_de_para",
+        resource_id=str(mapping_id),
+        detail={"deleted": True},
+    )
+    session.commit()
+    return ProdutoDeParaDeleteResponse(empresa_id=empresa_id, id=mapping_id, deleted=True)
+
+
+@router.get(
+    "/tenants/{empresa_id}/produto-de-para/unmapped",
+    response_model=ProdutoSemDeParaListResponse,
+    dependencies=[Depends(require_admin_token)],
+)
+def list_produtos_sem_de_para(
+    empresa_id: str,
+    limit: int = 100,
+    session: Session = Depends(get_session),
+) -> ProdutoSemDeParaListResponse:
+    service = _produto_de_para_service(session)
+    items = service.list_unmapped_products(empresa_id=empresa_id, limit=max(1, min(limit, 500)))
+    return ProdutoSemDeParaListResponse(
+        empresa_id=empresa_id,
+        items=[ProdutoSemDeParaResponse(**item) for item in items],
     )

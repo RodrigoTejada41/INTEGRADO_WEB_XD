@@ -20,11 +20,43 @@ class AuthService:
             return
         self.repo.create(username=username, full_name='Administrator', password_hash=hash_password(password), role='admin')
 
-    def ensure_user(self, username: str, full_name: str, password: str, role: str) -> None:
+    def ensure_user(
+        self,
+        username: str,
+        full_name: str,
+        password: str,
+        role: str,
+        empresa_id: str | None = None,
+        scope_type: str | None = None,
+    ) -> None:
         exists = self.repo.by_username(username)
         if exists:
             return
-        self.repo.create(username=username, full_name=full_name, password_hash=hash_password(password), role=role)
+        self.repo.create(
+            username=username,
+            full_name=full_name,
+            password_hash=hash_password(password),
+            role=role,
+            empresa_id=empresa_id,
+            scope_type=scope_type,
+        )
+
+    def ensure_initial_client(
+        self,
+        *,
+        username: str,
+        full_name: str,
+        password: str,
+        empresa_id: str,
+    ) -> None:
+        self.ensure_user(
+            username=username,
+            full_name=full_name,
+            password=password,
+            role='client',
+            empresa_id=empresa_id,
+            scope_type='company',
+        )
 
     def login(self, username: str, password: str) -> User | None:
         user = self.repo.by_username(username)

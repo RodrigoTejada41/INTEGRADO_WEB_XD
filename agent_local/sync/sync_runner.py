@@ -3,6 +3,7 @@ from datetime import datetime
 from typing import Callable
 
 from agent_local.db.mariadb_client import MariaDBClient
+from agent_local.db.xd_sales_mapper import OPTIONAL_CANONICAL_FIELDS
 from agent_local.sync.api_client import SyncApiClient
 from agent_local.sync.checkpoint_store import CheckpointStore
 
@@ -41,17 +42,11 @@ class SyncRunner:
 
         payload = {
             "empresa_id": self.empresa_id,
-            "records": [
-                {
-                    "uuid": record["uuid"],
-                    "produto": record["produto"],
-                    "valor": record["valor"],
-                    "data": record["data"],
-                    "data_atualizacao": record["data_atualizacao"],
-                }
-                for record in records
-            ],
+            "records": [self._build_payload_record(record) for record in records],
         }
+        source_metadata = self.mariadb_client.fetch_source_metadata(self.empresa_id)
+        if source_metadata:
+            payload["source_metadata"] = source_metadata
         api_key = self.api_key_provider() if self.api_key_provider else None
         response = self.api_client.send_sync_batch(payload, api_key=api_key)
 
@@ -67,3 +62,17 @@ class SyncRunner:
             },
         )
         return response
+
+    def _build_payload_record(self, record: dict) -> dict:
+        payload_record = {
+            "uuid": record["uuid"],
+            "produto": record["produto"],
+            "valor": record["valor"],
+            "data": record["data"],
+            "data_atualizacao": record["data_atualizacao"],
+        }
+        for field in OPTIONAL_CANONICAL_FIELDS:
+            value = record.get(field)
+            if value is not None and str(value).strip():
+                payload_record[field] = value if isinstance(value, bool) else str(value).strip()
+        return payload_record

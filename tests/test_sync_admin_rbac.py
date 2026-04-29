@@ -94,6 +94,19 @@ def test_sync_admin_role_based_access() -> None:
         viewer_dashboard = client.get("/dashboard")
         assert viewer_dashboard.status_code == 200
 
+        client.post("/logout", follow_redirects=False)
+
+        client_login = client.post(
+            "/client/login",
+            data={"username": "adm", "password": "25032015Lu@@"},
+            follow_redirects=False,
+        )
+        assert client_login.status_code in (302, 303)
+        assert client_login.headers["location"] == "/client/reports"
+
+        client_admin_dashboard = client.get("/dashboard")
+        assert client_admin_dashboard.status_code == 403
+
 
 def test_admin_can_preview_any_client_portal_scope(monkeypatch) -> None:
     _ensure_sync_admin_path()
@@ -212,14 +225,28 @@ def test_report_csv_and_excel_are_client_readable() -> None:
         "branch_code": "0001",
         "terminal_code": "PDV-01",
         "forma_pagamento": "PIX",
+        "bandeira_cartao": "Visa",
         "tipo_venda": "Balcao",
         "familia_produto": "Teste",
+        "categoria_produto": "Bebidas",
+        "codigo_produto_local": "789001",
+        "quantidade": "2",
+        "valor_bruto": "110.00",
+        "desconto": "10.10",
+        "acrescimo": "0.00",
+        "operador": "Caixa 01",
+        "cliente": "Cliente Teste",
+        "status_venda": "finalizada",
         "campo_extra_que_nao_pode_quebrar_csv": "x",
     }
 
     csv_text = report_recent_sales_to_csv([sale])
 
-    assert csv_text.splitlines()[0] == "Data;Produto;Valor;Pagamento;Tipo;Familia;Filial;Terminal;Codigo"
+    assert csv_text.splitlines()[0] == (
+        "Data;Codigo Produto;Produto;Quantidade;Valor Bruto;Desconto;Acrescimo;Valor;Pagamento;"
+        "Bandeira;Tipo;Familia;Categoria;Filial;Terminal;Operador;Cliente;Status;Cancelada;Codigo"
+    )
+    assert "789001" in csv_text
     assert "Teste Integracao Real Atualizado" in csv_text
     assert "campo_extra" not in csv_text
 
@@ -249,6 +276,8 @@ def test_report_csv_and_excel_are_client_readable() -> None:
     assert "Total faturado" in first_sheet
     assert "Pagamento" in sales_sheet
     assert "Familia" in sales_sheet
+    assert "Codigo Produto" in sales_sheet
+    assert "789001" in sales_sheet
 
 
 def test_report_dashboard_uses_modern_bi_layout() -> None:
@@ -282,6 +311,9 @@ def test_sync_admin_uses_adminlte_shell_globally() -> None:
     login = (ROOT / "sync-admin" / "app" / "templates" / "login.html").read_text(
         encoding="utf-8"
     )
+    client_login = (
+        ROOT / "sync-admin" / "app" / "templates" / "client_login.html"
+    ).read_text(encoding="utf-8")
     components = (
         ROOT
         / "sync-admin"
@@ -300,5 +332,59 @@ def test_sync_admin_uses_adminlte_shell_globally() -> None:
     assert "nav-sidebar" in base
     assert "login-page" in login
     assert "card-outline card-primary" in login
+    assert "Portal do Cliente" in client_login
+    assert "card-outline card-success" in client_login
     assert "macro small_box" in components
     assert "macro badge_status" in components
+
+
+def test_client_portal_uses_separated_reports_only_shell() -> None:
+    client_base = (
+        ROOT / "sync-admin" / "app" / "templates" / "client_base.html"
+    ).read_text(encoding="utf-8")
+    client_reports = (
+        ROOT / "sync-admin" / "app" / "templates" / "client_reports.html"
+    ).read_text(encoding="utf-8")
+
+    assert 'extends "client_base.html"' in client_reports
+    assert "client-portal-shell" in client_base
+    assert "Portal do Cliente" in client_base
+    assert "Relatorios" in client_base
+    assert "APIs conectadas" not in client_base
+    assert "Sincronizacoes" not in client_base
+    assert "ADMINISTRACAO" not in client_base
+    assert "main-sidebar" not in client_base
+    assert "content-wrapper" not in client_base
+
+
+def test_sync_admin_exposes_xd_mapping_diagnostic_routes() -> None:
+    _ensure_sync_admin_path()
+
+    routes = (ROOT / "sync-admin" / "app" / "web" / "routes" / "pages.py").read_text(
+        encoding="utf-8"
+    )
+
+    assert "@router.get('/settings/xd-mapping')" in routes
+    assert "@router.get('/settings/xd-mapping/routes')" in routes
+    assert "salesdocumentsreportview" in routes
+    assert "Documentsbodys + Documentsheaders" in routes
+
+
+def test_sync_admin_exposes_produto_de_para_routes_and_panel() -> None:
+    _ensure_sync_admin_path()
+
+    routes = (ROOT / "sync-admin" / "app" / "web" / "routes" / "pages.py").read_text(
+        encoding="utf-8"
+    )
+    control = (ROOT / "sync-admin" / "app" / "services" / "control_service.py").read_text(
+        encoding="utf-8"
+    )
+    template = (ROOT / "sync-admin" / "app" / "templates" / "settings.html").read_text(
+        encoding="utf-8"
+    )
+
+    assert "@router.post('/settings/produto-de-para')" in routes
+    assert "fetch_produtos_sem_de_para" in control
+    assert "/admin/tenants/{target_empresa}/produto-de-para" in control
+    assert "DE/PARA Produtos" in template
+    assert "Produtos sem DE/PARA" in template

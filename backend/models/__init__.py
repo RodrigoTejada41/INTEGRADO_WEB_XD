@@ -2,6 +2,7 @@ from backend.models.base import Base
 from backend.models.local_client import LocalClient
 from backend.models.local_client_command import LocalClientCommand
 from backend.models.local_client_log import LocalClientLog
+from backend.models.produto_de_para import ProdutoDePara
 from backend.models.tenant_audit_event import TenantAuditEvent
 from backend.models.tenant_destination_config import TenantDestinationConfig
 from backend.models.server_setting import ServerSetting
@@ -15,6 +16,7 @@ __all__ = [
     "LocalClient",
     "LocalClientCommand",
     "LocalClientLog",
+    "ProdutoDePara",
     "TenantAuditEvent",
     "ServerSetting",
     "Tenant",

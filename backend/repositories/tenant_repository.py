@@ -63,3 +63,11 @@ class TenantRepository:
         tenant.api_key_expires_at = api_key_expires_at
         self.session.flush()
         return tenant
+
+    def update_nome(self, empresa_id: str, nome: str) -> Tenant | None:
+        tenant = self.get_by_empresa_id(empresa_id)
+        if tenant is None:
+            return None
+        tenant.nome = nome
+        self.session.flush()
+        return tenant

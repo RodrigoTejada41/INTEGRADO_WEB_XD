@@ -634,10 +634,18 @@ def _build_filter_chips(
     branch_code: str | None,
     terminal_code: str | None,
     category: str | None,
-    status_filter: str | None,
-    report_type: str | None,
-    top_limit: int,
-    recent_limit: int,
+    product: str | None = None,
+    product_code: str | None = None,
+    family: str | None = None,
+    payment_method: str | None = None,
+    card_brand: str | None = None,
+    operator: str | None = None,
+    customer: str | None = None,
+    canceled: str | None = None,
+    status_filter: str | None = None,
+    report_type: str | None = None,
+    top_limit: int = 10,
+    recent_limit: int = 20,
 ) -> list[dict[str, str]]:
     period_value = 'Todo o periodo'
     if start_date and end_date:
@@ -654,6 +662,13 @@ def _build_filter_chips(
         {'label': 'Filial', 'value': branch_code or 'Todas'},
         {'label': 'Terminal', 'value': terminal_code or 'Todos'},
         {'label': 'Categoria', 'value': category or 'Todas'},
+        {'label': 'Produto', 'value': product or product_code or 'Todos'},
+        {'label': 'Familia', 'value': family or 'Todas'},
+        {'label': 'Pagamento', 'value': payment_method or 'Todos'},
+        {'label': 'Bandeira', 'value': card_brand or 'Todas'},
+        {'label': 'Operador', 'value': operator or 'Todos'},
+        {'label': 'Cliente', 'value': customer or 'Todos'},
+        {'label': 'Cancelada', 'value': canceled or 'Todas'},
         {'label': 'Status', 'value': status_filter or 'Todos'},
         {'label': 'Tipo', 'value': report_type or 'Vendas'},
         {'label': 'Top produtos', 'value': str(top_limit)},
@@ -872,6 +887,14 @@ def _build_report_payload(
     top_limit: int,
     recent_limit: int,
     category: str | None = None,
+    product: str | None = None,
+    product_code: str | None = None,
+    family: str | None = None,
+    payment_method: str | None = None,
+    card_brand: str | None = None,
+    canceled: str | None = None,
+    operator: str | None = None,
+    customer: str | None = None,
     status_filter: str | None = None,
     report_type: str | None = None,
 ) -> dict:
@@ -886,6 +909,15 @@ def _build_report_payload(
         branch_code=branch_code,
         terminal_code=terminal_code,
         category=category,
+        product=product,
+        product_code=product_code,
+        family=family,
+        payment_method=payment_method,
+        card_brand=card_brand,
+        status_filter=status_filter,
+        canceled=canceled,
+        operator=operator,
+        customer=customer,
         start_time=start_time,
         end_time=end_time,
     )
@@ -896,6 +928,15 @@ def _build_report_payload(
         branch_code=branch_code,
         terminal_code=terminal_code,
         category=category,
+        product=product,
+        product_code=product_code,
+        family=family,
+        payment_method=payment_method,
+        card_brand=card_brand,
+        status_filter=status_filter,
+        canceled=canceled,
+        operator=operator,
+        customer=customer,
         start_time=start_time,
         end_time=end_time,
     )
@@ -906,6 +947,15 @@ def _build_report_payload(
         branch_code=branch_code,
         terminal_code=terminal_code,
         category=category,
+        product=product,
+        product_code=product_code,
+        family=family,
+        payment_method=payment_method,
+        card_brand=card_brand,
+        status_filter=status_filter,
+        canceled=canceled,
+        operator=operator,
+        customer=customer,
         start_time=start_time,
         end_time=end_time,
         limit=normalized_top_limit,
@@ -918,6 +968,15 @@ def _build_report_payload(
         branch_code=branch_code,
         terminal_code=terminal_code,
         category=category,
+        product=product,
+        product_code=product_code,
+        family=family,
+        payment_method=payment_method,
+        card_brand=card_brand,
+        status_filter=status_filter,
+        canceled=canceled,
+        operator=operator,
+        customer=customer,
         start_time=start_time,
         end_time=end_time,
         limit=normalized_top_limit,
@@ -930,6 +989,15 @@ def _build_report_payload(
         branch_code=branch_code,
         terminal_code=terminal_code,
         category=category,
+        product=product,
+        product_code=product_code,
+        family=family,
+        payment_method=payment_method,
+        card_brand=card_brand,
+        status_filter=status_filter,
+        canceled=canceled,
+        operator=operator,
+        customer=customer,
         start_time=start_time,
         end_time=end_time,
         limit=normalized_top_limit,
@@ -942,6 +1010,15 @@ def _build_report_payload(
         branch_code=branch_code,
         terminal_code=terminal_code,
         category=category,
+        product=product,
+        product_code=product_code,
+        family=family,
+        payment_method=payment_method,
+        card_brand=card_brand,
+        status_filter=status_filter,
+        canceled=canceled,
+        operator=operator,
+        customer=customer,
         start_time=start_time,
         end_time=end_time,
         limit=normalized_top_limit,
@@ -953,6 +1030,15 @@ def _build_report_payload(
         branch_code=branch_code,
         terminal_code=terminal_code,
         category=category,
+        product=product,
+        product_code=product_code,
+        family=family,
+        payment_method=payment_method,
+        card_brand=card_brand,
+        status_filter=status_filter,
+        canceled=canceled,
+        operator=operator,
+        customer=customer,
         start_time=start_time,
         end_time=end_time,
         limit=normalized_recent_limit,
@@ -973,6 +1059,15 @@ def _build_report_payload(
             branch_code=branch_code,
             terminal_code=terminal_code,
             category=category,
+            product=product,
+            product_code=product_code,
+            family=family,
+            payment_method=payment_method,
+            card_brand=card_brand,
+            status_filter=status_filter,
+            canceled=canceled,
+            operator=operator,
+            customer=customer,
             start_time=start_time,
             end_time=end_time,
         )
@@ -1001,6 +1096,14 @@ def _build_report_payload(
         branch_code=branch_code,
         terminal_code=terminal_code,
         category=category,
+        product=product,
+        product_code=product_code,
+        family=family,
+        payment_method=payment_method,
+        card_brand=card_brand,
+        operator=operator,
+        customer=customer,
+        canceled=canceled,
         status_filter=status_filter,
         report_type=report_type,
         top_limit=normalized_top_limit,
@@ -1027,6 +1130,14 @@ def _build_report_payload(
         'branch_code': branch_code or '',
         'terminal_code': terminal_code or '',
         'category': category or '',
+        'product': product or '',
+        'product_code': product_code or '',
+        'family': family or '',
+        'payment_method': payment_method or '',
+        'card_brand': card_brand or '',
+        'canceled': canceled or '',
+        'operator': operator or '',
+        'customer': customer or '',
         'status_filter': status_filter or '',
         'report_type': report_type or 'sales',
         'top_limit': normalized_top_limit,
@@ -1055,11 +1166,25 @@ def _build_report_payload(
     }
 
 
+def _advanced_report_params(request: Request) -> dict[str, str]:
+    keys = (
+        'product',
+        'product_code',
+        'family',
+        'payment_method',
+        'card_brand',
+        'canceled',
+        'operator',
+        'customer',
+    )
+    return {key: request.query_params.get(key, '') for key in keys}
+
+
 @router.get('/', response_class=HTMLResponse)
 def root(request: Request):
     if request.session.get('user_id'):
         if request.session.get('user_role') == 'client':
-            return RedirectResponse('/client/dashboard', status_code=status.HTTP_302_FOUND)
+            return RedirectResponse('/client/reports', status_code=status.HTTP_302_FOUND)
         return RedirectResponse('/dashboard', status_code=status.HTTP_302_FOUND)
     return RedirectResponse('/login', status_code=status.HTTP_302_FOUND)
 
@@ -1067,6 +1192,11 @@ def root(request: Request):
 @router.get('/login', response_class=HTMLResponse)
 def login_page(request: Request):
     return templates.TemplateResponse(request, 'login.html', {'request': request, 'error': None})
+
+
+@router.get('/client/login', response_class=HTMLResponse)
+def client_login_page(request: Request):
+    return templates.TemplateResponse(request, 'client_login.html', {'request': request, 'error': None})
 
 
 @router.post('/login', response_class=HTMLResponse)
@@ -1091,13 +1221,41 @@ def login_submit(
     request.session['user_role'] = user.role
     request.session['empresa_id'] = user.empresa_id
     if user.role == 'client':
-        return RedirectResponse('/client/dashboard', status_code=status.HTTP_302_FOUND)
+        return RedirectResponse('/client/reports', status_code=status.HTTP_302_FOUND)
     return RedirectResponse('/dashboard', status_code=status.HTTP_302_FOUND)
+
+
+@router.post('/client/login', response_class=HTMLResponse)
+def client_login_submit(
+    request: Request,
+    username: str = Form(...),
+    password: str = Form(...),
+    db: Session = Depends(get_db),
+):
+    svc = AuthService(db)
+    user = svc.login(username, password)
+    if not user or user.role not in {'client', 'admin'}:
+        request.session.clear()
+        return templates.TemplateResponse(
+            request,
+            'client_login.html',
+            {'request': request, 'error': 'Credenciais invalidas para o portal do cliente'},
+            status_code=400,
+        )
+
+    request.session['user_id'] = user.id
+    request.session['username'] = user.username
+    request.session['user_role'] = user.role
+    request.session['empresa_id'] = user.empresa_id
+    return RedirectResponse('/client/reports', status_code=status.HTTP_302_FOUND)
 
 
 @router.post('/logout')
 def logout(request: Request):
+    user_role = request.session.get('user_role')
     request.session.clear()
+    if user_role == 'client':
+        return RedirectResponse('/client/login', status_code=status.HTTP_302_FOUND)
     return RedirectResponse('/login', status_code=status.HTTP_302_FOUND)
 
 
@@ -1560,6 +1718,7 @@ def reports_page(
         branch_code=branch_code,
         terminal_code=terminal_code,
         category=category,
+        **_advanced_report_params(request),
         status_filter=status_filter,
         report_type=report_type,
         top_limit=top_limit,
@@ -1638,54 +1797,8 @@ def client_dashboard_page(
     current_user: User = Depends(require_client_portal_access),
     db: Session = Depends(get_db),
 ):
-    scope = _resolve_client_portal_scope(
-        current_user=current_user,
-        db=db,
-        requested_empresa_id=empresa_id,
-        requested_branch_code=branch_code,
-        start_date=start_date,
-        end_date=end_date,
-        terminal_code=terminal_code,
-    )
-    control = ControlService()
-    overview = control.fetch_report_overview(
-        empresa_id=scope.empresa_id,
-        start_date=start_date,
-        end_date=end_date,
-        branch_code=scope.selected_branch_code,
-        terminal_code=terminal_code,
-        start_time=start_time,
-        end_time=end_time,
-    )
-    recent_sales = control.fetch_report_recent_sales(
-        empresa_id=scope.empresa_id,
-        start_date=start_date,
-        end_date=end_date,
-        branch_code=scope.selected_branch_code,
-        terminal_code=terminal_code,
-        start_time=start_time,
-        end_time=end_time,
-        limit=10,
-    )
-    return templates.TemplateResponse(
-        request,
-        'client_dashboard.html',
-        {
-            'request': request,
-            'current_user': current_user,
-            'selected_empresa_id': scope.empresa_id,
-            'is_admin_client_preview': current_user.role == 'admin',
-            'overview': overview,
-            'recent_items': list(recent_sales.get('items', [])),
-            'allowed_branch_codes': scope.allowed_branch_codes,
-            'start_date': start_date or '',
-            'end_date': end_date or '',
-            'branch_code': scope.selected_branch_code or '',
-            'terminal_code': terminal_code or '',
-            'start_time': start_time or '',
-            'end_time': end_time or '',
-        },
-    )
+    query = f'?{request.url.query}' if request.url.query else ''
+    return RedirectResponse(f'/client/reports{query}', status_code=status.HTTP_302_FOUND)
 
 
 @router.get('/client/reports', response_class=HTMLResponse)
@@ -1726,6 +1839,7 @@ def client_reports_page(
         branch_code=scope.selected_branch_code,
         terminal_code=terminal_code,
         category=category,
+        **_advanced_report_params(request),
         status_filter=status_filter,
         report_type=report_type,
         top_limit=top_limit,
@@ -1793,10 +1907,18 @@ def _build_report_payload_for_api(
     branch_code: str | None,
     terminal_code: str | None,
     category: str | None,
-    status_filter: str | None,
-    report_type: str | None,
-    top_limit: int,
-    recent_limit: int,
+    product: str | None = None,
+    product_code: str | None = None,
+    family: str | None = None,
+    payment_method: str | None = None,
+    card_brand: str | None = None,
+    canceled: str | None = None,
+    operator: str | None = None,
+    customer: str | None = None,
+    status_filter: str | None = None,
+    report_type: str | None = None,
+    top_limit: int = 10,
+    recent_limit: int = 20,
 ) -> dict:
     resolved_empresa_id, resolved_branch_code = _resolve_report_empresa_for_user(
         current_user=current_user,
@@ -1817,6 +1939,14 @@ def _build_report_payload_for_api(
         branch_code=resolved_branch_code,
         terminal_code=terminal_code,
         category=category,
+        product=product,
+        product_code=product_code,
+        family=family,
+        payment_method=payment_method,
+        card_brand=card_brand,
+        canceled=canceled,
+        operator=operator,
+        customer=customer,
         status_filter=status_filter,
         report_type=report_type,
         top_limit=top_limit,
@@ -1837,6 +1967,14 @@ def _extract_report_api_payload(
     branch_code: str | None = None,
     terminal_code: str | None = None,
     category: str | None = None,
+    product: str | None = None,
+    product_code: str | None = None,
+    family: str | None = None,
+    payment_method: str | None = None,
+    card_brand: str | None = None,
+    canceled: str | None = None,
+    operator: str | None = None,
+    customer: str | None = None,
     status_filter: str | None = None,
     report_type: str | None = None,
     top_limit: int = 10,
@@ -1854,6 +1992,14 @@ def _extract_report_api_payload(
         branch_code=branch_code,
         terminal_code=terminal_code,
         category=category,
+        product=product,
+        product_code=product_code,
+        family=family,
+        payment_method=payment_method,
+        card_brand=card_brand,
+        canceled=canceled,
+        operator=operator,
+        customer=customer,
         status_filter=status_filter,
         report_type=report_type,
         top_limit=top_limit,
@@ -1864,6 +2010,7 @@ def _extract_report_api_payload(
 @router.get('/reports/api/dashboard')
 @router.get('/api/reports/dashboard')
 def api_reports_dashboard(
+    request: Request,
     empresa_id: str | None = None,
     period_preset: str | None = None,
     start_date: str | None = None,
@@ -1892,6 +2039,7 @@ def api_reports_dashboard(
         branch_code=branch_code,
         terminal_code=terminal_code,
         category=category,
+        **_advanced_report_params(request),
         status_filter=status_filter,
         report_type=report_type,
         top_limit=top_limit,
@@ -1902,6 +2050,7 @@ def api_reports_dashboard(
 @router.get('/reports/api/kpis')
 @router.get('/api/reports/kpis')
 def api_reports_kpis(
+    request: Request,
     empresa_id: str | None = None,
     period_preset: str | None = None,
     start_date: str | None = None,
@@ -1928,6 +2077,7 @@ def api_reports_kpis(
         branch_code=branch_code,
         terminal_code=terminal_code,
         category=category,
+        **_advanced_report_params(request),
         status_filter=status_filter,
         report_type=report_type,
     )
@@ -1937,6 +2087,7 @@ def api_reports_kpis(
 @router.get('/reports/api/charts')
 @router.get('/api/reports/charts')
 def api_reports_charts(
+    request: Request,
     empresa_id: str | None = None,
     period_preset: str | None = None,
     start_date: str | None = None,
@@ -1963,6 +2114,7 @@ def api_reports_charts(
         branch_code=branch_code,
         terminal_code=terminal_code,
         category=category,
+        **_advanced_report_params(request),
         status_filter=status_filter,
         report_type=report_type,
     )
@@ -1978,6 +2130,7 @@ def api_reports_charts(
 @router.get('/reports/api/table')
 @router.get('/api/reports/table')
 def api_reports_table(
+    request: Request,
     empresa_id: str | None = None,
     period_preset: str | None = None,
     start_date: str | None = None,
@@ -2005,6 +2158,7 @@ def api_reports_table(
         branch_code=branch_code,
         terminal_code=terminal_code,
         category=category,
+        **_advanced_report_params(request),
         status_filter=status_filter,
         report_type=report_type,
         recent_limit=recent_limit,
@@ -2035,6 +2189,7 @@ def api_reports_sync_status(
 @router.get('/api/reports/export/csv')
 @router.get('/reports/export.csv')
 def export_reports_csv(
+    request: Request,
     empresa_id: str | None = None,
     period_preset: str | None = None,
     start_date: str | None = None,
@@ -2057,6 +2212,7 @@ def export_reports_csv(
         branch_code=branch_code,
         terminal_code=terminal_code,
         category=category,
+        **_advanced_report_params(request),
         top_limit=10,
         recent_limit=recent_limit,
     )
@@ -2072,6 +2228,7 @@ def export_reports_csv(
 @router.get('/api/reports/export/excel')
 @router.get('/reports/export.xlsx')
 def export_reports_xlsx(
+    request: Request,
     empresa_id: str | None = None,
     period_preset: str | None = None,
     start_date: str | None = None,
@@ -2095,6 +2252,7 @@ def export_reports_xlsx(
         branch_code=branch_code,
         terminal_code=terminal_code,
         category=category,
+        **_advanced_report_params(request),
         top_limit=top_limit,
         recent_limit=recent_limit,
     )
@@ -2115,6 +2273,7 @@ def export_reports_xlsx(
 @router.get('/api/reports/export/pdf')
 @router.get('/reports/export.pdf')
 def export_reports_pdf(
+    request: Request,
     empresa_id: str | None = None,
     period_preset: str | None = None,
     start_date: str | None = None,
@@ -2138,6 +2297,7 @@ def export_reports_pdf(
         branch_code=branch_code,
         terminal_code=terminal_code,
         category=category,
+        **_advanced_report_params(request),
         top_limit=top_limit,
         recent_limit=recent_limit,
     )
@@ -2157,6 +2317,7 @@ def export_reports_pdf(
 
 @router.get('/client/reports/export.csv')
 def export_client_reports_csv(
+    request: Request,
     empresa_id: str | None = None,
     period_preset: str | None = None,
     start_date: str | None = None,
@@ -2189,6 +2350,7 @@ def export_client_reports_csv(
         branch_code=scope.selected_branch_code,
         terminal_code=terminal_code,
         category=category,
+        **_advanced_report_params(request),
         top_limit=10,
         recent_limit=recent_limit,
     )
@@ -2202,6 +2364,7 @@ def export_client_reports_csv(
 
 @router.get('/client/reports/export.xlsx')
 def export_client_reports_xlsx(
+    request: Request,
     empresa_id: str | None = None,
     period_preset: str | None = None,
     start_date: str | None = None,
@@ -2235,6 +2398,7 @@ def export_client_reports_xlsx(
         branch_code=scope.selected_branch_code,
         terminal_code=terminal_code,
         category=category,
+        **_advanced_report_params(request),
         top_limit=top_limit,
         recent_limit=recent_limit,
     )
@@ -2253,6 +2417,7 @@ def export_client_reports_xlsx(
 
 @router.get('/client/reports/export.pdf')
 def export_client_reports_pdf(
+    request: Request,
     empresa_id: str | None = None,
     period_preset: str | None = None,
     start_date: str | None = None,
@@ -2286,6 +2451,7 @@ def export_client_reports_pdf(
         branch_code=scope.selected_branch_code,
         terminal_code=terminal_code,
         category=category,
+        **_advanced_report_params(request),
         top_limit=top_limit,
         recent_limit=recent_limit,
     )
@@ -2650,6 +2816,20 @@ def settings_page(
             'retention_months': 14,
             'connection_secrets_file': 'output/tenant_connection_secrets.json',
         }
+    try:
+        produto_de_para_rows = control.fetch_produto_de_para(
+            empresa_id=settings.control_empresa_id,
+            limit=50,
+        )
+    except Exception:
+        produto_de_para_rows = []
+    try:
+        produtos_sem_de_para = control.fetch_produtos_sem_de_para(
+            empresa_id=settings.control_empresa_id,
+            limit=50,
+        )
+    except Exception:
+        produtos_sem_de_para = []
     flash = request.query_params.get('flash')
     error = request.query_params.get('error')
     generated_key = request.query_params.get('generated_key')
@@ -2676,6 +2856,8 @@ def settings_page(
             'destination_configs': destination_configs,
             'audit_summary': audit_summary,
             'audit_events': audit_events,
+            'produto_de_para_rows': produto_de_para_rows,
+            'produtos_sem_de_para': produtos_sem_de_para,
         },
     )
 
@@ -2687,6 +2869,209 @@ def settings_company_branches(
 ):
     branch_codes = ControlService().fetch_report_branch_options(empresa_id=empresa_id)
     return JSONResponse({'empresa_id': empresa_id, 'items': branch_codes})
+
+
+@router.get('/settings/xd-mapping')
+def settings_xd_mapping(
+    _: object = Depends(require_web_permission('settings.view')),
+):
+    try:
+        from agent_local.config.settings import get_agent_settings
+        from agent_local.db.mariadb_client import MariaDBClient
+
+        agent_settings = get_agent_settings()
+        snapshot = MariaDBClient(
+            agent_settings.mariadb_url,
+            source_query=agent_settings.source_query,
+        ).inspect_xd_mapping()
+        return JSONResponse(snapshot)
+    except Exception as exc:
+        return JSONResponse(
+            {
+                'status': 'error',
+                'error': str(exc),
+                'source_kind': '-',
+                'tables_present': [],
+                'has_salesdocumentsreportview': False,
+                'has_documents_fallback': False,
+                'reference_tables': {},
+            },
+            status_code=200,
+        )
+
+
+@router.get('/settings/xd-mapping/routes')
+def settings_xd_mapping_routes(
+    _: object = Depends(require_web_permission('settings.view')),
+):
+    return JSONResponse(
+        {
+            'source_reference': 'TABELAS DO BANCO XD/REFERENCIA TABELAS BD XD SOFTWARE.xlsx',
+            'agent_source_query': 'AGENT_SOURCE_QUERY=auto',
+            'preferred_source': 'salesdocumentsreportview',
+            'fallback_source': 'Documentsbodys + Documentsheaders',
+            'local_diagnostic_routes': [
+                '/settings/xd-mapping',
+                '/settings/xd-mapping/routes',
+            ],
+            'central_report_routes': [
+                '/admin/tenants/{empresa_id}/reports/overview',
+                '/admin/tenants/{empresa_id}/reports/daily-sales',
+                '/admin/tenants/{empresa_id}/reports/top-products',
+                '/admin/tenants/{empresa_id}/reports/breakdown',
+                '/admin/tenants/{empresa_id}/reports/recent-sales',
+            ],
+            'important_xd_tables': [
+                'salesdocumentsreportview',
+                'Documentsbodys',
+                'Documentsheaders',
+                'Invoicepaymentdetails',
+                'Xconfigpaymenttypes',
+                'Itemsgroups',
+                'Items',
+                'Entities',
+            ],
+        }
+    )
+
+
+def _produto_de_para_payload(
+    *,
+    cnpj: str | None,
+    codigo_produto_local: str | None = None,
+    codigo_produto_web: str | None,
+    descricao_produto_local: str | None,
+    descricao_produto_web: str | None,
+    familia_local: str | None,
+    familia_web: str | None,
+    categoria_local: str | None,
+    categoria_web: str | None,
+    ativo: str | None,
+) -> dict[str, object]:
+    payload: dict[str, object] = {
+        'cnpj': cnpj,
+        'codigo_produto_web': codigo_produto_web,
+        'descricao_produto_local': descricao_produto_local,
+        'descricao_produto_web': descricao_produto_web,
+        'familia_local': familia_local,
+        'familia_web': familia_web,
+        'categoria_local': categoria_local,
+        'categoria_web': categoria_web,
+        'ativo': ativo != 'false',
+    }
+    if codigo_produto_local is not None:
+        payload['codigo_produto_local'] = codigo_produto_local
+    return {key: value for key, value in payload.items() if value not in (None, '')}
+
+
+@router.post('/settings/produto-de-para')
+def settings_create_produto_de_para(
+    request: Request,
+    empresa_id: str = Form(...),
+    cnpj: str | None = Form(None),
+    codigo_produto_local: str = Form(...),
+    codigo_produto_web: str | None = Form(None),
+    descricao_produto_local: str | None = Form(None),
+    descricao_produto_web: str | None = Form(None),
+    familia_local: str | None = Form(None),
+    familia_web: str | None = Form(None),
+    categoria_local: str | None = Form(None),
+    categoria_web: str | None = Form(None),
+    ativo: str | None = Form('true'),
+    current_user: User = Depends(require_web_permission('settings.manage')),
+):
+    try:
+        ControlService().create_produto_de_para(
+            empresa_id=empresa_id,
+            actor=current_user.username,
+            payload=_produto_de_para_payload(
+                cnpj=cnpj,
+                codigo_produto_local=codigo_produto_local,
+                codigo_produto_web=codigo_produto_web,
+                descricao_produto_local=descricao_produto_local,
+                descricao_produto_web=descricao_produto_web,
+                familia_local=familia_local,
+                familia_web=familia_web,
+                categoria_local=categoria_local,
+                categoria_web=categoria_web,
+                ativo=ativo,
+            ),
+        )
+        return RedirectResponse(
+            '/settings?flash=DE/PARA+de+produto+salvo',
+            status_code=status.HTTP_302_FOUND,
+        )
+    except Exception as exc:
+        return RedirectResponse(
+            f'/settings?error=Falha+ao+salvar+DE/PARA:+{quote_plus(str(exc))}',
+            status_code=status.HTTP_302_FOUND,
+        )
+
+
+@router.post('/settings/produto-de-para/{mapping_id}')
+def settings_update_produto_de_para(
+    mapping_id: int,
+    empresa_id: str = Form(...),
+    cnpj: str | None = Form(None),
+    codigo_produto_web: str | None = Form(None),
+    descricao_produto_local: str | None = Form(None),
+    descricao_produto_web: str | None = Form(None),
+    familia_local: str | None = Form(None),
+    familia_web: str | None = Form(None),
+    categoria_local: str | None = Form(None),
+    categoria_web: str | None = Form(None),
+    ativo: str | None = Form('true'),
+    current_user: User = Depends(require_web_permission('settings.manage')),
+):
+    try:
+        ControlService().update_produto_de_para(
+            empresa_id=empresa_id,
+            mapping_id=mapping_id,
+            actor=current_user.username,
+            payload=_produto_de_para_payload(
+                cnpj=cnpj,
+                codigo_produto_web=codigo_produto_web,
+                descricao_produto_local=descricao_produto_local,
+                descricao_produto_web=descricao_produto_web,
+                familia_local=familia_local,
+                familia_web=familia_web,
+                categoria_local=categoria_local,
+                categoria_web=categoria_web,
+                ativo=ativo,
+            ),
+        )
+        return RedirectResponse(
+            '/settings?flash=DE/PARA+de+produto+atualizado',
+            status_code=status.HTTP_302_FOUND,
+        )
+    except Exception as exc:
+        return RedirectResponse(
+            f'/settings?error=Falha+ao+atualizar+DE/PARA:+{quote_plus(str(exc))}',
+            status_code=status.HTTP_302_FOUND,
+        )
+
+
+@router.post('/settings/produto-de-para/{mapping_id}/delete')
+def settings_delete_produto_de_para(
+    mapping_id: int,
+    empresa_id: str = Form(...),
+    current_user: User = Depends(require_web_permission('settings.manage')),
+):
+    try:
+        ControlService().delete_produto_de_para(
+            empresa_id=empresa_id,
+            mapping_id=mapping_id,
+            actor=current_user.username,
+        )
+        return RedirectResponse(
+            '/settings?flash=DE/PARA+de+produto+removido',
+            status_code=status.HTTP_302_FOUND,
+        )
+    except Exception as exc:
+        return RedirectResponse(
+            f'/settings?error=Falha+ao+remover+DE/PARA:+{quote_plus(str(exc))}',
+            status_code=status.HTTP_302_FOUND,
+        )
 
 
 @router.post('/settings/provision-tenant')

@@ -38,8 +38,22 @@ class VendaRepository:
                         "terminal_code": item.get("terminal_code"),
                         "tipo_venda": item.get("tipo_venda"),
                         "forma_pagamento": item.get("forma_pagamento"),
+                        "bandeira_cartao": item.get("bandeira_cartao"),
                         "familia_produto": item.get("familia_produto"),
+                        "categoria_produto": item.get("categoria_produto"),
+                        "codigo_produto_local": item.get("codigo_produto_local"),
+                        "unidade": item.get("unidade"),
+                        "operador": item.get("operador"),
+                        "cliente": item.get("cliente"),
+                        "status_venda": item.get("status_venda"),
+                        "cancelada": bool(item.get("cancelada", False)),
                         "produto": item["produto"],
+                        "quantidade": item.get("quantidade", Decimal("1")),
+                        "valor_unitario": item.get("valor_unitario"),
+                        "valor_bruto": item.get("valor_bruto"),
+                        "desconto": item.get("desconto", Decimal("0")),
+                        "acrescimo": item.get("acrescimo", Decimal("0")),
+                        "valor_liquido": item.get("valor_liquido"),
                         "valor": item["valor"],
                         "data": item["data"],
                         "data_atualizacao": item["data_atualizacao"],
@@ -57,8 +71,22 @@ class VendaRepository:
                         "terminal_code": stmt.excluded.terminal_code,
                         "tipo_venda": stmt.excluded.tipo_venda,
                         "forma_pagamento": stmt.excluded.forma_pagamento,
+                        "bandeira_cartao": stmt.excluded.bandeira_cartao,
                         "familia_produto": stmt.excluded.familia_produto,
+                        "categoria_produto": stmt.excluded.categoria_produto,
+                        "codigo_produto_local": stmt.excluded.codigo_produto_local,
+                        "unidade": stmt.excluded.unidade,
+                        "operador": stmt.excluded.operador,
+                        "cliente": stmt.excluded.cliente,
+                        "status_venda": stmt.excluded.status_venda,
+                        "cancelada": stmt.excluded.cancelada,
                         "produto": stmt.excluded.produto,
+                        "quantidade": stmt.excluded.quantidade,
+                        "valor_unitario": stmt.excluded.valor_unitario,
+                        "valor_bruto": stmt.excluded.valor_bruto,
+                        "desconto": stmt.excluded.desconto,
+                        "acrescimo": stmt.excluded.acrescimo,
+                        "valor_liquido": stmt.excluded.valor_liquido,
                         "valor": stmt.excluded.valor,
                         "data": stmt.excluded.data,
                         "data_atualizacao": stmt.excluded.data_atualizacao,
@@ -75,8 +103,22 @@ class VendaRepository:
                         "terminal_code": stmt.excluded.terminal_code,
                         "tipo_venda": stmt.excluded.tipo_venda,
                         "forma_pagamento": stmt.excluded.forma_pagamento,
+                        "bandeira_cartao": stmt.excluded.bandeira_cartao,
                         "familia_produto": stmt.excluded.familia_produto,
+                        "categoria_produto": stmt.excluded.categoria_produto,
+                        "codigo_produto_local": stmt.excluded.codigo_produto_local,
+                        "unidade": stmt.excluded.unidade,
+                        "operador": stmt.excluded.operador,
+                        "cliente": stmt.excluded.cliente,
+                        "status_venda": stmt.excluded.status_venda,
+                        "cancelada": stmt.excluded.cancelada,
                         "produto": stmt.excluded.produto,
+                        "quantidade": stmt.excluded.quantidade,
+                        "valor_unitario": stmt.excluded.valor_unitario,
+                        "valor_bruto": stmt.excluded.valor_bruto,
+                        "desconto": stmt.excluded.desconto,
+                        "acrescimo": stmt.excluded.acrescimo,
+                        "valor_liquido": stmt.excluded.valor_liquido,
                         "valor": stmt.excluded.valor,
                         "data": stmt.excluded.data,
                         "data_atualizacao": stmt.excluded.data_atualizacao,
@@ -109,8 +151,22 @@ class VendaRepository:
                     "terminal_code",
                     "tipo_venda",
                     "forma_pagamento",
+                    "bandeira_cartao",
                     "familia_produto",
+                    "categoria_produto",
+                    "codigo_produto_local",
+                    "unidade",
+                    "operador",
+                    "cliente",
+                    "status_venda",
+                    "cancelada",
                     "produto",
+                    "quantidade",
+                    "valor_unitario",
+                    "valor_bruto",
+                    "desconto",
+                    "acrescimo",
+                    "valor_liquido",
                     "valor",
                     "data",
                     "data_atualizacao",
@@ -123,8 +179,22 @@ class VendaRepository:
                     Venda.terminal_code,
                     Venda.tipo_venda,
                     Venda.forma_pagamento,
+                    Venda.bandeira_cartao,
                     Venda.familia_produto,
+                    Venda.categoria_produto,
+                    Venda.codigo_produto_local,
+                    Venda.unidade,
+                    Venda.operador,
+                    Venda.cliente,
+                    Venda.status_venda,
+                    Venda.cancelada,
                     Venda.produto,
+                    Venda.quantidade,
+                    Venda.valor_unitario,
+                    Venda.valor_bruto,
+                    Venda.desconto,
+                    Venda.acrescimo,
+                    Venda.valor_liquido,
                     Venda.valor,
                     Venda.data,
                     Venda.data_atualizacao,
@@ -146,12 +216,26 @@ class VendaRepository:
         branch_code: str | None = None,
         terminal_code: str | None = None,
         category: str | None = None,
+        product: str | None = None,
+        product_code: str | None = None,
+        family: str | None = None,
+        payment_method: str | None = None,
+        card_brand: str | None = None,
+        status: str | None = None,
+        canceled: bool | None = None,
+        operator: str | None = None,
+        customer: str | None = None,
         start_time: time | None = None,
         end_time: time | None = None,
     ) -> dict[str, object]:
+        value_expr = self._sale_value_expression()
         stmt = select(
             func.count(Venda.id).label("total_records"),
-            func.coalesce(func.sum(Venda.valor), 0).label("total_sales_value"),
+            func.coalesce(func.sum(value_expr), 0).label("total_sales_value"),
+            func.coalesce(func.sum(Venda.valor_bruto), func.sum(Venda.valor), 0).label("total_gross_value"),
+            func.coalesce(func.sum(Venda.desconto), 0).label("total_discount_value"),
+            func.coalesce(func.sum(Venda.acrescimo), 0).label("total_surcharge_value"),
+            func.coalesce(func.sum(Venda.quantidade), 0).label("total_quantity"),
             func.count(func.distinct(Venda.produto)).label("distinct_products"),
             func.count(func.distinct(Venda.branch_code)).label("distinct_branches"),
             func.count(func.distinct(Venda.terminal_code)).label("distinct_terminals"),
@@ -166,6 +250,15 @@ class VendaRepository:
             branch_code=branch_code,
             terminal_code=terminal_code,
             category=category,
+            product=product,
+            product_code=product_code,
+            family=family,
+            payment_method=payment_method,
+            card_brand=card_brand,
+            status=status,
+            canceled=canceled,
+            operator=operator,
+            customer=customer,
             start_time=start_time,
             end_time=end_time,
         )
@@ -173,6 +266,10 @@ class VendaRepository:
         return {
             "total_records": int(row.total_records or 0),
             "total_sales_value": Decimal(str(row.total_sales_value or 0)),
+            "total_gross_value": Decimal(str(row.total_gross_value or 0)),
+            "total_discount_value": Decimal(str(row.total_discount_value or 0)),
+            "total_surcharge_value": Decimal(str(row.total_surcharge_value or 0)),
+            "total_quantity": Decimal(str(row.total_quantity or 0)),
             "distinct_products": int(row.distinct_products or 0),
             "distinct_branches": int(row.distinct_branches or 0),
             "distinct_terminals": int(row.distinct_terminals or 0),
@@ -189,13 +286,23 @@ class VendaRepository:
         branch_code: str | None = None,
         terminal_code: str | None = None,
         category: str | None = None,
+        product: str | None = None,
+        product_code: str | None = None,
+        family: str | None = None,
+        payment_method: str | None = None,
+        card_brand: str | None = None,
+        status: str | None = None,
+        canceled: bool | None = None,
+        operator: str | None = None,
+        customer: str | None = None,
         start_time: time | None = None,
         end_time: time | None = None,
     ) -> list[dict[str, object]]:
+        value_expr = self._sale_value_expression()
         stmt = select(
             Venda.data.label("day"),
             func.count(Venda.id).label("total_records"),
-            func.coalesce(func.sum(Venda.valor), 0).label("total_sales_value"),
+            func.coalesce(func.sum(value_expr), 0).label("total_sales_value"),
         ).group_by(Venda.data).order_by(Venda.data.asc())
         stmt = self._apply_report_filters(
             stmt,
@@ -205,6 +312,15 @@ class VendaRepository:
             branch_code=branch_code,
             terminal_code=terminal_code,
             category=category,
+            product=product,
+            product_code=product_code,
+            family=family,
+            payment_method=payment_method,
+            card_brand=card_brand,
+            status=status,
+            canceled=canceled,
+            operator=operator,
+            customer=customer,
             start_time=start_time,
             end_time=end_time,
         )
@@ -228,16 +344,34 @@ class VendaRepository:
         branch_code: str | None = None,
         terminal_code: str | None = None,
         category: str | None = None,
+        product: str | None = None,
+        product_code: str | None = None,
+        family: str | None = None,
+        payment_method: str | None = None,
+        card_brand: str | None = None,
+        status: str | None = None,
+        canceled: bool | None = None,
+        operator: str | None = None,
+        customer: str | None = None,
         start_time: time | None = None,
         end_time: time | None = None,
     ) -> list[dict[str, object]]:
+        value_expr = self._sale_value_expression()
         stmt = (
             select(
+                func.coalesce(Venda.codigo_produto_local, "").label("codigo_produto_local"),
                 Venda.produto,
+                func.coalesce(Venda.familia_produto, "Nao informado").label("familia_produto"),
+                func.coalesce(Venda.categoria_produto, "Nao informado").label("categoria_produto"),
                 func.count(Venda.id).label("total_records"),
-                func.coalesce(func.sum(Venda.valor), 0).label("total_sales_value"),
+                func.coalesce(func.sum(Venda.quantidade), 0).label("quantity_sold"),
+                func.coalesce(func.avg(Venda.valor_unitario), 0).label("average_unit_value"),
+                func.coalesce(func.sum(Venda.valor_bruto), func.sum(Venda.valor), 0).label("gross_value"),
+                func.coalesce(func.sum(Venda.desconto), 0).label("discount_value"),
+                func.coalesce(func.sum(Venda.acrescimo), 0).label("surcharge_value"),
+                func.coalesce(func.sum(value_expr), 0).label("total_sales_value"),
             )
-            .group_by(Venda.produto)
+            .group_by(Venda.codigo_produto_local, Venda.produto, Venda.familia_produto, Venda.categoria_produto)
             .order_by(desc("total_sales_value"), desc("total_records"), Venda.produto.asc())
             .limit(limit)
         )
@@ -249,14 +383,31 @@ class VendaRepository:
             branch_code=branch_code,
             terminal_code=terminal_code,
             category=category,
+            product=product,
+            product_code=product_code,
+            family=family,
+            payment_method=payment_method,
+            card_brand=card_brand,
+            status=status,
+            canceled=canceled,
+            operator=operator,
+            customer=customer,
             start_time=start_time,
             end_time=end_time,
         )
         rows = self.session.execute(stmt).all()
         return [
             {
+                "codigo_produto_local": row.codigo_produto_local,
                 "produto": row.produto,
+                "familia_produto": row.familia_produto,
+                "categoria_produto": row.categoria_produto,
                 "total_records": int(row.total_records or 0),
+                "quantity_sold": Decimal(str(row.quantity_sold or 0)),
+                "average_unit_value": Decimal(str(row.average_unit_value or 0)),
+                "gross_value": Decimal(str(row.gross_value or 0)),
+                "discount_value": Decimal(str(row.discount_value or 0)),
+                "surcharge_value": Decimal(str(row.surcharge_value or 0)),
                 "total_sales_value": Decimal(str(row.total_sales_value or 0)),
             }
             for row in rows
@@ -273,21 +424,43 @@ class VendaRepository:
         branch_code: str | None = None,
         terminal_code: str | None = None,
         category: str | None = None,
+        product: str | None = None,
+        product_code: str | None = None,
+        family: str | None = None,
+        payment_method: str | None = None,
+        card_brand: str | None = None,
+        status: str | None = None,
+        canceled: bool | None = None,
+        operator: str | None = None,
+        customer: str | None = None,
         start_time: time | None = None,
         end_time: time | None = None,
     ) -> list[dict[str, object]]:
         group_columns = {
             "tipo_venda": Venda.tipo_venda,
             "forma_pagamento": Venda.forma_pagamento,
+            "bandeira_cartao": Venda.bandeira_cartao,
             "familia_produto": Venda.familia_produto,
+            "categoria_produto": Venda.categoria_produto,
+            "terminal_code": Venda.terminal_code,
+            "branch_code": Venda.branch_code,
+            "operador": Venda.operador,
+            "status_venda": Venda.status_venda,
+            "cliente": Venda.cliente,
+            "codigo_produto_local": Venda.codigo_produto_local,
         }
         group_column = group_columns[group_by]
         label = func.coalesce(group_column, "Nao informado")
+        value_expr = self._sale_value_expression()
         stmt = (
             select(
                 label.label("label"),
                 func.count(Venda.id).label("total_records"),
-                func.coalesce(func.sum(Venda.valor), 0).label("total_sales_value"),
+                func.coalesce(func.sum(Venda.quantidade), 0).label("quantity_sold"),
+                func.coalesce(func.sum(Venda.valor_bruto), func.sum(Venda.valor), 0).label("gross_value"),
+                func.coalesce(func.sum(Venda.desconto), 0).label("discount_value"),
+                func.coalesce(func.sum(Venda.acrescimo), 0).label("surcharge_value"),
+                func.coalesce(func.sum(value_expr), 0).label("total_sales_value"),
             )
             .group_by(label)
             .order_by(desc("total_sales_value"), desc("total_records"), label.asc())
@@ -301,6 +474,15 @@ class VendaRepository:
             branch_code=branch_code,
             terminal_code=terminal_code,
             category=category,
+            product=product,
+            product_code=product_code,
+            family=family,
+            payment_method=payment_method,
+            card_brand=card_brand,
+            status=status,
+            canceled=canceled,
+            operator=operator,
+            customer=customer,
             start_time=start_time,
             end_time=end_time,
         )
@@ -309,6 +491,10 @@ class VendaRepository:
             {
                 "label": row.label,
                 "total_records": int(row.total_records or 0),
+                "quantity_sold": Decimal(str(row.quantity_sold or 0)),
+                "gross_value": Decimal(str(row.gross_value or 0)),
+                "discount_value": Decimal(str(row.discount_value or 0)),
+                "surcharge_value": Decimal(str(row.surcharge_value or 0)),
                 "total_sales_value": Decimal(str(row.total_sales_value or 0)),
             }
             for row in rows
@@ -324,6 +510,15 @@ class VendaRepository:
         branch_code: str | None = None,
         terminal_code: str | None = None,
         category: str | None = None,
+        product: str | None = None,
+        product_code: str | None = None,
+        family: str | None = None,
+        payment_method: str | None = None,
+        card_brand: str | None = None,
+        status: str | None = None,
+        canceled: bool | None = None,
+        operator: str | None = None,
+        customer: str | None = None,
         start_time: time | None = None,
         end_time: time | None = None,
     ) -> list[Venda]:
@@ -336,6 +531,15 @@ class VendaRepository:
             branch_code=branch_code,
             terminal_code=terminal_code,
             category=category,
+            product=product,
+            product_code=product_code,
+            family=family,
+            payment_method=payment_method,
+            card_brand=card_brand,
+            status=status,
+            canceled=canceled,
+            operator=operator,
+            customer=customer,
             start_time=start_time,
             end_time=end_time,
         )
@@ -388,6 +592,15 @@ class VendaRepository:
         branch_code: str | None = None,
         terminal_code: str | None = None,
         category: str | None = None,
+        product: str | None = None,
+        product_code: str | None = None,
+        family: str | None = None,
+        payment_method: str | None = None,
+        card_brand: str | None = None,
+        status: str | None = None,
+        canceled: bool | None = None,
+        operator: str | None = None,
+        customer: str | None = None,
         start_time: time | None = None,
         end_time: time | None = None,
     ):
@@ -400,12 +613,32 @@ class VendaRepository:
             stmt = stmt.where(Venda.branch_code == branch_code)
         if terminal_code:
             stmt = stmt.where(Venda.terminal_code == terminal_code)
+        if product:
+            stmt = stmt.where(Venda.produto.ilike(f"%{product.strip()}%"))
+        if product_code:
+            stmt = stmt.where(Venda.codigo_produto_local == product_code)
+        if family:
+            stmt = stmt.where(Venda.familia_produto.ilike(f"%{family.strip()}%"))
+        if payment_method:
+            stmt = stmt.where(Venda.forma_pagamento == payment_method)
+        if card_brand:
+            stmt = stmt.where(Venda.bandeira_cartao == card_brand)
+        if status:
+            stmt = stmt.where(Venda.status_venda == status)
+        if canceled is not None:
+            stmt = stmt.where(Venda.cancelada.is_(canceled))
+        if operator:
+            stmt = stmt.where(Venda.operador.ilike(f"%{operator.strip()}%"))
+        if customer:
+            stmt = stmt.where(Venda.cliente.ilike(f"%{customer.strip()}%"))
         if category and category.strip():
             category_pattern = f"%{category.strip()}%"
             stmt = stmt.where(
                 or_(
                     Venda.produto.ilike(category_pattern),
                     Venda.familia_produto.ilike(category_pattern),
+                    Venda.categoria_produto.ilike(category_pattern),
+                    Venda.codigo_produto_local.ilike(category_pattern),
                 )
             )
         if start_time is not None:
@@ -413,6 +646,10 @@ class VendaRepository:
         if end_time is not None:
             stmt = stmt.where(self._time_expression() <= self._time_filter_value(end_time))
         return stmt
+
+    @staticmethod
+    def _sale_value_expression():
+        return func.coalesce(Venda.valor_liquido, Venda.valor)
 
     def _time_expression(self):
         dialect_name = self.session.bind.dialect.name if self.session.bind else "default"

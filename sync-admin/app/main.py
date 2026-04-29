@@ -44,7 +44,15 @@ async def lifespan(_: FastAPI):
     Base.metadata.create_all(bind=engine)
     ensure_compatible_schema()
     with SessionLocal() as db:
-        AuthService(db).ensure_initial_admin(settings.initial_admin_username, settings.initial_admin_password)
+        auth_service = AuthService(db)
+        auth_service.ensure_initial_admin(settings.initial_admin_username, settings.initial_admin_password)
+        if settings.initial_client_enabled:
+            auth_service.ensure_initial_client(
+                username=settings.initial_client_username,
+                full_name=settings.initial_client_full_name,
+                password=settings.initial_client_password,
+                empresa_id=settings.initial_client_empresa_id or settings.control_empresa_id,
+            )
         SyncService(db).ensure_default_api_key(settings.integration_api_key)
         LocalConfigService(db).bootstrap()
         LocalConfigService(db).record_state('started_at', datetime.now(UTC).isoformat())

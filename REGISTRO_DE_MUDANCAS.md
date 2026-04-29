@@ -124,6 +124,33 @@
     - `https://movisystecnologia.com.br/client/dashboard?empresa_id=12345678000199`
     - `https://movisystecnologia.com.br/client/reports?empresa_id=12345678000199&start_date=2026-01-14&end_date=2026-04-28`
   - Chave local `agent_local/data/agent_api_key.txt` foi adicionada ao `.gitignore`.
+- Primeira carga canonica enriquecida em 2026-04-28:
+  - `AGENT_SOURCE_QUERY=auto` passa a detectar o schema XD local.
+  - Agente local monta query canonica sobre `salesdocumentsreportview`.
+  - Enriquecimento automatico:
+    - forma de pagamento por `invoicepaymentdetails` + `xconfigpaymenttypes`;
+    - familia de produto por `itemsgroups`;
+    - tipo de venda por `DocumentDescription`;
+    - terminal por `Terminal`;
+    - filial padrao `0001`.
+  - Payload `/sync` preserva dimensoes de relatorio.
+  - Payload `/sync` inclui `source_metadata` com `cnpj`, `company_name` quando existir e `payment_methods`.
+  - Backend valida que `source_metadata.cnpj` bate com o tenant autenticado.
+  - Backend atualiza `Tenant.nome` quando a origem local envia nome da empresa.
+  - Validacao completa:
+    - `py -3 -m pytest -q` com `40 passed, 1 skipped`;
+    - teste real no MariaDB local confirmou dimensoes e `payment_methods_count=7`.
+- Usuario cliente padrao e portal separado em 2026-04-28:
+  - Seed automatico do usuario cliente `adm` com role `client`.
+  - Senha do cliente configurada por `INITIAL_CLIENT_PASSWORD` e armazenada com hash no banco.
+  - Criado login separado `/client/login`.
+  - Portal publico `/MoviRelatorios/*` agora roteia internamente para `/client/*`.
+  - Cliente autenticado redireciona para `/client/reports`.
+  - Cliente nao acessa `/dashboard` administrativo.
+  - Admin mantem acesso ao portal cliente para suporte/teste.
+  - Validacao:
+    - testes focados com `15 passed`;
+    - suite completa com `40 passed, 1 skipped`.
 
 ### Planejado
 - Multiempresa completa com isolamento por empresa, filial e terminal.
@@ -157,3 +184,57 @@
 - O repositório foi versionado com a tag `v0.1.0`.
 - O foco desta base é a evolução incremental para a fase comercial multi-tenant completa.
 
+# 2026-04-29 - Relatorios comerciais/financeiros
+
+- Ampliado contrato canonico de vendas com codigo local do produto, familia, categoria, unidade, operador, cliente, status, cancelamento e valores detalhados.
+- Criada migration `v006_sales_report_detail_fields`.
+- Criada tabela `produto_de_para` separada por empresa.
+- Relatorios agora suportam filtros avancados e agrupamentos comerciais/financeiros.
+- Exportacoes CSV, Excel e PDF passam a incluir campos detalhados e respeitar filtros avancados.
+- Documentacao criada em `docs/relatorios_comerciais_financeiros.md`.
+- Validacao: `41 passed, 1 skipped`.
+
+# 2026-04-29 - Referencia XD Software para MariaDB local
+
+- Usado o arquivo `TABELAS DO BANCO XD/REFERENCIA TABELAS BD XD SOFTWARE.xlsx` como base tecnica.
+- Agente local passa a suportar fallback automatico por `Documentsbodys + Documentsheaders` quando `salesdocumentsreportview` nao existir.
+- Mapeamento preserva `ItemKeyId` como `codigo_produto_local`.
+- Pagamento e familia sao enriquecidos por `Invoicepaymentdetails`, `Xconfigpaymenttypes` e `Itemsgroups` quando disponiveis.
+- Criadas rotas `GET /settings/xd-mapping` e `GET /settings/xd-mapping/routes` para diagnostico local.
+- Validacao: `45 passed, 1 skipped`.
+
+# 2026-04-29 - CRUD DE/PARA Produtos
+
+- Criadas camadas `ProdutoDeParaRepository`, `ProdutoDeParaService` e schemas dedicados.
+- Criadas rotas admin para listar, criar/atualizar, editar, remover e consultar produtos sem DE/PARA.
+- Tela `/settings` recebeu painel `DE/PARA Produtos` com formulario, listagem, edicao, remocao e produtos pendentes.
+- `sync-admin` passou a consumir o CRUD central com `X-Admin-Token` e `X-Audit-Actor`.
+- Regras validadas:
+  - isolamento por empresa;
+  - rejeicao de CNPJ divergente;
+  - produto sem mapeamento continua reportavel pelo codigo local;
+  - auditoria em mutacoes administrativas.
+- `backend.services.__init__` passou a usar lazy import para evitar inicializacao indevida de settings em imports parciais.
+- Validacao focada: `20 passed`.
+- Suite completa: `49 passed, 1 skipped`.
+
+# 2026-04-29 - Deploy VPS relatorios comerciais
+
+- Deploy executado na VPS em `/opt/integrado_web_xd`.
+- Branch em producao: `codex/local-agent-db-panel`.
+- Commit funcional implantado: `902bccd`.
+- Commit atual da branch/VPS apos sincronizar com `origin/main`: `ef3030a`.
+- Migration aplicada: `current_version=6`.
+- Schema validado:
+  - tabela `produto_de_para`;
+  - colunas detalhadas em `vendas`.
+- Rotas validadas:
+  - relatorio overview;
+  - CRUD/listagem `produto-de-para`;
+  - produtos sem DE/PARA.
+- Health publico validado com status `200`.
+
+# 2026-04-29 - Autorizacoes operacionais
+
+- Criado `docs/autorizacoes_operacionais.md`.
+- Registrado fluxo autorizado para Git, SSH, deploy VPS, migrations e validacoes.
