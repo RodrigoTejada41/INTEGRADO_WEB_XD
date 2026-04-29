@@ -4,7 +4,7 @@ from datetime import UTC, date, datetime, timedelta
 import json
 from math import ceil
 from pathlib import Path
-from urllib.parse import quote_plus
+from urllib.parse import quote_plus, urlencode
 
 from fastapi import APIRouter, Depends, Form, HTTPException, Request, status
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse, Response
@@ -48,6 +48,53 @@ templates = Jinja2Templates(directory=str(BASE_DIR / 'templates'))
 templates.env.globals['settings'] = settings
 MAX_REPORT_WINDOW_DAYS = 427
 REPORT_AUTO_REFRESH_SECONDS = 60
+
+REPORT_VIEW_CONFIG = {
+    'dashboard': {
+        'label': 'Dashboard',
+        'title': 'Dashboard de Relatorios',
+        'description': 'Visao resumida com indicadores, graficos e atalhos para relatorios detalhados.',
+    },
+    'daily_revenue': {
+        'label': 'Faturamento do Dia',
+        'title': 'Faturamento do Dia',
+        'description': 'Resumo consolidado do periodo com produtos, formas de pagamento e total geral.',
+    },
+    'payments': {
+        'label': 'Formas de Pagamento',
+        'title': 'Relatorio por Forma de Pagamento',
+        'description': 'Participacao, quantidade de vendas e faturamento por meio de pagamento.',
+    },
+    'products': {
+        'label': 'Produtos',
+        'title': 'Relatorio por Produto',
+        'description': 'Ranking, quantidade, valor medio e faturamento por codigo local de produto.',
+    },
+    'families': {
+        'label': 'Familias',
+        'title': 'Relatorio por Familia',
+        'description': 'Totais agrupados por familia e categoria de produto.',
+    },
+    'terminals': {
+        'label': 'Terminais',
+        'title': 'Relatorio por Terminal',
+        'description': 'Faturamento, quantidade e ticket medio por PDV.',
+    },
+    'sales': {
+        'label': 'Vendas Detalhadas',
+        'title': 'Vendas Detalhadas',
+        'description': 'Tabela operacional com busca, ordenacao, paginacao e exportacao.',
+    },
+}
+
+REPORT_ACTIONS = [
+    ('daily_revenue', 'today', 'Faturamento do Dia', 'Total, produtos e pagamentos do dia.'),
+    ('payments', 'custom', 'Por Pagamento', 'Dinheiro, Pix, cartoes e demais meios.'),
+    ('products', 'custom', 'Por Produto', 'Ranking por codigo local e faturamento.'),
+    ('families', 'custom', 'Por Familia', 'Agrupamento por familia e categoria.'),
+    ('terminals', 'custom', 'Por Terminal', 'PDV, ticket medio e movimento.'),
+    ('sales', 'custom', 'Vendas Detalhadas', 'Lista completa filtravel e exportavel.'),
+]
 
 _LOCAL_AUDIT_FIELD_LABELS = {
     'full_name': 'Nome',
@@ -676,6 +723,45 @@ def _build_filter_chips(
     ]
 
 
+def _normalize_report_view(report_view: str | None) -> str:
+    if report_view in REPORT_VIEW_CONFIG:
+        return str(report_view)
+    return 'dashboard'
+
+
+def _build_report_link(request: Request, **overrides: str | int | None) -> str:
+    params = dict(request.query_params)
+    for key, value in overrides.items():
+        if value is None:
+            params.pop(key, None)
+        else:
+            params[key] = str(value)
+    return f'{request.url.path}?{urlencode(params)}'
+
+
+def _build_report_actions(request: Request, *, selected_empresa_id: str | None) -> list[dict[str, str]]:
+    actions: list[dict[str, str]] = []
+    for view, preset, label, description in REPORT_ACTIONS:
+        overrides: dict[str, str | int | None] = {
+            'report_view': view,
+            'period_preset': preset,
+        }
+        if selected_empresa_id:
+            overrides['empresa_id'] = selected_empresa_id
+        if view == 'daily_revenue':
+            overrides['top_limit'] = 10
+            overrides['recent_limit'] = 20
+        actions.append(
+            {
+                'view': view,
+                'label': label,
+                'description': description,
+                'href': _build_report_link(request, **overrides),
+            }
+        )
+    return actions
+
+
 def _build_report_highlights(
     *,
     overview: dict,
@@ -897,6 +983,7 @@ def _build_report_payload(
     customer: str | None = None,
     status_filter: str | None = None,
     report_type: str | None = None,
+    report_view: str | None = None,
 ) -> dict:
     control = ControlService()
     normalized_top_limit = max(1, min(top_limit, 20))
@@ -1023,6 +1110,27 @@ def _build_report_payload(
         end_time=end_time,
         limit=normalized_top_limit,
     )
+    sales_by_terminal = control.fetch_report_breakdown(
+        empresa_id=empresa_id,
+        group_by='terminal_code',
+        start_date=start_date,
+        end_date=end_date,
+        branch_code=branch_code,
+        terminal_code=terminal_code,
+        category=category,
+        product=product,
+        product_code=product_code,
+        family=family,
+        payment_method=payment_method,
+        card_brand=card_brand,
+        status_filter=status_filter,
+        canceled=canceled,
+        operator=operator,
+        customer=customer,
+        start_time=start_time,
+        end_time=end_time,
+        limit=normalized_top_limit,
+    )
     recent_sales = control.fetch_report_recent_sales(
         empresa_id=empresa_id,
         start_date=start_date,
@@ -1048,6 +1156,7 @@ def _build_report_payload(
     type_items = list(sales_by_type.get('items', []))
     payment_items = list(sales_by_payment.get('items', []))
     family_items = list(sales_by_family.get('items', []))
+    terminal_items = list(sales_by_terminal.get('items', []))
     recent_items = list(recent_sales.get('items', []))
     previous_period = _compute_previous_period(start_date, end_date)
     previous_overview = None
@@ -1109,6 +1218,7 @@ def _build_report_payload(
         top_limit=normalized_top_limit,
         recent_limit=normalized_recent_limit,
     )
+    normalized_report_view = _normalize_report_view(report_view)
     return {
         'overview': overview,
         'daily_items': daily_items,
@@ -1116,6 +1226,7 @@ def _build_report_payload(
         'type_items': type_items,
         'payment_items': payment_items,
         'family_items': family_items,
+        'terminal_items': terminal_items,
         'recent_items': recent_items,
         'comparison': comparison,
         'sync_status': sync_status,
@@ -1140,6 +1251,8 @@ def _build_report_payload(
         'customer': customer or '',
         'status_filter': status_filter or '',
         'report_type': report_type or 'sales',
+        'report_view': normalized_report_view,
+        'report_view_config': REPORT_VIEW_CONFIG[normalized_report_view],
         'top_limit': normalized_top_limit,
         'recent_limit': normalized_recent_limit,
         'report_auto_refresh_seconds': REPORT_AUTO_REFRESH_SECONDS,
@@ -1162,6 +1275,10 @@ def _build_report_payload(
         'family_chart_labels': json.dumps([item.get('label', '-') for item in family_items]),
         'family_chart_values': json.dumps(
             [float(item.get('total_sales_value', 0) or 0) for item in family_items]
+        ),
+        'terminal_chart_labels': json.dumps([item.get('label', '-') for item in terminal_items]),
+        'terminal_chart_values': json.dumps(
+            [float(item.get('total_sales_value', 0) or 0) for item in terminal_items]
         ),
     }
 
@@ -1704,6 +1821,7 @@ def reports_page(
     category: str | None = None,
     status_filter: str | None = None,
     report_type: str | None = None,
+    report_view: str | None = None,
     top_limit: int = 10,
     recent_limit: int = 20,
     current_user: User = Depends(require_web_permission('reports.view')),
@@ -1721,6 +1839,7 @@ def reports_page(
         **_advanced_report_params(request),
         status_filter=status_filter,
         report_type=report_type,
+        report_view=report_view,
         top_limit=top_limit,
         recent_limit=recent_limit,
     )
@@ -1736,6 +1855,10 @@ def reports_page(
                 request=request,
                 base_path='/reports/api',
                 empresa_id=selected_empresa_id,
+            ),
+            'report_actions': _build_report_actions(
+                request,
+                selected_empresa_id=selected_empresa_id,
             ),
             **payload,
         },
@@ -1815,6 +1938,7 @@ def client_reports_page(
     category: str | None = None,
     status_filter: str | None = None,
     report_type: str | None = None,
+    report_view: str | None = None,
     top_limit: int = 10,
     recent_limit: int = 20,
     current_user: User = Depends(require_client_portal_access),
@@ -1842,6 +1966,7 @@ def client_reports_page(
         **_advanced_report_params(request),
         status_filter=status_filter,
         report_type=report_type,
+        report_view=report_view,
         top_limit=top_limit,
         recent_limit=recent_limit,
     )
@@ -1857,6 +1982,10 @@ def client_reports_page(
                 request=request,
                 base_path='/reports/api',
                 empresa_id=scope.empresa_id,
+            ),
+            'report_actions': _build_report_actions(
+                request,
+                selected_empresa_id=scope.empresa_id,
             ),
             'allowed_branch_codes': scope.allowed_branch_codes,
             'branch_code': scope.selected_branch_code or '',

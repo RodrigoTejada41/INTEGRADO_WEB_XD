@@ -241,3 +241,11 @@
 
 - Criado `docs/autorizacoes_operacionais.md`.
 - Registrado fluxo autorizado para Git, SSH, deploy VPS, migrations e validacoes.
+
+# 2026-04-29 - UX cliente para relatorios configuraveis
+
+- `/client/reports` agora separa dashboard resumido e relatorios dedicados.
+- Criadas quick actions para faturamento do dia, pagamentos, produtos, familias, terminais e vendas detalhadas.
+- `report_view` controla a visualizacao ativa sem duplicar rotas.
+- Filtros avancados foram recolhidos para reduzir poluicao visual.
+- Validacao: `49 passed, 1 skipped`.

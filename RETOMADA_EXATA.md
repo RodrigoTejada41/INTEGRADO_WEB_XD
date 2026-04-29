@@ -137,6 +137,25 @@ Data de atualizacao: 2026-04-28
     - `infra/deploy-safety/`;
     - `infra/nginx/certs/accounts/`.
 
+## Checkpoint UX relatorios cliente - 2026-04-29
+
+### Entrega local
+- Portal cliente `/client/reports` passa a abrir como dashboard resumido.
+- Relatorios detalhados passam a ser acessados por atalhos:
+  - `report_view=daily_revenue`;
+  - `report_view=payments`;
+  - `report_view=products`;
+  - `report_view=families`;
+  - `report_view=terminals`;
+  - `report_view=sales`.
+- Filtros avancados foram movidos para bloco recolhivel.
+- Relatorios dedicados exibem conteudo isolado por assunto, reduzindo poluicao visual.
+
+### Validacao local
+- `py -3 -m compileall sync-admin\app` -> OK.
+- `py -3 -m pytest tests\test_sync_admin_rbac.py -q` -> `10 passed`.
+- `py -3 -m pytest -q` -> `49 passed, 1 skipped`.
+
 ## Objetivo desta nota
 Este arquivo e o ponto de entrada para retomar o projeto sem redescobrir contexto.
 
