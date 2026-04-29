@@ -4,6 +4,40 @@ Data de atualizacao: 2026-04-28
 
 ## Checkpoint relatorios comerciais/financeiros - 2026-04-29
 
+### Correcao familia em relatorios cliente - 2026-04-29
+
+Problema validado em producao:
+
+- URL afetada:
+  - `/client/reports?empresa_id=12345678000199&report_view=families&period_preset=custom&top_limit=10&recent_limit=20`
+- Diagnostico no PostgreSQL da VPS:
+  - `total_rows=485`;
+  - `family_not_null=0`;
+  - `family_filled=0`;
+  - amostras tambem sem `codigo_produto_local`.
+- Causa:
+  - dados existentes foram sincronizados sem `familia_produto` e sem `codigo_produto_local`;
+  - o mapper XD precisava cobrir tambem o caminho `ItemKeyId -> Items.KeyId -> Items.GroupId -> Itemsgroups`.
+
+Correcao aplicada:
+
+- `agent_local/db/xd_sales_mapper.py` agora busca familia:
+  - por `ItemGroupId` direto quando existir;
+  - por `Items.GroupId` a partir de `ItemKeyId` quando a view/tabela de vendas nao trouxer `ItemGroupId`.
+- `backend/repositories/venda_repository.py` trata familia vazia como `Nao informado` nos agrupamentos.
+- Testes adicionados:
+  - mapper XD com `Items + Itemsgroups`;
+  - agrupamento de familia vazia.
+
+Validacao local:
+
+- `py -3 -m pytest tests\test_agent_local_sales_mapping.py tests\test_sync_upsert.py -q` -> `9 passed`.
+- `py -3 -m pytest -q` -> `51 passed, 1 skipped`.
+
+Ponto operacional:
+
+- Para a empresa `12345678000199`, a producao so passara a mostrar familias reais depois de atualizar o agente local e reenviar/reprocessar as vendas do periodo, porque os registros atuais no banco central nao possuem a informacao.
+
 ### Entrega local
 - Modulo de relatorios ampliado para BI comercial/financeiro:
   - filtros por produto, codigo local, familia, forma de pagamento, bandeira, operador, cliente, cancelamento e status;

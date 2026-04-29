@@ -153,8 +153,15 @@ Ordem de decisao do agente local:
 1. Usar `salesdocumentsreportview` quando existir.
 2. Usar fallback `Documentsbodys + Documentsheaders` quando a view nao existir.
 3. Enriquecer pagamento via `Invoicepaymentdetails + Xconfigpaymenttypes` quando existir.
-4. Enriquecer familia via `Itemsgroups` quando existir.
-5. Preservar `ItemKeyId` como `codigo_produto_local`.
+4. Enriquecer familia por `ItemGroupId` direto quando existir.
+5. Enriquecer familia por `ItemKeyId -> Items.KeyId -> Items.GroupId -> Itemsgroups` quando a origem nao trouxer `ItemGroupId`.
+6. Preservar `ItemKeyId` como `codigo_produto_local`.
+
+Observacao operacional:
+
+- vendas ja sincronizadas antes do enriquecimento podem estar com `familia_produto` e `codigo_produto_local` nulos;
+- nesse caso, a correcao exige atualizar o agente local e reenviar/reprocessar as vendas do periodo desejado;
+- o backend exibe `Nao informado` quando a origem envia familia nula ou vazia.
 
 ## Rotas de diagnostico XD local
 

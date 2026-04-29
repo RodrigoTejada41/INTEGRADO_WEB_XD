@@ -450,7 +450,7 @@ class VendaRepository:
             "codigo_produto_local": Venda.codigo_produto_local,
         }
         group_column = group_columns[group_by]
-        label = func.coalesce(group_column, "Nao informado")
+        label = func.coalesce(func.nullif(func.trim(group_column), ""), "Nao informado")
         value_expr = self._sale_value_expression()
         stmt = (
             select(
