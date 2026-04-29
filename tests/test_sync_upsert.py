@@ -270,3 +270,30 @@ def test_report_breakdowns_and_time_filter() -> None:
         limit=10,
     )
     assert operator_breakdown[0]["label"] == "Caixa 02"
+
+
+def test_report_breakdown_treats_blank_family_as_not_informed() -> None:
+    session = make_session()
+    repository = VendaRepository(session)
+    repository.bulk_upsert(
+        "11111111000101",
+        [
+            {
+                "uuid": "66666666-6666-6666-6666-666666666666",
+                "familia_produto": "   ",
+                "produto": "Produto sem familia",
+                "valor": Decimal("15.00"),
+                "data": date(2026, 4, 16),
+                "data_atualizacao": datetime(2026, 4, 16, 10, 0, tzinfo=UTC),
+            }
+        ],
+    )
+    session.commit()
+
+    breakdown = repository.report_sales_breakdown(
+        empresa_id="11111111000101",
+        group_by="familia_produto",
+        limit=10,
+    )
+
+    assert breakdown[0]["label"] == "Nao informado"

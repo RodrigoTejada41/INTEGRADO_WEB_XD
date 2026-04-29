@@ -57,6 +57,31 @@ def test_build_xd_salesdocuments_query_adds_family_and_payment_mapping() -> None
     assert "AS forma_pagamento" in query
 
 
+def test_build_xd_salesdocuments_query_maps_family_through_items_table() -> None:
+    columns = {
+        "DocumentKeyId",
+        "ItemKeyId",
+        "CloseDate",
+        "CreationDate",
+        "ItemDescription",
+        "TotalAmount",
+    }
+    tables = {"salesdocumentsreportview", "Items", "Itemsgroups"}
+    table_columns = {
+        "salesdocumentsreportview": columns,
+        "Items": {"KeyId", "GroupId"},
+        "Itemsgroups": {"Id", "Description"},
+    }
+
+    query = build_xd_salesdocuments_query(columns=columns, tables=tables, table_columns=table_columns)
+
+    assert "FROM items i" in query
+    assert "INNER JOIN itemsgroups ig" in query
+    assert "ig.`Id` = i.`GroupId`" in query
+    assert "i.`KeyId` = v.ItemKeyId" in query
+    assert "AS familia_produto" in query
+
+
 class FakeMariaDBClient:
     def fetch_changed_vendas(self, empresa_id: str, since: datetime, limit: int) -> list[dict]:
         return [

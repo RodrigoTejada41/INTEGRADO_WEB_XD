@@ -90,15 +90,9 @@ def build_xd_salesdocuments_query(
         _literal("0", "cancelada"),
     ]
 
-    if "itemsgroups" in tables_lower and "ItemGroupId" in columns:
-        optional_selects.append(
-            "(\n"
-            "                        SELECT ig.Description\n"
-            "                        FROM itemsgroups ig\n"
-            "                        WHERE ig.Id = v.ItemGroupId\n"
-            "                        LIMIT 1\n"
-            "                    ) AS familia_produto"
-        )
+    family_expr = _sales_view_family_expression(columns, tables_lower, table_columns)
+    if family_expr:
+        optional_selects.append(family_expr)
     elif "ItemGroupId" in columns:
         optional_selects.append(_column("v", "ItemGroupId", "familia_produto", columns))
     else:
@@ -178,16 +172,7 @@ def build_xd_documents_query(*, tables: set[str], table_columns: Mapping[str, se
     customer_expr = _first_existing_column("h", ("EntityName", "EntityDescription", "EntityKeyId"), header_columns, "NULL")
     status_expr = _literal("'finalizada'", "status_venda")
 
-    family_expr = _literal("NULL", "familia_produto")
-    if "itemsgroups" in tables_lower and "ItemGroupId" in body_columns:
-        family_expr = (
-            "(\n"
-            "                        SELECT ig.Description\n"
-            "                        FROM itemsgroups ig\n"
-            "                        WHERE ig.Id = b.ItemGroupId\n"
-            "                        LIMIT 1\n"
-            "                    ) AS familia_produto"
-        )
+    family_expr = _documents_family_expression(body_columns, tables_lower, table_columns)
 
     payment_expr = _literal("NULL", "forma_pagamento")
     if {"invoicepaymentdetails", "xconfigpaymenttypes"} <= tables_lower:
@@ -278,3 +263,114 @@ def _coalesce_columns(alias: str, candidates: tuple[str, ...], columns: set[str]
     if not available:
         return "NULL"
     return "COALESCE(" + ", ".join(available) + ")"
+
+
+def _sales_view_family_expression(
+    columns: set[str],
+    tables_lower: set[str],
+    table_columns: Mapping[str, set[str]] | None,
+) -> str | None:
+    if table_columns is None and "itemsgroups" in tables_lower and "ItemGroupId" in columns:
+        return (
+            "(\n"
+            "                        SELECT ig.Description\n"
+            "                        FROM itemsgroups ig\n"
+            "                        WHERE ig.Id = v.ItemGroupId\n"
+            "                        LIMIT 1\n"
+            "                    ) AS familia_produto"
+        )
+
+    groups_columns = _columns_for_reference(table_columns, "itemsgroups")
+    group_description_column = _first_column_name(groups_columns, ("Description", "Name"))
+    group_key_column = _first_column_name(groups_columns, ("Id", "KeyId", "GroupId"))
+    if "itemsgroups" in tables_lower and group_description_column and group_key_column and "ItemGroupId" in columns:
+        return (
+            "(\n"
+            f"                        SELECT ig.`{group_description_column}`\n"
+            "                        FROM itemsgroups ig\n"
+            f"                        WHERE ig.`{group_key_column}` = v.ItemGroupId\n"
+            "                        LIMIT 1\n"
+            "                    ) AS familia_produto"
+        )
+
+    items_columns = _columns_for_reference(table_columns, "items")
+    item_key_column = _first_column_name(items_columns, ("KeyId", "ItemKeyId", "Id"))
+    item_group_column = _first_column_name(items_columns, ("GroupId", "ItemGroupId"))
+    if (
+        {"items", "itemsgroups"} <= tables_lower
+        and "ItemKeyId" in columns
+        and item_key_column
+        and item_group_column
+        and group_description_column
+        and group_key_column
+    ):
+        return (
+            "(\n"
+            f"                        SELECT ig.`{group_description_column}`\n"
+            "                        FROM items i\n"
+            "                        INNER JOIN itemsgroups ig\n"
+            f"                            ON ig.`{group_key_column}` = i.`{item_group_column}`\n"
+            f"                        WHERE i.`{item_key_column}` = v.ItemKeyId\n"
+            "                        LIMIT 1\n"
+            "                    ) AS familia_produto"
+        )
+
+    return None
+
+
+def _documents_family_expression(
+    body_columns: set[str],
+    tables_lower: set[str],
+    table_columns: Mapping[str, set[str]],
+) -> str:
+    groups_columns = _columns_for_reference(table_columns, "itemsgroups")
+    group_description_column = _first_column_name(groups_columns, ("Description", "Name"))
+    group_key_column = _first_column_name(groups_columns, ("Id", "KeyId", "GroupId"))
+    if "itemsgroups" in tables_lower and "ItemGroupId" in body_columns and group_description_column and group_key_column:
+        return (
+            "(\n"
+            f"                        SELECT ig.`{group_description_column}`\n"
+            "                        FROM itemsgroups ig\n"
+            f"                        WHERE ig.`{group_key_column}` = b.ItemGroupId\n"
+            "                        LIMIT 1\n"
+            "                    ) AS familia_produto"
+        )
+
+    items_columns = _columns_for_reference(table_columns, "items")
+    item_key_column = _first_column_name(items_columns, ("KeyId", "ItemKeyId", "Id"))
+    item_group_column = _first_column_name(items_columns, ("GroupId", "ItemGroupId"))
+    if (
+        {"items", "itemsgroups"} <= tables_lower
+        and "ItemKeyId" in body_columns
+        and item_key_column
+        and item_group_column
+        and group_description_column
+        and group_key_column
+    ):
+        return (
+            "(\n"
+            f"                        SELECT ig.`{group_description_column}`\n"
+            "                        FROM items i\n"
+            "                        INNER JOIN itemsgroups ig\n"
+            f"                            ON ig.`{group_key_column}` = i.`{item_group_column}`\n"
+            f"                        WHERE i.`{item_key_column}` = b.ItemKeyId\n"
+            "                        LIMIT 1\n"
+            "                    ) AS familia_produto"
+        )
+
+    return _literal("NULL", "familia_produto")
+
+
+def _columns_for_reference(table_columns: Mapping[str, set[str]] | None, table_name: str) -> set[str]:
+    if table_columns is None:
+        return set()
+    return _columns_for(table_columns, table_name)
+
+
+def _first_column_name(columns: set[str], candidates: tuple[str, ...]) -> str | None:
+    lowered = {column.lower(): column for column in columns}
+    for candidate in candidates:
+        match = lowered.get(candidate.lower())
+        if match:
+            return match
+    return None
