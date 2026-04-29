@@ -221,7 +221,9 @@
 # 2026-04-29 - Deploy VPS relatorios comerciais
 
 - Deploy executado na VPS em `/opt/integrado_web_xd`.
-- Branch em producao: `codex/local-agent-db-panel`.
+- Branch em producao apos merge final: `main`.
+- PR final: `#21`.
+- Commit em producao apos merge final: `b198512`.
 - Commit funcional implantado: `902bccd`.
 - Commit atual da branch/VPS apos sincronizar com `origin/main`: `ef3030a`.
 - Migration aplicada: `current_version=6`.
@@ -233,6 +235,7 @@
   - CRUD/listagem `produto-de-para`;
   - produtos sem DE/PARA.
 - Health publico validado com status `200`.
+- Nginx rastreado restaurado para o estado de `main`, validado com `nginx -t` e recarregado.
 
 # 2026-04-29 - Autorizacoes operacionais
 

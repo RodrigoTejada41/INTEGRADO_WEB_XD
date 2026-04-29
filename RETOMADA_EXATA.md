@@ -87,9 +87,11 @@ Data de atualizacao: 2026-04-28
 
 ### Deploy VPS executado - 2026-04-29
 - Branch em producao:
-  - `codex/local-agent-db-panel`
-- Commit em producao:
-  - `ef3030a` - merge de `origin/main` na branch `codex/local-agent-db-panel`
+  - `main`
+- Commit funcional em producao:
+  - `b198512` - `Expand commercial reporting and XD product mapping`
+- PR final mergeado:
+  - `#21` - `Expand commercial reporting and XD product mapping`
 - Commit funcional do deploy:
   - `902bccd` - `feat: expand commercial reporting module`
 - Commit de autorizacoes/documentacao:
@@ -117,10 +119,23 @@ Data de atualizacao: 2026-04-28
   - `/admin/tenants/12345678000199/produto-de-para?limit=1` -> `200`;
   - `/admin/tenants/12345678000199/produto-de-para/unmapped?limit=1` -> `200`.
 - Antes do checkout, a VPS tinha alteracoes locais. Elas foram preservadas em stash e em `infra/deploy-safety/`.
-- A branch foi sincronizada com `origin/main` apos o deploy:
+- A branch temporaria foi sincronizada com `origin/main` apos o deploy:
   - merge commit local/remoto: `ef3030a`;
   - `py -3 -m pytest -q` -> `49 passed, 1 skipped`;
-  - checkout da VPS atualizado para `ef3030a` sem rebuild adicional.
+  - PR `#21` mergeado em `main` com squash;
+  - VPS atualizada para `main` e deploy executado novamente;
+  - `scripts/db_migrate.py` retornou `no pending migrations (current_version=6)`.
+- Ajuste operacional apos deploy:
+  - `infra/nginx/default.conf` e `infra/scripts/*` foram restaurados para o estado rastreado em `main`;
+  - `nginx -t` OK;
+  - `nginx -s reload` OK;
+  - health HTTPS continuou `200`.
+- Estado Git da VPS apos limpeza:
+  - arquivos rastreados limpos;
+  - permanecem somente artefatos locais nao versionados:
+    - `infra/backups/postgres_20260429_030001.sql.gz`;
+    - `infra/deploy-safety/`;
+    - `infra/nginx/certs/accounts/`.
 
 ## Objetivo desta nota
 Este arquivo e o ponto de entrada para retomar o projeto sem redescobrir contexto.
