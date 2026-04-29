@@ -156,6 +156,27 @@ Data de atualizacao: 2026-04-28
 - `py -3 -m pytest tests\test_sync_admin_rbac.py -q` -> `10 passed`.
 - `py -3 -m pytest -q` -> `49 passed, 1 skipped`.
 
+### Deploy VPS
+- PR:
+  - `#23` - `Split client reports into dashboard and drilldown views`
+- Commit em producao:
+  - `33eb235` - `Split client reports into dashboard and drilldown views`
+- Deploy:
+  - `bash infra/scripts/deploy-prod.sh`
+  - `MIGRATION OK - no pending migrations (current_version=6)`
+- Validacao:
+  - `integrado-backend` healthy;
+  - `integrado-frontend` healthy;
+  - `integrado-nginx` healthy;
+  - `https://movisystecnologia.com.br/healthz` -> `200`;
+  - `https://movisystecnologia.com.br/readyz/backend` -> `200`;
+  - `https://movisystecnologia.com.br/readyz/sync-admin` -> `200`;
+  - `https://movisystecnologia.com.br/admin/api/health/ready` -> `200`.
+- Ajuste operacional:
+  - `infra/nginx/default.conf` restaurado para o estado rastreado;
+  - `nginx -t` OK;
+  - `nginx -s reload` OK.
+
 ## Objetivo desta nota
 Este arquivo e o ponto de entrada para retomar o projeto sem redescobrir contexto.
 

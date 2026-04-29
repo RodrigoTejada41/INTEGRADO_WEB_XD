@@ -249,3 +249,6 @@
 - `report_view` controla a visualizacao ativa sem duplicar rotas.
 - Filtros avancados foram recolhidos para reduzir poluicao visual.
 - Validacao: `49 passed, 1 skipped`.
+- PR `#23` mergeado em `main`.
+- Deploy VPS aplicado no commit `33eb235`.
+- Health publico validado com status `200`.

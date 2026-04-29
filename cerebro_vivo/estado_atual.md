@@ -505,3 +505,9 @@ Na retomada canonica mais recente, o backlog funcional estava concluido ate `P18
 - Filtros avancados ficam recolhidos.
 - Validacao local completa:
   - `py -3 -m pytest -q` com `49 passed, 1 skipped`.
+- Deploy VPS:
+  - PR `#23`;
+  - commit `33eb235`;
+  - migration sem pendencias em `current_version=6`;
+  - containers saudaveis;
+  - health publico `200`.
