@@ -114,6 +114,16 @@
   - Instalador passa a criar `Abrir_Painel_Local.cmd`, mantendo `Abrir_Vinculacao.cmd`.
   - Validação completa: `py -3 -m pytest -q` com `35 passed, 1 skipped`.
   - Smoke de pacote instalador gerado em `output/client-agent-releases/local-panel-smoke`.
+- Teste ponta a ponta MariaDB local -> API web -> portal cliente em 2026-04-28:
+  - Pareamento local ativado para tenant `12345678000199`.
+  - MariaDB local validado em `127.0.0.1:3308/xd`.
+  - Ciclo unico do agente enviou `484` registros.
+  - API web retornou `inserted_count=484`, `updated_count=0`, `processed_count=484`.
+  - Relatorio em producao confirmou `485` registros, total `20132.21`, `103` produtos distintos.
+  - Links de validacao:
+    - `https://movisystecnologia.com.br/client/dashboard?empresa_id=12345678000199`
+    - `https://movisystecnologia.com.br/client/reports?empresa_id=12345678000199&start_date=2026-01-14&end_date=2026-04-28`
+  - Chave local `agent_local/data/agent_api_key.txt` foi adicionada ao `.gitignore`.
 
 ### Planejado
 - Multiempresa completa com isolamento por empresa, filial e terminal.

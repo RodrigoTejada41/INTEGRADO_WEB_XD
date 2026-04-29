@@ -842,3 +842,81 @@ git push -u origin codex/restore-backend-reporting-contract
   - gerar release versionada oficial em `infra/client-agent/releases/vYYYY-MM-DD_HHMM`;
   - testar instalacao em uma VM Windows limpa;
   - adicionar execucao como servico Windows.
+
+## 23) Teste real MariaDB local -> API web -> portal cliente - 2026-04-28
+
+### 23.1 Objetivo
+
+- Provar o fluxo completo:
+  - MariaDB local do cliente;
+  - agente local;
+  - API web em producao;
+  - relatorios no portal cliente.
+
+### 23.2 Preparacao
+
+- Tenant testado:
+  - `12345678000199`
+- API web:
+  - `https://movisystecnologia.com.br/admin/api`
+- Banco local:
+  - MariaDB `127.0.0.1:3308/xd`
+- Arquivo de chave local:
+  - `agent_local/data/agent_api_key.txt`
+- Arquivo de checkpoint:
+  - `agent_local/data/checkpoints.json`
+
+### 23.3 Execucao
+
+- Criado codigo de pareamento temporario na VPS.
+- Ativado agente local com o codigo.
+- Chave local salva em `agent_local/data/agent_api_key.txt`.
+- Configuracao MariaDB salva no `.env`.
+- Teste MariaDB:
+  - `mariadb_ping=True`
+- Rodado um ciclo unico do `SyncRunner`.
+
+### 23.4 Resultado da API web
+
+- Resultado do sync:
+  - `status`: `ok`
+  - `empresa_id`: `12345678000199`
+  - `inserted_count`: `484`
+  - `updated_count`: `0`
+  - `processed_count`: `484`
+
+### 23.5 Resultado dos relatorios
+
+- Relatorio em producao confirmou:
+  - `total_records`: `485`
+  - `total_sales_value`: `20132.21`
+  - `distinct_products`: `103`
+  - `first_sale_date`: `2026-01-14`
+  - `last_sale_date`: `2026-04-22`
+
+### 23.6 Links de validacao visual
+
+- Portal cliente:
+  - `https://movisystecnologia.com.br/client/dashboard?empresa_id=12345678000199`
+- Relatorios no periodo testado:
+  - `https://movisystecnologia.com.br/client/reports?empresa_id=12345678000199&start_date=2026-01-14&end_date=2026-04-28`
+
+### 23.7 Seguranca operacional
+
+- Chave local do agente nao foi exposta.
+- Adicionado ao `.gitignore`:
+  - `agent_local/data/agent_api_key.txt`
+- Checkpoint runtime local nao foi versionado.
+
+### 23.8 Commits relacionados
+
+- `e6a4b7d` - `feat: add local agent database setup panel`
+- `f3ba66e` - `chore: ignore local agent runtime key`
+
+### 23.9 Proximo passo operacional
+
+- Abrir PR da branch:
+  - `codex/local-agent-db-panel`
+- Mergear em `main`.
+- Atualizar VPS para `main`.
+- Gerar release oficial do instalador local para cliente.
