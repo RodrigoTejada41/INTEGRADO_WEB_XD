@@ -293,13 +293,16 @@ def test_report_dashboard_uses_modern_bi_layout() -> None:
         encoding="utf-8"
     )
 
-    assert "Dashboard de Performance" in template
-    assert "bi-workspace-grid" in template
-    assert "bi-filter-rail" in template
-    assert "Evolucao de vendas no tempo" in template
-    assert "Distribuicao por categoria" in template
-    assert "Ranking executivo" in template
+    assert "Dashboard de Relatorios" in template
+    assert "bi-report-actions" in template
+    assert "bi-filter-strip" in template
+    assert "report_view == 'dashboard'" in template
+    assert "action.label" in template
+    assert "Produtos vendidos agrupados" in template
+    assert "Detalhe por forma de pagamento" in template
+    assert "Totais por terminal" in template
     assert "data-table-pagination" in template
+    assert "reportTerminalChart" in script
     assert "replaceDashboardFrom" in script
     assert "event.preventDefault()" in script
 

@@ -64,6 +64,38 @@ As exportacoes do `sync-admin` respeitam os filtros da tela.
 
 CSV usa `;` para compatibilidade com Excel em PT-BR.
 
+## Interface cliente
+
+A tela do cliente usa navegação em duas etapas:
+
+1. Dashboard principal:
+   - KPIs resumidos;
+   - gráficos essenciais;
+   - ranking curto;
+   - atalhos de relatório.
+2. Visualização dedicada:
+   - aberta por `report_view`;
+   - mostra somente o relatório selecionado;
+   - mantém filtros e exportações do contexto aplicado.
+
+Valores aceitos em `report_view`:
+
+- `dashboard`
+- `daily_revenue`
+- `payments`
+- `products`
+- `families`
+- `terminals`
+- `sales`
+
+Exemplo:
+
+```text
+/client/reports?report_view=daily_revenue&period_preset=today
+```
+
+Esse fluxo evita concentrar todos os gráficos, filtros e tabelas em uma única tela.
+
 ## Produto local
 
 O campo `codigo_produto_local` e preservado como referencia principal do produto.

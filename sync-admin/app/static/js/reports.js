@@ -93,6 +93,7 @@
     renderChart('reportTypeChart', 'doughnut', '#2563eb');
     renderChart('reportPaymentChart', 'doughnut', '#22c55e');
     renderChart('reportFamilyChart', 'bar', '#ef4444');
+    renderChart('reportTerminalChart', 'bar', '#64748b');
   }
 
   function setupTheme() {

@@ -490,3 +490,18 @@ Na retomada canonica mais recente, o backlog funcional estava concluido ate `P18
   - arquivos rastreados da VPS limpos; apenas backups/certs/deploy-safety permanecem nao versionados.
 - Autorizacoes operacionais:
   - registradas em `docs/autorizacoes_operacionais.md`.
+
+## UX de relatorios cliente configuraveis - 2026-04-29
+
+- Dashboard cliente deixou de concentrar todos os dados simultaneamente.
+- Nova navegacao por quick actions:
+  - Faturamento do Dia;
+  - Por Pagamento;
+  - Por Produto;
+  - Por Familia;
+  - Por Terminal;
+  - Vendas Detalhadas.
+- Cada acao abre uma visualizacao dedicada via `report_view`.
+- Filtros avancados ficam recolhidos.
+- Validacao local completa:
+  - `py -3 -m pytest -q` com `49 passed, 1 skipped`.

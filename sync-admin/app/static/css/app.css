@@ -1297,6 +1297,194 @@ body[data-theme="dark"] .breadcrumb-item.active {
   row-gap: 1rem;
 }
 
+.bi-report-workspace {
+  display: grid;
+  gap: 1rem;
+}
+
+.bi-report-actions {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 0.75rem;
+}
+
+.bi-report-action {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+  min-height: 78px;
+  padding: 0.85rem 1rem;
+  border: 1px solid rgba(148, 163, 184, 0.28);
+  border-radius: 0.85rem;
+  background: rgba(255, 255, 255, 0.92);
+  color: #0f172a;
+  text-decoration: none;
+  box-shadow: 0 12px 28px rgba(15, 23, 42, 0.06);
+  transition: transform 160ms ease, border-color 160ms ease, box-shadow 160ms ease;
+}
+
+.bi-report-action:hover,
+.bi-report-action.is-active {
+  border-color: rgba(37, 99, 235, 0.48);
+  color: #0f172a;
+  text-decoration: none;
+  transform: translateY(-2px);
+  box-shadow: 0 18px 36px rgba(37, 99, 235, 0.12);
+}
+
+.bi-report-action i {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 0.7rem;
+  background: #0f172a;
+  color: #fff;
+  font-size: 0.9rem;
+}
+
+.bi-report-action span {
+  display: grid;
+  gap: 0.15rem;
+  min-width: 0;
+}
+
+.bi-report-action strong,
+.bi-report-action small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bi-report-action small {
+  color: #64748b;
+  font-size: 0.78rem;
+}
+
+.bi-filter-strip {
+  padding: 1rem;
+  border: 1px solid rgba(148, 163, 184, 0.24);
+  border-radius: 1rem;
+  background: rgba(255, 255, 255, 0.9);
+}
+
+.bi-filter-strip-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  align-items: end;
+}
+
+.bi-filter-strip-form label {
+  display: grid;
+  gap: 0.25rem;
+  min-width: 128px;
+  margin: 0;
+}
+
+.bi-filter-strip-form label span,
+.bi-advanced-filters summary {
+  color: #64748b;
+  font-size: 0.76rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.bi-advanced-filters {
+  flex-basis: 100%;
+}
+
+.bi-advanced-filters summary {
+  cursor: pointer;
+}
+
+.bi-advanced-filter-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: 0.75rem;
+  margin-top: 0.75rem;
+}
+
+.bi-dashboard-summary,
+.bi-report-detail {
+  display: grid;
+  gap: 1rem;
+}
+
+.bi-summary-grid,
+.bi-dashboard-lists,
+.bi-detail-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.45fr) minmax(300px, 0.8fr);
+  gap: 1rem;
+}
+
+.bi-detail-grid .bi-panel--wide,
+.bi-summary-grid .bi-panel--wide {
+  grid-column: span 1;
+}
+
+.bi-detail-toolbar {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+}
+
+.bi-highlight-list {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.bi-highlight-list > div {
+  display: grid;
+  gap: 0.2rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.22);
+}
+
+.bi-highlight-list span {
+  color: #64748b;
+  font-size: 0.78rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.bi-highlight-list strong {
+  color: #0f172a;
+  font-size: 1.15rem;
+}
+
+.bi-highlight-list small {
+  color: #64748b;
+}
+
+body[data-theme="dark"] .bi-report-action,
+body[data-theme="dark"] .bi-filter-strip {
+  border-color: rgba(148, 163, 184, 0.18);
+  background: rgba(15, 23, 42, 0.86);
+  color: #f8fafc;
+}
+
+body[data-theme="dark"] .bi-report-action:hover,
+body[data-theme="dark"] .bi-report-action.is-active {
+  color: #f8fafc;
+}
+
+body[data-theme="dark"] .bi-report-action small,
+body[data-theme="dark"] .bi-filter-strip-form label span,
+body[data-theme="dark"] .bi-advanced-filters summary,
+body[data-theme="dark"] .bi-highlight-list span,
+body[data-theme="dark"] .bi-highlight-list small {
+  color: #cbd5e1;
+}
+
+body[data-theme="dark"] .bi-highlight-list strong {
+  color: #f8fafc;
+}
+
 body[data-theme="dark"].client-portal-shell {
   background:
     radial-gradient(circle at 12% 0%, rgba(20, 184, 166, 0.15), transparent 28rem),
@@ -1333,5 +1521,15 @@ body[data-theme="dark"] .client-portal-user > span {
   .client-portal-user {
     justify-content: flex-start;
     flex-wrap: wrap;
+  }
+
+  .bi-summary-grid,
+  .bi-dashboard-lists,
+  .bi-detail-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .bi-filter-strip-form label {
+    min-width: min(100%, 170px);
   }
 }
