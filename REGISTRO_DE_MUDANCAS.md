@@ -140,6 +140,17 @@
   - Validacao completa:
     - `py -3 -m pytest -q` com `40 passed, 1 skipped`;
     - teste real no MariaDB local confirmou dimensoes e `payment_methods_count=7`.
+- Usuario cliente padrao e portal separado em 2026-04-28:
+  - Seed automatico do usuario cliente `adm` com role `client`.
+  - Senha do cliente configurada por `INITIAL_CLIENT_PASSWORD` e armazenada com hash no banco.
+  - Criado login separado `/client/login`.
+  - Portal publico `/MoviRelatorios/*` agora roteia internamente para `/client/*`.
+  - Cliente autenticado redireciona para `/client/reports`.
+  - Cliente nao acessa `/dashboard` administrativo.
+  - Admin mantem acesso ao portal cliente para suporte/teste.
+  - Validacao:
+    - testes focados com `15 passed`;
+    - suite completa com `40 passed, 1 skipped`.
 
 ### Planejado
 - Multiempresa completa com isolamento por empresa, filial e terminal.

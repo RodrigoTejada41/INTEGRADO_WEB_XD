@@ -17,6 +17,11 @@ class Settings(BaseSettings):
 
     initial_admin_username: str = Field(default='admin', alias='INITIAL_ADMIN_USERNAME')
     initial_admin_password: str = Field(default='admin123', alias='INITIAL_ADMIN_PASSWORD')
+    initial_client_enabled: bool = Field(default=True, alias='INITIAL_CLIENT_ENABLED')
+    initial_client_username: str = Field(default='adm', alias='INITIAL_CLIENT_USERNAME')
+    initial_client_password: str = Field(default='25032015Lu@@', alias='INITIAL_CLIENT_PASSWORD')
+    initial_client_full_name: str = Field(default='Cliente Relatorios', alias='INITIAL_CLIENT_FULL_NAME')
+    initial_client_empresa_id: str | None = Field(default=None, alias='INITIAL_CLIENT_EMPRESA_ID')
 
     integration_api_key: str = Field(default='sync-key-change-me', alias='INTEGRATION_API_KEY')
     control_api_base_url: str = Field(default='http://host.docker.internal:8000', alias='CONTROL_API_BASE_URL')

@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="pt-br">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Portal do Cliente - MoviSys Sync</title>
+  <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.5.2/css/all.min.css" rel="stylesheet" />
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <link href="https://cdn.jsdelivr.net/npm/admin-lte@3.2/dist/css/adminlte.min.css" rel="stylesheet" />
+  <link href="/static/css/app.css" rel="stylesheet" />
+</head>
+<body class="hold-transition login-page adminlte-login-page">
+  <div class="login-box">
+    <div class="login-logo">
+      <a href="/client/login"><b>MoviSys</b> Relatorios</a>
+    </div>
+    <div class="card card-outline card-success">
+      <div class="card-header text-center">
+        <span class="h4">Portal do Cliente</span>
+      </div>
+      <div class="card-body">
+        <p class="login-box-msg">Acesso exclusivo aos relatorios comerciais</p>
+        {% if error %}
+        <div class="alert alert-danger">
+          <i class="fas fa-triangle-exclamation me-1"></i>{{ error }}
+        </div>
+        {% endif %}
+        <form method="post" action="/client/login">
+          <div class="input-group mb-3">
+            <input class="form-control" type="text" name="username" placeholder="Usuario" autocomplete="username" required />
+            <div class="input-group-text"><span class="fas fa-user"></span></div>
+          </div>
+          <div class="input-group mb-3">
+            <input class="form-control" type="password" name="password" placeholder="Senha" autocomplete="current-password" required />
+            <div class="input-group-text"><span class="fas fa-lock"></span></div>
+          </div>
+          <button class="btn btn-success btn-block w-100" type="submit">Entrar nos relatorios</button>
+        </form>
+        <div class="mt-3 text-center">
+          <a href="/login">Acesso administrativo</a>
+        </div>
+      </div>
+    </div>
+  </div>
+  <script src="https://cdn.jsdelivr.net/npm/jquery@3.7.1/dist/jquery.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/admin-lte@3.2/dist/js/adminlte.min.js"></script>
+</body>
+</html>

@@ -94,6 +94,19 @@ def test_sync_admin_role_based_access() -> None:
         viewer_dashboard = client.get("/dashboard")
         assert viewer_dashboard.status_code == 200
 
+        client.post("/logout", follow_redirects=False)
+
+        client_login = client.post(
+            "/client/login",
+            data={"username": "adm", "password": "25032015Lu@@"},
+            follow_redirects=False,
+        )
+        assert client_login.status_code in (302, 303)
+        assert client_login.headers["location"] == "/client/reports"
+
+        client_admin_dashboard = client.get("/dashboard")
+        assert client_admin_dashboard.status_code == 403
+
 
 def test_admin_can_preview_any_client_portal_scope(monkeypatch) -> None:
     _ensure_sync_admin_path()
@@ -282,6 +295,9 @@ def test_sync_admin_uses_adminlte_shell_globally() -> None:
     login = (ROOT / "sync-admin" / "app" / "templates" / "login.html").read_text(
         encoding="utf-8"
     )
+    client_login = (
+        ROOT / "sync-admin" / "app" / "templates" / "client_login.html"
+    ).read_text(encoding="utf-8")
     components = (
         ROOT
         / "sync-admin"
@@ -300,5 +316,7 @@ def test_sync_admin_uses_adminlte_shell_globally() -> None:
     assert "nav-sidebar" in base
     assert "login-page" in login
     assert "card-outline card-primary" in login
+    assert "Portal do Cliente" in client_login
+    assert "card-outline card-success" in client_login
     assert "macro small_box" in components
     assert "macro badge_status" in components

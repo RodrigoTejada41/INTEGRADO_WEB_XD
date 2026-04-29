@@ -1059,7 +1059,7 @@ def _build_report_payload(
 def root(request: Request):
     if request.session.get('user_id'):
         if request.session.get('user_role') == 'client':
-            return RedirectResponse('/client/dashboard', status_code=status.HTTP_302_FOUND)
+            return RedirectResponse('/client/reports', status_code=status.HTTP_302_FOUND)
         return RedirectResponse('/dashboard', status_code=status.HTTP_302_FOUND)
     return RedirectResponse('/login', status_code=status.HTTP_302_FOUND)
 
@@ -1067,6 +1067,11 @@ def root(request: Request):
 @router.get('/login', response_class=HTMLResponse)
 def login_page(request: Request):
     return templates.TemplateResponse(request, 'login.html', {'request': request, 'error': None})
+
+
+@router.get('/client/login', response_class=HTMLResponse)
+def client_login_page(request: Request):
+    return templates.TemplateResponse(request, 'client_login.html', {'request': request, 'error': None})
 
 
 @router.post('/login', response_class=HTMLResponse)
@@ -1091,8 +1096,33 @@ def login_submit(
     request.session['user_role'] = user.role
     request.session['empresa_id'] = user.empresa_id
     if user.role == 'client':
-        return RedirectResponse('/client/dashboard', status_code=status.HTTP_302_FOUND)
+        return RedirectResponse('/client/reports', status_code=status.HTTP_302_FOUND)
     return RedirectResponse('/dashboard', status_code=status.HTTP_302_FOUND)
+
+
+@router.post('/client/login', response_class=HTMLResponse)
+def client_login_submit(
+    request: Request,
+    username: str = Form(...),
+    password: str = Form(...),
+    db: Session = Depends(get_db),
+):
+    svc = AuthService(db)
+    user = svc.login(username, password)
+    if not user or user.role not in {'client', 'admin'}:
+        request.session.clear()
+        return templates.TemplateResponse(
+            request,
+            'client_login.html',
+            {'request': request, 'error': 'Credenciais invalidas para o portal do cliente'},
+            status_code=400,
+        )
+
+    request.session['user_id'] = user.id
+    request.session['username'] = user.username
+    request.session['user_role'] = user.role
+    request.session['empresa_id'] = user.empresa_id
+    return RedirectResponse('/client/reports', status_code=status.HTTP_302_FOUND)
 
 
 @router.post('/logout')

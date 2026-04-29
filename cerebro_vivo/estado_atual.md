@@ -436,3 +436,24 @@ Na retomada canonica mais recente, o backlog funcional estava concluido ate `P18
   - codigo implementado localmente;
   - producao ainda nao atualizada nesta etapa;
   - proximo passo e commit/push/PR e deploy apos merge.
+
+## Usuario cliente padrao e portal separado - 2026-04-28
+
+- Entrega:
+  - seed automatico do usuario cliente `adm`;
+  - perfil `client`;
+  - escopo `company`;
+  - empresa padrao via `CONTROL_EMPRESA_ID`;
+  - senha configurada por `INITIAL_CLIENT_PASSWORD` e gravada com hash no banco;
+  - login separado em `/client/login`;
+  - portal publico `/MoviRelatorios/*` roteado para `/client/*`;
+  - cliente entra direto em `/client/reports`;
+  - cliente nao acessa `/dashboard`;
+  - admin continua autorizado a visualizar portal cliente.
+- Validacao:
+  - testes focados `15 passed`;
+  - suite completa `40 passed, 1 skipped`.
+- Estado:
+  - codigo implementado localmente;
+  - producao ainda nao atualizada nesta etapa;
+  - proximo passo e commit/push/PR e deploy apos merge.

@@ -991,3 +991,49 @@ git push -u origin codex/restore-backend-reporting-contract
   - push;
   - PR;
   - deploy na VPS apos merge/aprovacao.
+
+## 25) Usuario cliente padrao e separacao do portal - 2026-04-28
+
+### 25.1 Objetivo
+
+- Criar acesso inicial de cliente sem misturar com o painel administrativo.
+- Manter o admin operacional em `/admin`.
+- Manter o portal de relatorios do cliente em `/MoviRelatorios`.
+
+### 25.2 Entrega
+
+- Configuracoes novas do `sync-admin`:
+  - `INITIAL_CLIENT_ENABLED`;
+  - `INITIAL_CLIENT_USERNAME`;
+  - `INITIAL_CLIENT_PASSWORD`;
+  - `INITIAL_CLIENT_FULL_NAME`;
+  - `INITIAL_CLIENT_EMPRESA_ID`.
+- Usuario seed padrao:
+  - `adm`;
+  - role `client`;
+  - escopo `company`;
+  - senha gravada com hash bcrypt no banco.
+- Login separado:
+  - interno: `/client/login`;
+  - publico: `/MoviRelatorios/login`.
+- Cliente autenticado e redirecionado para `/client/reports`.
+- Cliente nao acessa `/dashboard`.
+- Admin continua autorizado no portal cliente para suporte e validacao.
+- Nginx separado:
+  - `/MoviRelatorios/*` reescreve para `/client/*`;
+  - `/admin/*` continua para o painel administrativo.
+
+### 25.3 Validacao
+
+- Testes focados:
+  - `py -3 -m pytest tests\test_sync_admin_rbac.py tests\test_production_operations.py -q`
+  - `15 passed`
+- Suite completa:
+  - `py -3 -m pytest -q`
+  - `40 passed, 1 skipped`
+
+### 25.4 Proximo passo
+
+- Commit/push da entrega.
+- Abrir/atualizar PR.
+- Deploy na VPS apos merge.

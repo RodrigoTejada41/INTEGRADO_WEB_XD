@@ -832,3 +832,32 @@ Este arquivo e o ponto de entrada para retomar o projeto sem redescobrir context
 - Commitar a entrega.
 - Abrir/atualizar PR da branch `codex/local-agent-db-panel`.
 - Depois do merge, atualizar VPS.
+
+## Checkpoint: usuario cliente padrao e portal separado - 2026-04-28
+
+### Entrega
+- Seed automatico do usuario cliente:
+  - usuario: `adm`;
+  - perfil: `client`;
+  - escopo: `company`;
+  - empresa padrao: `CONTROL_EMPRESA_ID`;
+  - senha configurada por `INITIAL_CLIENT_PASSWORD` e armazenada somente como hash no banco.
+- Criado login separado do portal do cliente:
+  - `/client/login`;
+  - publico via Nginx em `/MoviRelatorios/login`.
+- Cliente autenticado vai para:
+  - `/client/reports`.
+- Cliente nao acessa dashboard/admin:
+  - `/dashboard` retorna `403` para perfil `client`.
+- Admin continua podendo visualizar o portal cliente para suporte/teste.
+- Nginx passou a mapear:
+  - `/MoviRelatorios/*` -> `/client/*`;
+  - `/admin/*` permanece separado.
+
+### Validacao
+- Testes focados:
+  - `py -3 -m pytest tests\test_sync_admin_rbac.py tests\test_production_operations.py -q`
+  - `15 passed`
+- Suite completa:
+  - `py -3 -m pytest -q`
+  - `40 passed, 1 skipped`
