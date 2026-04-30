@@ -1,6 +1,7 @@
 from datetime import date, datetime
 from pathlib import Path
 
+from agent_local.db.mariadb_client import MariaDBClient
 from agent_local.db.xd_sales_mapper import build_xd_salesdocuments_query, canonicalize_sales_row
 from agent_local.sync.checkpoint_store import CheckpointStore
 from agent_local.sync.sync_runner import SyncRunner
@@ -19,6 +20,7 @@ def test_canonicalize_sales_row_preserves_report_dimensions() -> None:
         "tipo_venda": "Fatura",
         "forma_pagamento": "PIX",
         "familia_produto": "Bebidas",
+        "cancelada": "0",
     }
 
     result = canonicalize_sales_row(row)
@@ -29,6 +31,7 @@ def test_canonicalize_sales_row_preserves_report_dimensions() -> None:
     assert result["tipo_venda"] == "Fatura"
     assert result["forma_pagamento"] == "PIX"
     assert result["familia_produto"] == "Bebidas"
+    assert result["cancelada"] is False
 
 
 def test_build_xd_salesdocuments_query_adds_family_and_payment_mapping() -> None:
@@ -52,6 +55,7 @@ def test_build_xd_salesdocuments_query_adds_family_and_payment_mapping() -> None
     assert ":empresa_id AS empresa_id" in query
     assert "v.Terminal AS terminal_code" in query
     assert "v.DocumentDescription AS tipo_venda" in query
+    assert "COALESCE(v.TotalAmount, 0) > 0" in query
     assert "itemsgroups ig" in query
     assert "xconfigpaymenttypes xpt" in query
     assert "AS forma_pagamento" in query
@@ -80,6 +84,17 @@ def test_build_xd_salesdocuments_query_maps_family_through_items_table() -> None
     assert "ig.`Id` = i.`GroupId`" in query
     assert "i.`KeyId` = v.ItemKeyId" in query
     assert "AS familia_produto" in query
+
+
+def test_legacy_salesdocuments_query_uses_auto_discovery() -> None:
+    legacy_query = (
+        "SELECT ItemKeyId AS produto "
+        "FROM salesdocumentsreportview "
+        "WHERE COALESCE(CloseDate,CreationDate) > :since"
+    )
+    client = MariaDBClient("sqlite:///:memory:", source_query=legacy_query)
+
+    assert client._should_auto_discover_source_query() is True
 
 
 class FakeMariaDBClient:

@@ -47,7 +47,7 @@ class MariaDBClient:
             params = {"empresa_id": empresa_id, "since": since, "limit": limit}
 
         with self.session_factory() as session:
-            if self.source_query and self.source_query.strip().lower() == AUTO_SOURCE_QUERY:
+            if self._should_auto_discover_source_query():
                 stmt = text(self._discover_source_query(session))
             rows = session.execute(stmt, params).mappings()
             items = []
@@ -74,9 +74,21 @@ class MariaDBClient:
     def _resolve_source_query(self) -> str:
         if not self.source_query:
             raise RuntimeError("source_query nao configurada.")
-        if self.source_query.strip().lower() == AUTO_SOURCE_QUERY:
+        if self._should_auto_discover_source_query():
             return self.source_query
         return self.source_query
+
+    def _should_auto_discover_source_query(self) -> bool:
+        if not self.source_query:
+            return False
+        normalized = " ".join(self.source_query.strip().lower().split())
+        if normalized == AUTO_SOURCE_QUERY:
+            return True
+        return (
+            "from salesdocumentsreportview" in normalized
+            and "familia_produto" not in normalized
+            and "codigo_produto_local" not in normalized
+        )
 
     def _discover_source_query(self, session: Session) -> str:
         tables = self._list_tables(session)

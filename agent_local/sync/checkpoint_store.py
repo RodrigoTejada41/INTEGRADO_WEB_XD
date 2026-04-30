@@ -26,6 +26,11 @@ class CheckpointStore:
             encoding="utf-8",
         )
 
+    def reset(self, key: str, value: datetime | None = None) -> datetime:
+        reset_value = value or datetime(1970, 1, 1, tzinfo=UTC)
+        self.set(key, reset_value)
+        return reset_value
+
     def _read(self) -> dict:
         if not self.file_path.exists():
             return {}
@@ -33,4 +38,3 @@ class CheckpointStore:
         if not content:
             return {}
         return json.loads(content)
-

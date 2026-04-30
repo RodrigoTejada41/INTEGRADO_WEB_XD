@@ -29,7 +29,7 @@ class SyncApiClient:
                 headers=headers,
                 json=payload,
             )
-        response.raise_for_status()
+        self._raise_for_status(response)
         return response.json()
 
     def activate_pairing_code(self, pairing_code: str, device_label: str) -> dict:
@@ -43,5 +43,17 @@ class SyncApiClient:
                 headers={"Content-Type": "application/json"},
                 json=payload,
             )
-        response.raise_for_status()
+        self._raise_for_status(response)
         return response.json()
+
+    @staticmethod
+    def _raise_for_status(response: httpx.Response) -> None:
+        try:
+            response.raise_for_status()
+        except httpx.HTTPStatusError as exc:
+            body = response.text[:2000]
+            raise httpx.HTTPStatusError(
+                f"{exc} Response body: {body}",
+                request=exc.request,
+                response=exc.response,
+            ) from exc

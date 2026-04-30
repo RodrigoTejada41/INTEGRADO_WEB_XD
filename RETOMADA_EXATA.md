@@ -2,6 +2,81 @@
 
 Data de atualizacao: 2026-04-28
 
+## Checkpoint retomada operacional - reset seguro de vendas - 2026-04-29
+
+### Problema operacional
+- A correcao de `familia_produto` ja esta no `main` e em producao.
+- Os registros antigos da empresa `12345678000199` continuam sem familia real porque foram sincronizados antes do agente local enviar esse campo.
+- O agente local tinha apenas checkpoint JSON, sem comando seguro para reprocessar vendas antigas.
+
+### Correcao aplicada localmente
+- `agent_local/sync/checkpoint_store.py` ganhou metodo `reset`.
+- Criado CLI:
+  - `python -m agent_local.sync.reset_checkpoint`
+- Criado CLI de ciclo unico:
+  - `python -m agent_local.sync.run_once`
+- O comando exige `--confirm` para gravar no checkpoint.
+- O reset e por chave isolada:
+  - `{empresa_id}:vendas`
+- Nao altera API key, configuracao de banco, URL do servidor ou dados sincronizados.
+- `agent_local/db/mariadb_client.py` agora trata `AGENT_SOURCE_QUERY` legado de `salesdocumentsreportview` sem campos canonicos como autodeteccao.
+- `agent_local/db/xd_sales_mapper.py`:
+  - converte `cancelada` para booleano;
+  - filtra registros com `TotalAmount <= 0`, porque a API central exige `valor > 0`.
+- `agent_local/sync/api_client.py` agora inclui corpo de erro HTTP na excecao para diagnostico de 422/400.
+- `infra/client-agent/install-agent-client.ps1` atualiza `AGENT_SOURCE_QUERY` legado para `auto` e grava `.env` sem BOM.
+
+### Comando operacional para reprocessar vendas
+- Reprocessar tudo:
+  - `py -3 -m agent_local.sync.reset_checkpoint --empresa-id 12345678000199 --checkpoint-file agent_local/data/checkpoints.json --confirm`
+- Reprocessar a partir de uma data especifica:
+  - `py -3 -m agent_local.sync.reset_checkpoint --empresa-id 12345678000199 --checkpoint-file agent_local/data/checkpoints.json --since 2026-04-01T00:00:00 --confirm`
+- Depois do reset:
+  - executar o agente local normalmente para reenviar os lotes;
+  - como o backend usa UPSERT por `empresa_id + uuid`, o reenvio atualiza os registros existentes sem misturar tenants.
+
+### Validacao local
+- `py -3 -m pytest tests\test_agent_checkpoint_reset.py tests\test_agent_local_sales_mapping.py -q` -> `6 passed`.
+- CLI validado com arquivo de checkpoint isolado em `output/test_agent_checkpoint_reset/cli_checkpoints.json`.
+- Validacao apos hardening de mapper/client:
+  - `py -3 -m pytest tests\test_agent_checkpoint_reset.py tests\test_agent_local_sales_mapping.py tests\test_sync_upsert.py -q` -> `12 passed`.
+
+### Execucao real no agente instalado
+- Instalacao real detectada:
+  - `C:\MoviSyncAgent`
+- Corrigido `.env` instalado:
+  - `AGENT_SOURCE_QUERY=auto`
+  - `.env` regravado sem BOM para `AGENT_EMPRESA_ID` carregar corretamente.
+- Checkpoint real resetado:
+  - `12345678000199:vendas=1970-01-01T00:00:00+00:00`
+- Primeiro lote com `BATCH_SIZE=1`:
+  - `updated_count=1`
+- Lote 50:
+  - `processed_count=50`
+- Lotes seguintes executados com sucesso, incluindo lotes de 500 e 1000.
+- Erros encontrados e corrigidos:
+  - `422 valor > 0` causado por venda local com `TotalAmount=0`;
+  - corrigido com filtro de origem `COALESCE(TotalAmount, 0) > 0`.
+- Checkpoint real apos ciclos:
+  - `2025-10-25T12:43:01+00:00`
+- Saldo local ainda pendente:
+  - `pending_valid=41100`
+- Processo em background:
+  - nao ha `python.exe` ativo em `C:\MoviSyncAgent` no momento deste registro.
+- Validacao na VPS:
+  - `total=10048`
+  - `family_filled=9563`
+  - `family_distinct=13`
+
+### Proximo passo seguro
+1. Continuar o reprocessamento real a partir de `2025-10-25T12:43:01+00:00`.
+2. Usar `BATCH_SIZE=1000` no maximo, porque a API central usa `max_batch_size=1000`.
+3. Quando terminar, restaurar `SYNC_INTERVAL_MINUTES=15` se o agente tiver sido colocado em modo acelerado.
+4. Validar novamente no PostgreSQL central:
+   - `family_filled`;
+   - `family_distinct`;
+   - breakdown por `familia_produto`.
+
 ## Checkpoint relatorios comerciais/financeiros - 2026-04-29
 
 ### Correcao familia em relatorios cliente - 2026-04-29

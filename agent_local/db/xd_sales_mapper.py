@@ -46,9 +46,19 @@ def canonicalize_sales_row(row: Mapping[str, object]) -> dict[str, object]:
     for field in OPTIONAL_CANONICAL_FIELDS:
         value = row.get(field)
         if value is not None and str(value).strip():
-            item[field] = value if isinstance(value, bool) else str(value).strip()
+            if field == "cancelada":
+                item[field] = _to_bool(value)
+            else:
+                item[field] = value if isinstance(value, bool) else str(value).strip()
 
     return item
+
+
+def _to_bool(value: object) -> bool:
+    if isinstance(value, bool):
+        return value
+    normalized = str(value).strip().lower()
+    return normalized in {"1", "true", "t", "yes", "y", "sim", "s"}
 
 
 def build_xd_salesdocuments_query(
@@ -137,6 +147,7 @@ def build_xd_salesdocuments_query(
                     {optional_sql}
                 FROM salesdocumentsreportview v
                 WHERE COALESCE(v.CloseDate, v.CreationDate) > :since
+                  AND COALESCE(v.TotalAmount, 0) > 0
                 ORDER BY COALESCE(v.CloseDate, v.CreationDate) ASC
                 LIMIT :limit
                 """
@@ -228,10 +239,11 @@ def build_xd_documents_query(*, tables: set[str], table_columns: Mapping[str, se
                 INNER JOIN Documentsheaders h
                     ON h.SerieId = b.SerieId
                    AND h.Number = b.Number
-                WHERE {event_date} > :since
-                ORDER BY {event_date} ASC
-                LIMIT :limit
-                """
+               WHERE {event_date} > :since
+                 AND COALESCE({value_expr}, 0) > 0
+               ORDER BY {event_date} ASC
+               LIMIT :limit
+               """
 
 
 def _column(alias: str, column: str, output: str, columns: set[str]) -> str:
