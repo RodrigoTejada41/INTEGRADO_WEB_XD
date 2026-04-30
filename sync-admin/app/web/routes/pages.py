@@ -316,6 +316,73 @@ def _format_decimal(value: float, decimals: int = 2) -> str:
     return f'{value:.{decimals}f}'
 
 
+_PAYMENT_NUMERIC_FIELDS = (
+    'total_records',
+    'quantity_sold',
+    'gross_value',
+    'discount_value',
+    'surcharge_value',
+    'total_sales_value',
+)
+
+_PAYMENT_MONEY_FIELDS = (
+    'gross_value',
+    'discount_value',
+    'surcharge_value',
+    'total_sales_value',
+)
+
+
+def _split_payment_label(label: object) -> list[str]:
+    raw_label = str(label or '').strip()
+    if not raw_label or raw_label == '-':
+        return ['Nao informado']
+
+    labels: list[str] = []
+    seen: set[str] = set()
+    for part in raw_label.split(','):
+        normalized = ' '.join(str(part or '').split())
+        if not normalized:
+            continue
+        key = normalized.casefold()
+        if key in seen:
+            continue
+        seen.add(key)
+        labels.append(normalized)
+    return labels or ['Nao informado']
+
+
+def _normalize_payment_breakdown_items(items: list[dict]) -> list[dict]:
+    grouped: dict[str, dict[str, object]] = {}
+    for item in items:
+        labels = _split_payment_label(item.get('label'))
+        allocation = 1 / len(labels)
+        for label in labels:
+            row = grouped.setdefault(
+                label,
+                {
+                    'label': label,
+                    'total_records': 0.0,
+                    'quantity_sold': 0.0,
+                    'gross_value': 0.0,
+                    'discount_value': 0.0,
+                    'surcharge_value': 0.0,
+                    'total_sales_value': 0.0,
+                },
+            )
+            for field in _PAYMENT_NUMERIC_FIELDS:
+                row[field] = _safe_float(row.get(field)) + (_safe_float(item.get(field)) * allocation)
+
+    normalized_items = list(grouped.values())
+    normalized_items.sort(key=lambda row: _safe_float(row.get('total_sales_value')), reverse=True)
+    for row in normalized_items:
+        row['total_records'] = str(int(round(_safe_float(row.get('total_records')))))
+        row['quantity_sold'] = _format_decimal(_safe_float(row.get('quantity_sold')), decimals=3)
+        for field in _PAYMENT_MONEY_FIELDS:
+            row[field] = _format_decimal(_safe_float(row.get(field)))
+    return normalized_items
+
+
 def _source_status_snapshot(source_configs: list[dict], sync_jobs: list[dict]) -> dict[str, dict[str, str]]:
     latest_by_source: dict[str, dict[str, str]] = {}
     counts_by_source: dict[str, dict[str, int]] = {}
@@ -825,8 +892,8 @@ def _build_sync_status(empresa_id: str | None) -> dict[str, object]:
     if not clients:
         return {
             'status': 'offline',
-            'label': 'offline',
-            'last_sync_at': '-',
+            'label': 'Sem agente',
+            'last_sync_at': 'Sem agente',
             'sync_lag_minutes': None,
             'reason': 'Nenhuma API local conectada para o tenant filtrado.',
         }
@@ -841,7 +908,7 @@ def _build_sync_status(empresa_id: str | None) -> dict[str, object]:
     return {
         'status': worst.get('level') or 'unknown',
         'label': worst.get('label') or 'unknown',
-        'last_sync_at': latest_sync.isoformat(timespec='minutes') if latest_sync else '-',
+        'last_sync_at': latest_sync.isoformat(timespec='minutes') if latest_sync else 'Sem sync',
         'sync_lag_minutes': worst.get('sync_lag_minutes'),
         'reason': worst.get('reason') or 'Status operacional calculado pela frota conectada.',
     }
@@ -857,12 +924,27 @@ def _build_kpi_cards(
     total_sales = _safe_float(overview.get('total_sales_value'))
     distinct_products = int(overview.get('distinct_products', 0) or 0)
     average_ticket = total_sales / total_records if total_records else 0.0
+    previous_total = _safe_float((comparison or {}).get('previous_total_sales_value'))
     growth_pct = comparison.get('delta_total_sales_value_pct') if comparison else None
-    growth_value = f'{growth_pct}%' if growth_pct else '0.0%'
-    growth_tone = 'success'
+    if comparison is None:
+        growth_value = 'Sem base'
+        growth_hint = 'Filtro sem periodo anterior valido para comparacao.'
+        growth_tone = 'neutral'
+    elif growth_pct is None and total_sales > 0 and previous_total == 0:
+        growth_value = 'Novo'
+        growth_hint = 'Periodo anterior sem faturamento para comparar.'
+        growth_tone = 'success'
+    elif growth_pct is None:
+        growth_value = '0.0%'
+        growth_hint = 'Sem variacao calculavel no periodo anterior.'
+        growth_tone = 'neutral'
+    else:
+        growth_value = f'{growth_pct}%'
+        growth_hint = 'Comparado ao periodo anterior.'
+        growth_tone = 'success'
     if growth_value.startswith('-'):
         growth_tone = 'error'
-    elif growth_value in {'0.0%', '+0.0%'}:
+    elif growth_value in {'0.0%', '+0.0%', 'Sem base'}:
         growth_tone = 'neutral'
     return [
         {
@@ -894,7 +976,7 @@ def _build_kpi_cards(
             'icon': 'TR',
             'label': 'Crescimento',
             'value': growth_value,
-            'hint': 'Comparado ao periodo anterior.',
+            'hint': growth_hint,
             'tone': growth_tone,
         },
         {
@@ -909,7 +991,7 @@ def _build_kpi_cards(
             'key': 'last_sync',
             'icon': 'SYNC',
             'label': 'Status da sincronizacao',
-            'value': str(sync_status.get('last_sync_at') or '-'),
+            'value': str(sync_status.get('last_sync_at') or sync_status.get('label') or 'Sem sync'),
             'hint': str(sync_status.get('reason') or '-'),
             'tone': str(sync_status.get('status') or 'neutral'),
         },
@@ -1155,7 +1237,7 @@ def _build_report_payload(
     daily_items = list(daily_sales.get('items', []))
     top_items = list(top_products.get('items', []))
     type_items = list(sales_by_type.get('items', []))
-    payment_items = list(sales_by_payment.get('items', []))
+    payment_items = _normalize_payment_breakdown_items(list(sales_by_payment.get('items', [])))
     family_items = list(sales_by_family.get('items', []))
     terminal_items = list(sales_by_terminal.get('items', []))
     recent_items = list(recent_sales.get('items', []))

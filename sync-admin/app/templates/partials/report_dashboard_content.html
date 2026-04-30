@@ -163,7 +163,7 @@
           </div>
         </div>
         <div class="card-body chart-md">
-          <canvas id="reportPaymentChart" data-labels='{{ payment_chart_labels|safe }}' data-values='{{ payment_chart_values|safe }}'></canvas>
+          <canvas id="reportPaymentChart" data-labels='{{ payment_chart_labels|safe }}' data-values='{{ payment_chart_values|safe }}' data-legend-limit="8"></canvas>
         </div>
       </article>
     </section>
@@ -251,7 +251,7 @@
     <section class="bi-detail-grid">
       <article class="card card-success card-outline bi-panel">
         <div class="card-header bi-panel-head"><h3 class="card-title">Grafico por pagamento</h3></div>
-        <div class="card-body chart-md"><canvas id="reportPaymentChart" data-labels='{{ payment_chart_labels|safe }}' data-values='{{ payment_chart_values|safe }}'></canvas></div>
+        <div class="card-body chart-md"><canvas id="reportPaymentChart" data-labels='{{ payment_chart_labels|safe }}' data-values='{{ payment_chart_values|safe }}' data-legend-limit="8"></canvas></div>
       </article>
       <article class="card card-outline card-primary bi-panel bi-panel--wide">
         <div class="card-header bi-panel-head"><h3 class="card-title">Detalhe por forma de pagamento</h3></div>

@@ -105,6 +105,23 @@ Exemplo:
 
 Esse fluxo evita concentrar todos os gráficos, filtros e tabelas em uma única tela.
 
+## Grafico por pagamento
+
+O painel consolida formas de pagamento compostas por nome individual antes de renderizar.
+
+Regras:
+
+- labels com virgula sao separados em formas individuais;
+- nomes repetidos no mesmo registro sao deduplicados;
+- valores de registros compostos sao alocados proporcionalmente entre as formas;
+- a legenda do grafico pizza e ocultada quando ultrapassa 8 itens, mantendo leitura pelo tooltip e pela tabela detalhada.
+
+KPIs operacionais:
+
+- `Crescimento` mostra `Sem base` quando nao existe periodo anterior valido;
+- `Crescimento` mostra `Novo` quando o periodo anterior nao teve faturamento;
+- `Status da sincronizacao` mostra `Sem agente` ou `Sem sync` em vez de `-`.
+
 ## Produto local
 
 O campo `codigo_produto_local` e preservado como referencia principal do produto.
