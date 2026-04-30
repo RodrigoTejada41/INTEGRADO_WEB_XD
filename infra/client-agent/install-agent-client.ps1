@@ -46,6 +46,14 @@ if (!(Test-Path ".env")) {
     Write-Step "Criando .env inicial a partir de agent_local/.env.example"
     Copy-Item "agent_local\.env.example" ".env"
 }
+else {
+    $envText = Get-Content ".env" -Raw
+    if ($envText -match "(?im)^AGENT_SOURCE_QUERY=.*salesdocumentsreportview" -and $envText -notmatch "(?im)^AGENT_SOURCE_QUERY=.*familia_produto" -and $envText -notmatch "(?im)^AGENT_SOURCE_QUERY=.*codigo_produto_local") {
+        Write-Step "Atualizando AGENT_SOURCE_QUERY legado para autodeteccao"
+        $envText = $envText -replace "(?im)^AGENT_SOURCE_QUERY=.*$", "AGENT_SOURCE_QUERY=auto"
+        Set-Content -Path ".env" -Value $envText -Encoding ascii
+    }
+}
 
 Write-Step "Criando atalhos cmd"
 @'

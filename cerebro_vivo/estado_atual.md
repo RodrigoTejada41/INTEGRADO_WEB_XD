@@ -4,7 +4,7 @@
 
 O projeto e uma plataforma de sincronizacao de dados multi-tenant com memoria local-first em `.cerebro-vivo/` e uma camada executiva visivel em `cerebro_vivo/` para coordenacao multi-agentes.
 
-Checkpoint mais recente em 2026-04-29: o modulo de relatorios comerciais/financeiros foi ampliado localmente com filtros avancados, agrupamentos comerciais, exportacoes detalhadas e preservacao do `codigo_produto_local`. O arquivo `TABELAS DO BANCO XD/REFERENCIA TABELAS BD XD SOFTWARE.xlsx` foi usado para reforcar o mapeamento MariaDB local: preferencia por `salesdocumentsreportview` e fallback por `Documentsbodys + Documentsheaders`. Foram criadas rotas de diagnostico `/settings/xd-mapping` e `/settings/xd-mapping/routes`. Validacao local: `py -3 -m pytest -q` com `45 passed, 1 skipped`.
+Checkpoint mais recente em 2026-04-30: a correcao de `familia_produto` foi aplicada tambem no agente instalado em `C:\MoviSyncAgent`. O `.env` real foi corrigido para `AGENT_SOURCE_QUERY=auto` sem BOM, o checkpoint foi resetado e o reprocessamento real com lotes de ate 1000 foi iniciado. Validacao na VPS confirmou `total=10048`, `family_filled=9563` e `family_distinct=13` para `empresa_id=12345678000199`. Checkpoint real atual: `2025-10-25T12:43:01+00:00`; saldo local pendente: `41100` vendas validas.
 
 Na governanca oficial atual, `backend/`, `agent_local/`, `sync-admin/` e `infra/` sao as fontes canonicas operacionais. `backend/src`, `frontend`, `database`, `devops` e `docker-compose.yml` na raiz permanecem como camadas de compatibilidade e onboarding.
 
@@ -62,15 +62,16 @@ Na retomada canonica mais recente, o backlog funcional estava concluido ate `P18
 29. Relatorios comerciais/financeiros ampliados: vendas agora preservam codigo local do produto, categoria, unidade, operador, cliente, status, cancelamento, quantidade, bruto, desconto, acrescimo e liquido; painel e exportacoes usam esses filtros e campos.
 30. DE/PARA de produtos criado: tabela `produto_de_para` separada por `empresa_id`, com chave unica em `empresa_id + codigo_produto_local`, sem substituir o codigo local original.
 31. Referencia XD Software integrada ao agente local: fallback automatico para `Documentsbodys + Documentsheaders`, enriquecimento por pagamentos/familia quando as tabelas existem e diagnostico via rotas protegidas no `sync-admin`.
+32. Reset seguro de checkpoint do agente local criado: `agent_local.sync.reset_checkpoint` permite reprocessar vendas antigas por tenant sem edicao manual de JSON.
+33. Reprocessamento real iniciado no agente instalado: `C:\MoviSyncAgent` atualizado para autodeteccao, filtro de valor positivo e normalizacao booleana de `cancelada`.
 
 ## Proximos passos mapeados
 
-1. Revisar visualmente `/reports` e `/client/reports` com dados reais.
-2. Acessar `/settings/xd-mapping` no ambiente local do cliente para confirmar origem detectada.
-3. Aplicar migration v006 no ambiente alvo antes de deploy.
-4. Abrir PR com a evolucao de relatorios.
+1. Continuar reprocessamento real do agente a partir do checkpoint `2025-10-25T12:43:01+00:00`.
+2. Usar `BATCH_SIZE=1000` no maximo.
+3. Ao finalizar o catch-up, restaurar `SYNC_INTERVAL_MINUTES=15`.
+4. Validar novamente `family_filled`, `family_distinct` e `/client/reports?report_view=families`.
 5. Validar exportacoes PDF, Excel e CSV em producao com filtros combinados.
-6. Evoluir tela administrativa do DE/PARA para edicao manual e listagem de produtos sem mapeamento quando o cliente exigir cadastro web equivalente.
 
 ## Atualizacao desta continuidade
 
