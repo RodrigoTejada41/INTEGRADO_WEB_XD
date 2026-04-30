@@ -4,7 +4,7 @@
 
 O projeto e uma plataforma de sincronizacao de dados multi-tenant com memoria local-first em `.cerebro-vivo/` e uma camada executiva visivel em `cerebro_vivo/` para coordenacao multi-agentes.
 
-Checkpoint mais recente em 2026-04-30: a correcao de `familia_produto` foi aplicada tambem no agente instalado em `C:\MoviSyncAgent`. O `.env` real foi corrigido para `AGENT_SOURCE_QUERY=auto` sem BOM, o checkpoint foi resetado e o reprocessamento real com lotes de ate 1000 foi concluido. Validacao na VPS confirmou `total=48895`, `family_filled=48894` e `family_distinct=13` para `empresa_id=12345678000199`. Checkpoint real final: `2026-03-28T15:36:02+00:00`; ultimo ciclo retornou `processed_count=0`; `SYNC_INTERVAL_MINUTES=15` foi restaurado.
+Checkpoint mais recente em 2026-04-30: a correcao visual/operacional dos relatorios de pagamento foi aplicada, mergeada e publicada em producao. O grafico pizza agora recebe formas de pagamento consolidadas por nome individual, sem labels compostas duplicadas, e limita a legenda quando houver mais de 8 itens. Os KPIs agora exibem estados explicitos: `Crescimento` mostra `Sem base`, `Novo` ou percentual real; `Status da sincronizacao` mostra `Sem agente`, `Sem sync` ou a ultima data disponivel. PR `#30`, commit `8a0cf2f`, deploy GitHub Actions `25148435212` com sucesso. Validacao em producao confirmou labels `Rede Credito`, `VOUCHER`, `Rede Debito`, `Dinheiro`, `Credito Cielo`, `PIX DEBITO`, `Debi Cielo`, `payment_count=7`, `Crescimento=-10.4%` e `Status da sincronizacao=Sem sync` para `empresa_id=12345678000199` em marco/2026.
 
 Na governanca oficial atual, `backend/`, `agent_local/`, `sync-admin/` e `infra/` sao as fontes canonicas operacionais. `backend/src`, `frontend`, `database`, `devops` e `docker-compose.yml` na raiz permanecem como camadas de compatibilidade e onboarding.
 
@@ -19,10 +19,10 @@ Na retomada canonica mais recente, o backlog funcional estava concluido ate `P18
 
 ## Estado consolidado encontrado
 
-- Branch local atual: `codex/fix-connected-apis-nginx`
-- Estado Git ao pausar: arquivos staged, sem commit final da ultima correcao de relatorios/schema
-- Producao atual: Nginx recarregado e PostgreSQL migrado manualmente com `ADD COLUMN IF NOT EXISTS`
-- Validacao mais recente: `py -3 -m pytest -q` com `26 passed, 1 skipped`
+- Branch local atual: `main`
+- Estado Git ao pausar: limpo antes deste registro; somente documentacao de checkpoint foi atualizada depois.
+- Producao atual: VPS em `8a0cf2f`, deploy do PR `#30` concluido com sucesso.
+- Validacao mais recente: `py -3 -m pytest -q` com `59 passed, 1 skipped`; `py -3 -m compileall sync-admin\app -q` sem erro.
 - Checkpoint canonico de retomada: backlog concluido ate P18
 - Estado corrente desta sessao: P20 concluido + backlog pos-P20 em execucao
 - Ultima entrega funcional consolidada: registro de instancias locais, fila de comandos remotos pull, endpoints protegidos de configuracao/status no `sync-admin`, controle central no `receiver-api` e portal cliente com escopo formal por empresa ou conjunto de filiais
@@ -64,12 +64,15 @@ Na retomada canonica mais recente, o backlog funcional estava concluido ate `P18
 31. Referencia XD Software integrada ao agente local: fallback automatico para `Documentsbodys + Documentsheaders`, enriquecimento por pagamentos/familia quando as tabelas existem e diagnostico via rotas protegidas no `sync-admin`.
 32. Reset seguro de checkpoint do agente local criado: `agent_local.sync.reset_checkpoint` permite reprocessar vendas antigas por tenant sem edicao manual de JSON.
 33. Reprocessamento real iniciado no agente instalado: `C:\MoviSyncAgent` atualizado para autodeteccao, filtro de valor positivo e normalizacao booleana de `cancelada`.
+34. Relatorios de pagamento corrigidos em producao: labels compostas sao separadas por forma individual, grafico pizza limita legenda, `Crescimento` nao mascara ausencia de base e `Status da sincronizacao` nao exibe mais `-`.
 
 ## Proximos passos mapeados
 
-1. Validar visualmente `/client/reports?report_view=families` em producao.
-2. Conferir uma amostra do unico registro ainda sem `familia_produto`.
-3. Validar exportacoes PDF, Excel e CSV em producao com filtros combinados.
+1. Abrir visualmente `/client/reports?empresa_id=12345678000199&report_view=payments&period_preset=custom&start_date=2026-03-01&end_date=2026-03-31`.
+2. Confirmar se `Status da sincronizacao=Sem sync` indica ausencia real de `last_sync_at` no receptor remoto.
+3. Se necessario, ajustar o agente local para enviar snapshot de status/sync em todos os ciclos.
+4. Conferir uma amostra do unico registro ainda sem `familia_produto`.
+5. Validar exportacoes PDF, Excel e CSV em producao com filtros combinados.
 
 ## Atualizacao desta continuidade
 

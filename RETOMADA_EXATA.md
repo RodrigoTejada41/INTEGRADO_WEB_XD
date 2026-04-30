@@ -1,6 +1,89 @@
 # RETOMADA EXATA - INTEGRADO_WEB_XD
 
-Data de atualizacao: 2026-04-28
+Data de atualizacao: 2026-04-30
+
+## Checkpoint relatorios - grafico por pagamento e KPIs - 2026-04-30
+
+### Problema operacional
+- No portal de relatorios, o grafico pizza de pagamentos exibia muitas labels compostas e repetidas.
+- Exemplos observados:
+  - `Dinheiro, Rede Credito`
+  - `Rede Credito, Rede Debito`
+  - `Credito Cielo, VOUCHER`
+- A legenda ficava poluida e parecia duplicada.
+- O card `Crescimento` mostrava `0.0%` mesmo quando nao havia base comparativa.
+- O card `Status da sincronizacao` mostrava `-`, dificultando diagnostico operacional.
+
+### Correcao aplicada
+- Criado tratamento no servidor web para consolidar pagamentos antes da renderizacao:
+  - `sync-admin/app/web/routes/pages.py`
+  - helper `_split_payment_label`
+  - helper `_normalize_payment_breakdown_items`
+- Labels compostas por virgula agora sao separadas por forma individual.
+- Nomes repetidos no mesmo registro sao deduplicados.
+- Valores de registros compostos sao alocados proporcionalmente entre as formas de pagamento.
+- O payload de `payment_items`, `payment_chart_labels` e `payment_chart_values` agora sai consolidado por nome de pagamento.
+- O JavaScript do grafico passou a limitar legenda de pizza quando houver mais de 8 itens:
+  - `sync-admin/app/static/js/reports.js`
+  - `data-legend-limit="8"` no parcial de relatorios.
+- O KPI `Crescimento` agora mostra:
+  - `Sem base` quando nao existe periodo anterior valido;
+  - `Novo` quando o periodo anterior nao teve faturamento;
+  - percentual real quando existe base comparativa.
+- O KPI `Status da sincronizacao` agora mostra:
+  - `Sem agente` quando nao ha API local conectada;
+  - `Sem sync` quando existe cliente remoto sem data de sync;
+  - ultima data quando disponivel.
+
+### Arquivos alterados
+- `sync-admin/app/web/routes/pages.py`
+- `sync-admin/app/static/js/reports.js`
+- `sync-admin/app/templates/partials/report_dashboard_content.html`
+- `tests/test_sync_admin_report_ui.py`
+- `docs/relatorios_comerciais_financeiros.md`
+
+### Testes e validacao local
+- `py -3 -m pytest tests\test_sync_admin_report_ui.py -q` -> `3 passed`.
+- `py -3 -m pytest -q` -> `59 passed, 1 skipped`.
+- `py -3 -m compileall sync-admin\app -q` -> sem erro.
+
+### Git, PR e deploy
+- Branch:
+  - `codex/fix-report-payment-chart-status`
+- PR:
+  - `#30` - `Fix payment report chart and sync status KPIs`
+- Merge commit em `main`:
+  - `8a0cf2f` - `Fix payment report chart and sync status KPIs`
+- Deploy GitHub Actions:
+  - run `25148435212`
+  - status `success`
+- VPS:
+  - `/opt/integrado_web_xd` em `8a0cf2f`
+  - containers `integrado-backend`, `integrado-db`, `integrado-frontend`, `integrado-nginx` rodando e saudaveis.
+
+### Validacao em producao
+- Endpoints publicos OK:
+  - `https://movisystecnologia.com.br/healthz` -> `ok`
+  - `https://movisystecnologia.com.br/readyz/backend` -> `ready`
+  - `https://movisystecnologia.com.br/readyz/sync-admin` -> `ready`
+  - `https://movisystecnologia.com.br/admin/api/health/ready` -> `ready`
+- Validacao do payload real para `empresa_id=12345678000199` e marco/2026:
+  - labels consolidadas:
+    - `Rede Credito`
+    - `VOUCHER`
+    - `Rede Debito`
+    - `Dinheiro`
+    - `Credito Cielo`
+    - `PIX DEBITO`
+    - `Debi Cielo`
+  - `payment_count=7`
+  - `Crescimento=-10.4%`
+  - `Status da sincronizacao=Sem sync`
+
+### Proximo passo seguro
+1. Abrir visualmente `/client/reports?empresa_id=12345678000199&report_view=payments&period_preset=custom&start_date=2026-03-01&end_date=2026-03-31`.
+2. Confirmar se o status `Sem sync` corresponde ao agente local ainda sem `last_sync_at` registrado no receptor remoto.
+3. Se necessario, ajustar o agente local para enviar snapshot de status/sync em todos os ciclos.
 
 ## Checkpoint retomada operacional - reset seguro de vendas - 2026-04-29
 
