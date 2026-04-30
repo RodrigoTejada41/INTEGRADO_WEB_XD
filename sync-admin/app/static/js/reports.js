@@ -19,6 +19,7 @@
     const labels = parseJson(canvas.dataset.labels);
     const values = parseJson(canvas.dataset.values);
     const isCircular = type === 'doughnut';
+    const legendLimit = Number(canvas.dataset.legendLimit || 8);
     return {
       type,
       data: {
@@ -42,7 +43,11 @@
         interaction: { mode: 'index', intersect: false },
         animation: { duration: 520, easing: 'easeOutQuart' },
         plugins: {
-          legend: { display: isCircular, position: 'bottom', labels: { boxWidth: 10, usePointStyle: true } },
+          legend: {
+            display: isCircular && labels.length <= legendLimit,
+            position: 'bottom',
+            labels: { boxWidth: 10, usePointStyle: true },
+          },
           tooltip: {
             backgroundColor: '#0f172a',
             padding: 12,
