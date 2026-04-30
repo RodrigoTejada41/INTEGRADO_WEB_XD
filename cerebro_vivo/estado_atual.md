@@ -4,7 +4,7 @@
 
 O projeto e uma plataforma de sincronizacao de dados multi-tenant com memoria local-first em `.cerebro-vivo/` e uma camada executiva visivel em `cerebro_vivo/` para coordenacao multi-agentes.
 
-Checkpoint mais recente em 2026-04-30: a correcao de `familia_produto` foi aplicada tambem no agente instalado em `C:\MoviSyncAgent`. O `.env` real foi corrigido para `AGENT_SOURCE_QUERY=auto` sem BOM, o checkpoint foi resetado e o reprocessamento real com lotes de ate 1000 foi iniciado. Validacao na VPS confirmou `total=10048`, `family_filled=9563` e `family_distinct=13` para `empresa_id=12345678000199`. Checkpoint real atual: `2025-10-25T12:43:01+00:00`; saldo local pendente: `41100` vendas validas.
+Checkpoint mais recente em 2026-04-30: a correcao de `familia_produto` foi aplicada tambem no agente instalado em `C:\MoviSyncAgent`. O `.env` real foi corrigido para `AGENT_SOURCE_QUERY=auto` sem BOM, o checkpoint foi resetado e o reprocessamento real com lotes de ate 1000 foi concluido. Validacao na VPS confirmou `total=48895`, `family_filled=48894` e `family_distinct=13` para `empresa_id=12345678000199`. Checkpoint real final: `2026-03-28T15:36:02+00:00`; ultimo ciclo retornou `processed_count=0`; `SYNC_INTERVAL_MINUTES=15` foi restaurado.
 
 Na governanca oficial atual, `backend/`, `agent_local/`, `sync-admin/` e `infra/` sao as fontes canonicas operacionais. `backend/src`, `frontend`, `database`, `devops` e `docker-compose.yml` na raiz permanecem como camadas de compatibilidade e onboarding.
 
@@ -67,11 +67,9 @@ Na retomada canonica mais recente, o backlog funcional estava concluido ate `P18
 
 ## Proximos passos mapeados
 
-1. Continuar reprocessamento real do agente a partir do checkpoint `2025-10-25T12:43:01+00:00`.
-2. Usar `BATCH_SIZE=1000` no maximo.
-3. Ao finalizar o catch-up, restaurar `SYNC_INTERVAL_MINUTES=15`.
-4. Validar novamente `family_filled`, `family_distinct` e `/client/reports?report_view=families`.
-5. Validar exportacoes PDF, Excel e CSV em producao com filtros combinados.
+1. Validar visualmente `/client/reports?report_view=families` em producao.
+2. Conferir uma amostra do unico registro ainda sem `familia_produto`.
+3. Validar exportacoes PDF, Excel e CSV em producao com filtros combinados.
 
 ## Atualizacao desta continuidade
 

@@ -57,25 +57,24 @@ Data de atualizacao: 2026-04-28
 - Erros encontrados e corrigidos:
   - `422 valor > 0` causado por venda local com `TotalAmount=0`;
   - corrigido com filtro de origem `COALESCE(TotalAmount, 0) > 0`.
-- Checkpoint real apos ciclos:
-  - `2025-10-25T12:43:01+00:00`
-- Saldo local ainda pendente:
-  - `pending_valid=41100`
+- Reprocessamento continuado em 2026-04-30 com lotes de ate 1000.
+- Checkpoint real final:
+  - `2026-03-28T15:36:02+00:00`
+- Ultimo ciclo:
+  - `processed_count=0`
+- Intervalo do agente restaurado:
+  - `SYNC_INTERVAL_MINUTES=15`
 - Processo em background:
   - nao ha `python.exe` ativo em `C:\MoviSyncAgent` no momento deste registro.
-- Validacao na VPS:
-  - `total=10048`
-  - `family_filled=9563`
+- Validacao na VPS apos catch-up:
+  - `total=48895`
+  - `family_filled=48894`
   - `family_distinct=13`
 
 ### Proximo passo seguro
-1. Continuar o reprocessamento real a partir de `2025-10-25T12:43:01+00:00`.
-2. Usar `BATCH_SIZE=1000` no maximo, porque a API central usa `max_batch_size=1000`.
-3. Quando terminar, restaurar `SYNC_INTERVAL_MINUTES=15` se o agente tiver sido colocado em modo acelerado.
-4. Validar novamente no PostgreSQL central:
-   - `family_filled`;
-   - `family_distinct`;
-   - breakdown por `familia_produto`.
+1. Validar visualmente `/client/reports?report_view=families` em producao.
+2. Conferir uma amostra do unico registro ainda sem `familia_produto`.
+3. Manter `SYNC_INTERVAL_MINUTES=15` no agente instalado.
 
 ## Checkpoint relatorios comerciais/financeiros - 2026-04-29
 
