@@ -38,6 +38,7 @@ from app.services.export_service import (
     report_to_xlsx_bytes,
     write_markdown_snapshot,
 )
+from app.services.report_totalizer_service import build_report_pdf_summary
 from app.services.user_service import UserService
 from app.schemas.users import UserCreateRequest, UserUpdateRequest
 from app.web.deps import ROLE_PERMISSIONS, require_client_portal_access, require_web_permission, require_web_user
@@ -1087,7 +1088,7 @@ def _build_report_payload(
         customer=customer,
         start_time=start_time,
         end_time=end_time,
-        limit=normalized_top_limit,
+        limit=100,
     )
     sales_by_family = control.fetch_report_breakdown(
         empresa_id=empresa_id,
@@ -2435,6 +2436,12 @@ def export_reports_pdf(
         payload['daily_items'],
         payload['top_items'],
         payload['recent_items'],
+        payload['payment_items'],
+        build_report_pdf_summary(
+            overview=payload['overview'],
+            product_rows=payload['top_items'],
+            payment_rows=payload['payment_items'],
+        ),
         title='Relatorios administrativos',
     )
     return Response(
@@ -2589,6 +2596,12 @@ def export_client_reports_pdf(
         payload['daily_items'],
         payload['top_items'],
         payload['recent_items'],
+        payload['payment_items'],
+        build_report_pdf_summary(
+            overview=payload['overview'],
+            product_rows=payload['top_items'],
+            payment_rows=payload['payment_items'],
+        ),
         title='Relatorios do cliente',
     )
     return Response(

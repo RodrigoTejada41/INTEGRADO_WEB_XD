@@ -175,22 +175,43 @@ def test_report_pdf_is_structured_and_readable() -> None:
     _ensure_sync_admin_path()
 
     from app.services.export_service import report_to_pdf_bytes
+    from app.services.report_totalizer_service import build_report_pdf_summary
+
+    overview = {
+        "empresa_id": "12345678000199",
+        "start_date": "2025-02-25",
+        "end_date": "2026-04-28",
+        "total_records": 1,
+        "total_quantity": "2",
+        "total_sales_value": "99.90",
+        "total_gross_value": "110.00",
+        "total_discount_value": "10.10",
+        "total_surcharge_value": None,
+        "distinct_products": 1,
+        "distinct_branches": 0,
+        "distinct_terminals": 0,
+        "first_sale_date": "2026-04-22",
+        "last_sale_date": "2026-04-22",
+    }
+    top_rows = [
+        {
+            "produto": "Teste Integracao Real Atualizado",
+            "total_records": 1,
+            "quantity_sold": "2",
+            "total_sales_value": "99.90",
+        }
+    ]
+    payment_rows = [{"label": "PIX", "total_records": 1, "total_sales_value": "99.90"}]
+    summary = build_report_pdf_summary(
+        overview=overview,
+        product_rows=top_rows,
+        payment_rows=payment_rows,
+    )
 
     pdf = report_to_pdf_bytes(
-        {
-            "empresa_id": "12345678000199",
-            "start_date": "2025-02-25",
-            "end_date": "2026-04-28",
-            "total_records": 1,
-            "total_sales_value": "99.90",
-            "distinct_products": 1,
-            "distinct_branches": 0,
-            "distinct_terminals": 0,
-            "first_sale_date": "2026-04-22",
-            "last_sale_date": "2026-04-22",
-        },
+        overview,
         [{"day": "2026-04-22", "total_records": 1, "total_sales_value": "99.90"}],
-        [{"produto": "Teste Integracao Real Atualizado", "total_records": 1, "total_sales_value": "99.90"}],
+        top_rows,
         [
             {
                 "uuid": "codex-1776827155-13749",
@@ -199,6 +220,8 @@ def test_report_pdf_is_structured_and_readable() -> None:
                 "data": "2026-04-22",
             }
         ],
+        payment_rows,
+        summary,
         title="Relatorios do cliente",
     )
 
@@ -207,8 +230,83 @@ def test_report_pdf_is_structured_and_readable() -> None:
     assert b"Indicadores" in pdf
     assert b"Serie diaria" in pdf
     assert b"Top produtos" in pdf
+    assert b"Resumo financeiro de produtos" in pdf
+    assert b"Total por forma de pagamento" in pdf
+    assert b"Resumo financeiro de pagamentos" in pdf
+    assert b"R$ 99,90" in pdf
+    assert b"R$ 110,00" in pdf
+    assert b"R$ 10,10" in pdf
+    assert b"R$ 0,00" in pdf
+    assert b"PIX" in pdf
     assert b"Vendas recentes" in pdf
     assert b"BT /F1 18 Tf" in pdf
+
+
+def test_report_pdf_handles_empty_products_and_payments() -> None:
+    _ensure_sync_admin_path()
+
+    from app.services.export_service import report_to_pdf_bytes
+    from app.services.report_totalizer_service import build_report_pdf_summary
+
+    overview = {
+        "empresa_id": "12345678000199",
+        "start_date": "2026-04-01",
+        "end_date": "2026-04-30",
+        "total_records": 0,
+        "total_quantity": None,
+        "total_sales_value": None,
+        "total_gross_value": None,
+        "total_discount_value": None,
+        "total_surcharge_value": None,
+        "distinct_products": 0,
+        "distinct_branches": 0,
+        "distinct_terminals": 0,
+    }
+    summary = build_report_pdf_summary(overview=overview, product_rows=[], payment_rows=[])
+
+    pdf = report_to_pdf_bytes(
+        overview,
+        [],
+        [],
+        [],
+        [],
+        summary,
+        title="Relatorios do cliente",
+    )
+
+    assert pdf.startswith(b"%PDF-1.4")
+    assert b"Nenhum produto encontrado para os filtros aplicados." in pdf
+    assert b"Nenhum pagamento encontrado para os filtros aplicados." in pdf
+    assert pdf.count(b"R$ 0,00") >= 6
+
+
+def test_report_pdf_summary_calculates_payment_grand_total() -> None:
+    _ensure_sync_admin_path()
+
+    from decimal import Decimal
+
+    from app.services.report_totalizer_service import build_report_pdf_summary
+
+    summary = build_report_pdf_summary(
+        overview={
+            "total_quantity": "3",
+            "total_gross_value": "180.00",
+            "total_sales_value": "175.50",
+            "total_discount_value": None,
+            "total_surcharge_value": "5.50",
+        },
+        product_rows=[{"produto": "A"}],
+        payment_rows=[
+            {"label": "PIX", "total_records": 2, "total_sales_value": "100.00"},
+            {"label": "Cartao", "total_records": 1, "total_sales_value": "75.50"},
+        ],
+    )
+
+    assert summary["products"]["total_items"] == Decimal("3")
+    assert summary["products"]["discount_value"] == Decimal("0")
+    assert summary["payments"]["transaction_count"] == 3
+    assert summary["payments"]["grand_total"] == Decimal("175.50")
+    assert [item["label"] for item in summary["payments"]["subtotals"]] == ["PIX", "Cartao"]
 
 
 def test_report_csv_and_excel_are_client_readable() -> None:

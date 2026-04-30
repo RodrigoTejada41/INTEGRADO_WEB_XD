@@ -4,6 +4,7 @@ import csv
 import io
 import zipfile
 from datetime import datetime, timezone
+from decimal import Decimal, InvalidOperation
 from pathlib import Path
 from xml.sax.saxutils import escape
 
@@ -230,9 +231,13 @@ def report_to_pdf_bytes(
     daily_rows: list[dict],
     top_rows: list[dict],
     recent_rows: list[dict],
+    payment_rows: list[dict] | None = None,
+    financial_summary: dict[str, object] | None = None,
     *,
     title: str = 'Relatorios',
 ) -> bytes:
+    payment_rows = payment_rows or []
+    financial_summary = financial_summary or {}
     document = _PdfDocument(title=title)
     document.heading(title)
     document.paragraph(f'Gerado em: {datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")}')
@@ -252,11 +257,11 @@ def report_to_pdf_bytes(
     document.key_values(
         [
             ('Total de registros', overview.get('total_records', 0)),
-            ('Total faturado', overview.get('total_sales_value', 0)),
-            ('Total bruto', overview.get('total_gross_value', 0)),
-            ('Descontos', overview.get('total_discount_value', 0)),
-            ('Acrescimos', overview.get('total_surcharge_value', 0)),
-            ('Quantidade', overview.get('total_quantity', 0)),
+            ('Total faturado', _format_currency(overview.get('total_sales_value', 0))),
+            ('Total bruto', _format_currency(overview.get('total_gross_value', 0))),
+            ('Descontos', _format_currency(overview.get('total_discount_value', 0))),
+            ('Acrescimos', _format_currency(overview.get('total_surcharge_value', 0))),
+            ('Quantidade', _format_quantity(overview.get('total_quantity', 0))),
             ('Produtos distintos', overview.get('distinct_products', 0)),
             ('Filiais distintas', overview.get('distinct_branches', 0)),
             ('Terminais distintos', overview.get('distinct_terminals', 0)),
@@ -269,7 +274,7 @@ def report_to_pdf_bytes(
         title='Serie diaria',
         headers=['Dia', 'Registros', 'Valor'],
         rows=[
-            [row.get('day', '-'), row.get('total_records', 0), row.get('total_sales_value', 0)]
+            [row.get('day', '-'), row.get('total_records', 0), _format_currency(row.get('total_sales_value', 0))]
             for row in daily_rows[:25]
         ],
         widths=[110, 90, 130],
@@ -281,12 +286,35 @@ def report_to_pdf_bytes(
             [
                 row.get('codigo_produto_local', '-'),
                 row.get('produto', '-'),
-                row.get('quantity_sold', row.get('total_records', 0)),
-                row.get('total_sales_value', 0),
+                _format_quantity(row.get('quantity_sold', row.get('total_records', 0))),
+                _format_currency(row.get('total_sales_value', 0)),
             ]
             for row in top_rows[:25]
         ],
         widths=[80, 230, 70, 100],
+    )
+    document.summary_box(
+        title='Resumo financeiro de produtos',
+        rows=_product_summary_rows(financial_summary.get('products')),
+        empty_message=_empty_message(financial_summary.get('products')),
+    )
+    document.table(
+        title='Total por forma de pagamento',
+        headers=['Pagamento', 'Transacoes', 'Subtotal'],
+        rows=[
+            [
+                row.get('label', '-'),
+                row.get('transaction_count', row.get('total_records', 0)),
+                _format_currency(row.get('subtotal', row.get('total_sales_value', 0))),
+            ]
+            for row in _payment_subtotals(financial_summary.get('payments'), payment_rows)
+        ],
+        widths=[230, 90, 130],
+    )
+    document.summary_box(
+        title='Resumo financeiro de pagamentos',
+        rows=_payment_summary_rows(financial_summary.get('payments')),
+        empty_message=_empty_message(financial_summary.get('payments')),
     )
     document.table(
         title='Vendas recentes',
@@ -295,8 +323,8 @@ def report_to_pdf_bytes(
             [
                 row.get('codigo_produto_local') or row.get('uuid', '-'),
                 row.get('produto', '-'),
-                row.get('quantidade', 1),
-                row.get('valor_liquido') or row.get('valor', 0),
+                _format_quantity(row.get('quantidade', 1)),
+                _format_currency(row.get('valor_liquido') or row.get('valor', 0)),
                 row.get('forma_pagamento', '-'),
                 row.get('data', '-'),
             ]
@@ -305,6 +333,51 @@ def report_to_pdf_bytes(
         widths=[75, 180, 45, 70, 90, 70],
     )
     return document.render()
+
+
+def _product_summary_rows(summary: object) -> list[tuple[str, object]]:
+    if not isinstance(summary, dict):
+        return _zero_product_summary_rows()
+    return [
+        ('Quantidade total de itens', _format_quantity(summary.get('total_items', 0))),
+        ('Valor total bruto', _format_currency(summary.get('gross_value', 0))),
+        ('Valor total liquido', _format_currency(summary.get('net_value', 0))),
+        ('Total de descontos', _format_currency(summary.get('discount_value', 0))),
+        ('Total de acrescimos', _format_currency(summary.get('surcharge_value', 0))),
+        ('Total final', _format_currency(summary.get('final_value', 0))),
+    ]
+
+
+def _zero_product_summary_rows() -> list[tuple[str, object]]:
+    return [
+        ('Quantidade total de itens', _format_quantity(0)),
+        ('Valor total bruto', _format_currency(0)),
+        ('Valor total liquido', _format_currency(0)),
+        ('Total de descontos', _format_currency(0)),
+        ('Total de acrescimos', _format_currency(0)),
+        ('Total final', _format_currency(0)),
+    ]
+
+
+def _payment_summary_rows(summary: object) -> list[tuple[str, object]]:
+    if not isinstance(summary, dict):
+        return [('Total geral', _format_currency(0)), ('Transacoes', 0)]
+    return [
+        ('Total geral', _format_currency(summary.get('grand_total', 0))),
+        ('Transacoes', summary.get('transaction_count', summary.get('total_records', 0))),
+    ]
+
+
+def _payment_subtotals(summary: object, fallback_rows: list[dict]) -> list[dict]:
+    if isinstance(summary, dict) and isinstance(summary.get('subtotals'), list):
+        return list(summary['subtotals'])
+    return fallback_rows
+
+
+def _empty_message(summary: object) -> str | None:
+    if not isinstance(summary, dict) or summary.get('has_data', True):
+        return None
+    return str(summary.get('empty_message') or 'Sem dados para o filtro atual.')
 
 
 def _rows_to_markdown(*, title: str, rows: list[dict], headers: list[str], sample_limit: int) -> str:
@@ -506,6 +579,36 @@ def _pdf_text(value: object, max_length: int | None = None) -> str:
     return text
 
 
+def _format_currency(value: object) -> str:
+    number = _to_decimal(value)
+    sign = '-' if number < 0 else ''
+    number = abs(number).quantize(Decimal('0.01'))
+    integer_part, decimal_part = f'{number:.2f}'.split('.')
+    groups = []
+    while integer_part:
+        groups.append(integer_part[-3:])
+        integer_part = integer_part[:-3]
+    return f'R$ {sign}{".".join(reversed(groups))},{decimal_part}'
+
+
+def _format_quantity(value: object) -> str:
+    number = _to_decimal(value)
+    if number == number.to_integral():
+        text = f'{int(number):,}'.replace(',', '.')
+        return text
+    normalized = f'{number.quantize(Decimal("0.001")):,.3f}'
+    return normalized.replace(',', 'X').replace('.', ',').replace('X', '.').rstrip('0').rstrip(',')
+
+
+def _to_decimal(value: object) -> Decimal:
+    if value in (None, ''):
+        return Decimal('0')
+    try:
+        return Decimal(str(value))
+    except (InvalidOperation, ValueError):
+        return Decimal('0')
+
+
 class _PdfDocument:
     def __init__(self, *, title: str) -> None:
         self.title = _pdf_text(title)
@@ -540,6 +643,20 @@ class _PdfDocument:
             if right:
                 self._key_value_cell(self.left + 265, self.y, right[0], right[1], width=240)
             self.y -= 26
+        self.y -= 4
+
+    def summary_box(self, *, title: str, rows: list[tuple[str, object]], empty_message: str | None = None) -> None:
+        self.section(title)
+        if empty_message:
+            self._ensure_space(18)
+            self._text(self.left, self.y, _pdf_text(empty_message, 92), size=9)
+            self.y -= 16
+        for index in range(0, len(rows), 3):
+            chunk = rows[index : index + 3]
+            self._ensure_space(30)
+            for offset, (label, value) in enumerate(chunk):
+                self._summary_cell(self.left + offset * 170, self.y, label, value)
+            self.y -= 31
         self.y -= 4
 
     def table(self, *, title: str, headers: list[str], rows: list[list[object]], widths: list[int]) -> None:
@@ -606,6 +723,11 @@ class _PdfDocument:
         self._rect(x, y - 17, width, 22)
         self._text(x + 8, y - 1, _pdf_text(label, 26), size=7)
         self._text(x + 8, y - 11, _pdf_text(value, 34), size=9)
+
+    def _summary_cell(self, x: int, y: int, label: str, value: object) -> None:
+        self._rect(x, y - 21, 158, 27, fill='0.90 0.95 1 rg')
+        self._text(x + 8, y - 1, _pdf_text(label, 24), size=7)
+        self._text(x + 8, y - 13, _pdf_text(value, 24), size=10)
 
     def _table_header(self, headers: list[str], widths: list[int]) -> None:
         self._ensure_space(28)
