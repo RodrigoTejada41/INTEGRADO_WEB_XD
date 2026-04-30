@@ -47,6 +47,7 @@ def main() -> int:
             api_key=(settings.api_key or "").strip(),
             timeout_seconds=settings.timeout_seconds,
             verify_ssl=settings.verify_ssl,
+            device_label=settings.device_label,
         ),
         checkpoint_store=CheckpointStore(settings.checkpoint_file),
         batch_size=settings.batch_size,

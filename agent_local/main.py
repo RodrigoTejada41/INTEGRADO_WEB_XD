@@ -51,6 +51,7 @@ def main() -> None:
         api_key=runtime_api_key,
         timeout_seconds=settings.timeout_seconds,
         verify_ssl=settings.verify_ssl,
+        device_label=settings.device_label,
     )
 
     if not resolve_api_key() and settings.pairing_code:
@@ -86,6 +87,7 @@ def main() -> None:
         api_key=runtime_api_key,
         timeout_seconds=settings.timeout_seconds,
         verify_ssl=settings.verify_ssl,
+        device_label=settings.device_label,
     )
     checkpoint_store = CheckpointStore(settings.checkpoint_file)
 
