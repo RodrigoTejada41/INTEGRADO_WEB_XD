@@ -64,6 +64,15 @@ As exportacoes do `sync-admin` respeitam os filtros da tela.
 
 CSV usa `;` para compatibilidade com Excel em PT-BR.
 
+PDF:
+
+- renderiza a lista de produtos sem calcular regra financeira no renderer;
+- usa `report_totalizer_service` para consolidar totais antes da renderizacao;
+- exibe resumo de produtos com quantidade, bruto, liquido, descontos, acrescimos e total final;
+- exibe formas de pagamento com subtotal, quantidade de transacoes e total geral;
+- mostra totais zerados e mensagem objetiva quando nao houver produtos ou pagamentos;
+- valores monetarios saem no padrao brasileiro `R$ 1.234,56`.
+
 ## Interface cliente
 
 A tela do cliente usa navegação em duas etapas:
