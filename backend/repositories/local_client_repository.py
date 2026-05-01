@@ -1,12 +1,15 @@
 from __future__ import annotations
 
 import json
+import secrets
 from datetime import UTC, datetime
+from uuid import NAMESPACE_URL, uuid5
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from backend.models.local_client import LocalClient
+from backend.utils.security import hash_api_key
 
 
 class LocalClientRepository:
@@ -119,6 +122,51 @@ class LocalClientRepository:
             client.status = status
         self.session.flush()
         return client
+
+    def record_sync_status(
+        self,
+        *,
+        empresa_id: str,
+        client_label: str,
+        last_sync_at: datetime,
+        status: str,
+        status_snapshot: dict[str, object],
+    ) -> LocalClient:
+        safe_label = (client_label or "agent-local").strip()[:120] or "agent-local"
+        client_id = str(uuid5(NAMESPACE_URL, f"sync-agent:{empresa_id}:{safe_label}"))
+        entity = self.get_by_id(client_id)
+        now = datetime.now(UTC)
+        normalized_last_sync = last_sync_at if last_sync_at.tzinfo else last_sync_at.replace(tzinfo=UTC)
+        status_json = json.dumps(status_snapshot, ensure_ascii=False, sort_keys=True)
+        if entity is None:
+            entity = LocalClient(
+                id=client_id,
+                empresa_id=empresa_id,
+                hostname=safe_label,
+                ip_address=None,
+                endpoint_url=None,
+                token_hash=hash_api_key(secrets.token_urlsafe(48)),
+                token_last_rotated_at=now,
+                token_expires_at=None,
+                last_config_json=json.dumps({"source": "agent_local"}, ensure_ascii=False, sort_keys=True),
+                last_status_json=status_json,
+                metadata_json=json.dumps({"registered_via": "sync_status"}, ensure_ascii=False, sort_keys=True),
+                status=status,
+                last_seen_at=now,
+                last_sync_at=normalized_last_sync,
+            )
+            self.session.add(entity)
+            self.session.flush()
+            return entity
+
+        entity.empresa_id = empresa_id
+        entity.hostname = safe_label
+        entity.status = status
+        entity.last_seen_at = now
+        entity.last_sync_at = normalized_last_sync
+        entity.last_status_json = status_json
+        self.session.flush()
+        return entity
 
     @staticmethod
     def _parse_datetime(value: object) -> datetime | None:

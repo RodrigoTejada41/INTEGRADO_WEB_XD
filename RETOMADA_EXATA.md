@@ -2,6 +2,54 @@
 
 Data de atualizacao: 2026-04-30
 
+## Checkpoint status do agente local em relatorios - 2026-04-30
+
+### Problema operacional
+- A validacao visual de `/client/reports` exige sessao autenticada.
+- A senha administrativa antiga documentada (`admin/admin123`) nao autenticou em producao.
+- O `ADMIN_TOKEN` local em `.env.prod` tambem nao correspondeu ao token ativo em producao.
+- SSH direto para `root@172.238.213.72` falhou com `Permission denied (publickey)`.
+- Pela analise do codigo, o KPI `Status da sincronizacao` depende de `local_clients.last_sync_at`.
+- O agente local real sincronizava vendas via `/sync`, mas nao enviava heartbeat de status quando um ciclo terminava.
+- Resultado: o relatorio podia mostrar `Sem sync` mesmo depois de o agente ter concluido catch-up de vendas.
+
+### Correcao aplicada localmente
+- Criado endpoint autenticado por tenant:
+  - `POST /sync/status`
+- O endpoint usa `X-Empresa-Id` + `X-API-Key`.
+- O endpoint aceita `X-Agent-Device-Label` para identificar o agente local sem expor segredo.
+- O backend atualiza `local_clients.last_sync_at`, `last_seen_at`, `status` e `last_status_json`.
+- O agente local passou a enviar status em todo ciclo:
+  - quando envia lote de vendas;
+  - quando nao ha registros novos.
+- O envio de status e tolerante a falhas:
+  - falha no heartbeat nao bloqueia o envio de vendas;
+  - o erro fica em log como `sync_status_update_failed`.
+
+### Arquivos alterados
+- `backend/api/routes/sync.py`
+- `backend/repositories/local_client_repository.py`
+- `backend/schemas/sync.py`
+- `agent_local/sync/api_client.py`
+- `agent_local/sync/sync_runner.py`
+- `agent_local/main.py`
+- `agent_local/sync/run_once.py`
+- `tests/test_sync_status_reporting.py`
+
+### Validacao local
+- `py -3 -m compileall backend agent_local -q` -> sem erro.
+- `py -3 -m pytest tests\test_sync_status_reporting.py -q` -> `2 passed`.
+- `py -3 -m pytest tests\test_sync_status_reporting.py tests\test_api_integration.py tests\test_sync_admin_report_ui.py -q` -> `7 passed`.
+- `py -3 -m pytest tests\test_agent_checkpoint_reset.py tests\test_agent_local_sales_mapping.py -q` -> `7 passed`.
+- `py -3 -m pytest -q` -> `61 passed, 1 skipped`.
+
+### Proximo passo seguro
+1. Fazer commit/PR da correcao.
+2. Deployar em producao.
+3. Atualizar o agente instalado em `C:\MoviSyncAgent`.
+4. Rodar um ciclo do agente.
+5. Validar se o relatorio troca `Sem sync` por data real de sincronizacao.
+
 ## Checkpoint relatorios - grafico por pagamento e KPIs - 2026-04-30
 
 ### Problema operacional

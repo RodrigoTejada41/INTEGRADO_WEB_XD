@@ -61,3 +61,19 @@ class SyncResponse(BaseModel):
     inserted_count: int
     updated_count: int
     processed_count: int
+
+
+class SyncStatusRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    status: str = Field(default="success", max_length=24)
+    last_sync_at: datetime
+    processed_count: int = Field(default=0, ge=0)
+    reason: str | None = Field(default=None, max_length=120)
+
+
+class SyncStatusResponse(BaseModel):
+    status: str
+    empresa_id: str
+    client_id: str
+    last_sync_at: datetime

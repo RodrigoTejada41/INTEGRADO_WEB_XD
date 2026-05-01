@@ -1,5 +1,5 @@
 import logging
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import Callable
 
 from agent_local.db.mariadb_client import MariaDBClient
@@ -38,6 +38,11 @@ class SyncRunner:
 
         if not records:
             logger.info("no_records_to_sync", extra={"empresa_id": self.empresa_id})
+            self._send_status(
+                status="success",
+                processed_count=0,
+                reason="no_records",
+            )
             return {"status": "ok", "processed_count": 0}
 
         payload = {
@@ -52,16 +57,38 @@ class SyncRunner:
 
         max_update = max(datetime.fromisoformat(record["data_atualizacao"]) for record in records)
         self.checkpoint_store.set(checkpoint_key, max_update)
+        processed_count = int(response.get("processed_count", 0) or 0)
+        self._send_status(
+            status="success",
+            processed_count=processed_count,
+            reason="sync_batch",
+        )
 
         logger.info(
             "sync_success",
             extra={
                 "empresa_id": self.empresa_id,
                 "sent_count": len(records),
-                "processed_count": response.get("processed_count", 0),
+                "processed_count": processed_count,
             },
         )
         return response
+
+    def _send_status(self, *, status: str, processed_count: int, reason: str) -> None:
+        api_key = self.api_key_provider() if self.api_key_provider else None
+        try:
+            self.api_client.send_sync_status(
+                last_sync_at=datetime.now(UTC).isoformat(),
+                status=status,
+                processed_count=processed_count,
+                reason=reason,
+                api_key=api_key,
+            )
+        except Exception as exc:
+            logger.warning(
+                "sync_status_update_failed",
+                extra={"empresa_id": self.empresa_id, "reason": reason, "error": str(exc)},
+            )
 
     def _build_payload_record(self, record: dict) -> dict:
         payload_record = {

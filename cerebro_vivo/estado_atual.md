@@ -4,7 +4,7 @@
 
 O projeto e uma plataforma de sincronizacao de dados multi-tenant com memoria local-first em `.cerebro-vivo/` e uma camada executiva visivel em `cerebro_vivo/` para coordenacao multi-agentes.
 
-Checkpoint mais recente em 2026-04-30: a correcao visual/operacional dos relatorios de pagamento foi aplicada, mergeada e publicada em producao. O grafico pizza agora recebe formas de pagamento consolidadas por nome individual, sem labels compostas duplicadas, e limita a legenda quando houver mais de 8 itens. Os KPIs agora exibem estados explicitos: `Crescimento` mostra `Sem base`, `Novo` ou percentual real; `Status da sincronizacao` mostra `Sem agente`, `Sem sync` ou a ultima data disponivel. PR `#30`, commit `8a0cf2f`, deploy GitHub Actions `25148435212` com sucesso. Validacao em producao confirmou labels `Rede Credito`, `VOUCHER`, `Rede Debito`, `Dinheiro`, `Credito Cielo`, `PIX DEBITO`, `Debi Cielo`, `payment_count=7`, `Crescimento=-10.4%` e `Status da sincronizacao=Sem sync` para `empresa_id=12345678000199` em marco/2026.
+Checkpoint mais recente em 2026-04-30: a correcao visual/operacional dos relatorios de pagamento foi aplicada, mergeada e publicada em producao. Em seguida foi iniciada a correcao estrutural do `Status da sincronizacao`: o backend ganhou `POST /sync/status`, autenticado por `X-Empresa-Id` + `X-API-Key`, e o agente local passou a enviar heartbeat de sync em todo ciclo, inclusive quando nao ha registros novos. Isso atualiza `local_clients.last_sync_at` e evita que o relatorio continue exibindo `Sem sync` apos um ciclo real do agente.
 
 Na governanca oficial atual, `backend/`, `agent_local/`, `sync-admin/` e `infra/` sao as fontes canonicas operacionais. `backend/src`, `frontend`, `database`, `devops` e `docker-compose.yml` na raiz permanecem como camadas de compatibilidade e onboarding.
 
@@ -20,9 +20,9 @@ Na retomada canonica mais recente, o backlog funcional estava concluido ate `P18
 ## Estado consolidado encontrado
 
 - Branch local atual: `main`
-- Estado Git ao pausar: limpo antes deste registro; somente documentacao de checkpoint foi atualizada depois.
-- Producao atual: VPS em `8a0cf2f`, deploy do PR `#30` concluido com sucesso.
-- Validacao mais recente: `py -3 -m pytest -q` com `59 passed, 1 skipped`; `py -3 -m compileall sync-admin\app -q` sem erro.
+- Estado Git ao pausar: alteracoes locais pendentes para heartbeat de status do agente e documentacao de checkpoint.
+- Producao atual: VPS em `8a0cf2f`, deploy do PR `#30` concluido com sucesso; nova correcao de `/sync/status` ainda nao foi deployada.
+- Validacao mais recente: `py -3 -m compileall backend agent_local -q`; `py -3 -m pytest tests\test_sync_status_reporting.py tests\test_api_integration.py tests\test_sync_admin_report_ui.py -q` com `7 passed`; `py -3 -m pytest tests\test_agent_checkpoint_reset.py tests\test_agent_local_sales_mapping.py -q` com `7 passed`; `py -3 -m pytest -q` com `61 passed, 1 skipped`.
 - Checkpoint canonico de retomada: backlog concluido ate P18
 - Estado corrente desta sessao: P20 concluido + backlog pos-P20 em execucao
 - Ultima entrega funcional consolidada: registro de instancias locais, fila de comandos remotos pull, endpoints protegidos de configuracao/status no `sync-admin`, controle central no `receiver-api` e portal cliente com escopo formal por empresa ou conjunto de filiais
@@ -65,12 +65,13 @@ Na retomada canonica mais recente, o backlog funcional estava concluido ate `P18
 32. Reset seguro de checkpoint do agente local criado: `agent_local.sync.reset_checkpoint` permite reprocessar vendas antigas por tenant sem edicao manual de JSON.
 33. Reprocessamento real iniciado no agente instalado: `C:\MoviSyncAgent` atualizado para autodeteccao, filtro de valor positivo e normalizacao booleana de `cancelada`.
 34. Relatorios de pagamento corrigidos em producao: labels compostas sao separadas por forma individual, grafico pizza limita legenda, `Crescimento` nao mascara ausencia de base e `Status da sincronizacao` nao exibe mais `-`.
+35. Heartbeat de status do agente local iniciado: `POST /sync/status` registra `last_sync_at` por tenant/agente, e `agent_local` chama esse endpoint apos ciclos com lote e ciclos sem registros.
 
 ## Proximos passos mapeados
 
-1. Abrir visualmente `/client/reports?empresa_id=12345678000199&report_view=payments&period_preset=custom&start_date=2026-03-01&end_date=2026-03-31`.
-2. Confirmar se `Status da sincronizacao=Sem sync` indica ausencia real de `last_sync_at` no receptor remoto.
-3. Se necessario, ajustar o agente local para enviar snapshot de status/sync em todos os ciclos.
+1. Fazer commit/PR da correcao de `/sync/status`.
+2. Deployar em producao e atualizar o agente instalado em `C:\MoviSyncAgent`.
+3. Rodar um ciclo do agente e validar se o relatorio troca `Sem sync` por data real.
 4. Conferir uma amostra do unico registro ainda sem `familia_produto`.
 5. Validar exportacoes PDF, Excel e CSV em producao com filtros combinados.
 
