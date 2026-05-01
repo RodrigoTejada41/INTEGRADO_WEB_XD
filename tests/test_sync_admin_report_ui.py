@@ -76,6 +76,8 @@ def test_kpi_cards_show_explicit_growth_and_sync_states() -> None:
     assert card_by_key["growth"]["tone"] == "neutral"
     assert card_by_key["last_sync"]["value"] == "Sem agente"
     assert card_by_key["last_sync"]["tone"] == "offline"
+    assert card_by_key["total_sales"]["value"] == "R$ 100,00"
+    assert card_by_key["average_ticket"]["value"] == "R$ 10,00"
 
 
 def test_kpi_cards_show_new_when_previous_period_has_no_revenue() -> None:
@@ -95,3 +97,26 @@ def test_kpi_cards_show_new_when_previous_period_has_no_revenue() -> None:
 
     assert card_by_key["growth"]["value"] == "Novo"
     assert card_by_key["growth"]["tone"] == "success"
+
+
+def test_report_values_are_formatted_as_brl_currency() -> None:
+    _ensure_sync_admin_path()
+
+    from app.web.routes import pages
+
+    assert pages._format_brl("1000") == "R$ 1.000,00"
+    assert pages._format_brl("1234.5") == "R$ 1.234,50"
+    assert pages._format_brl("-10.1") == "R$ -10,10"
+
+
+def test_report_template_uses_clear_filter_placeholders_and_currency_filter() -> None:
+    template = Path("sync-admin/app/templates/partials/report_dashboard_content.html").read_text(
+        encoding="utf-8"
+    )
+    script = Path("sync-admin/app/static/js/reports.js").read_text(encoding="utf-8")
+
+    assert 'placeholder="Nome do produto"' in template
+    assert 'placeholder="Codigo local do produto"' in template
+    assert "{{ item.valor|brl }}" in template
+    assert "{{ item.total_sales_value|brl }}" in template
+    assert "parseLocalizedNumber" in script

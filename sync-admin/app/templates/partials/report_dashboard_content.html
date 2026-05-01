@@ -107,8 +107,8 @@
       <details class="bi-advanced-filters">
         <summary>Filtros avancados</summary>
         <div class="bi-advanced-filter-grid">
-          <input class="form-control" list="report-product-options" type="search" name="product" value="{{ product }}" placeholder="Produto" />
-          <input class="form-control" list="report-product-code-options" type="search" name="product_code" value="{{ product_code }}" placeholder="Codigo local" />
+          <input class="form-control" list="report-product-options" type="search" name="product" value="{{ product }}" placeholder="Nome do produto" />
+          <input class="form-control" list="report-product-code-options" type="search" name="product_code" value="{{ product_code }}" placeholder="Codigo local do produto" />
           <select class="form-select" name="family">
             <option value="">Todas familias</option>
             {% for option in filter_options.families %}<option value="{{ option }}" {% if family == option %}selected{% endif %}>{{ option }}</option>{% endfor %}
@@ -211,7 +211,7 @@
           <a class="bi-ranking-item" href="{{ report_root_path }}?{{ report_query }}&report_view=products&product_code={{ item.codigo_produto_local or '' }}">
             <span>{{ loop.index }}</span>
             <strong>{{ item.produto }}</strong>
-            <em>{{ item.total_sales_value }}</em>
+            <em class="bi-money">{{ item.total_sales_value|brl }}</em>
           </a>
           {% endfor %}
         </div>
@@ -255,7 +255,7 @@
             <thead><tr><th>Codigo</th><th>Produto</th><th>Qtd</th><th>Valor bruto</th><th>Desconto</th><th>Acrescimo</th><th>Total</th></tr></thead>
             <tbody>
               {% for item in top_items %}
-              <tr><td>{{ item.codigo_produto_local or '-' }}</td><td>{{ item.produto }}</td><td>{{ item.quantity_sold }}</td><td>{{ item.gross_value }}</td><td>{{ item.discount_value }}</td><td>{{ item.surcharge_value }}</td><td>{{ item.total_sales_value }}</td></tr>
+              <tr><td>{{ item.codigo_produto_local or '-' }}</td><td>{{ item.produto }}</td><td>{{ item.quantity_sold }}</td><td class="bi-money">{{ item.gross_value|brl }}</td><td class="bi-money">{{ item.discount_value|brl }}</td><td class="bi-money">{{ item.surcharge_value|brl }}</td><td class="bi-money">{{ item.total_sales_value|brl }}</td></tr>
               {% endfor %}
             </tbody>
           </table>
@@ -265,7 +265,7 @@
         <div class="card-header bi-panel-head"><h3 class="card-title">Total por forma de pagamento</h3></div>
         <div class="card-body bi-ranking-list">
           {% for item in payment_items %}
-          <div class="bi-ranking-item"><span>{{ loop.index }}</span><strong>{{ item.label }}</strong><em>{{ item.total_sales_value }}</em></div>
+          <div class="bi-ranking-item"><span>{{ loop.index }}</span><strong>{{ item.label }}</strong><em class="bi-money">{{ item.total_sales_value|brl }}</em></div>
           {% endfor %}
         </div>
       </article>
@@ -273,7 +273,7 @@
         <div class="card-header bi-panel-head"><h3 class="card-title">Total por familia</h3></div>
         <div class="card-body bi-ranking-list">
           {% for item in family_items %}
-          <div class="bi-ranking-item"><span>{{ loop.index }}</span><strong>{{ item.label }}</strong><em>{{ item.total_sales_value }}</em></div>
+          <div class="bi-ranking-item"><span>{{ loop.index }}</span><strong>{{ item.label }}</strong><em class="bi-money">{{ item.total_sales_value|brl }}</em></div>
           {% endfor %}
         </div>
       </article>
@@ -284,12 +284,12 @@
         <div class="card-header bi-panel-head"><h3 class="card-title">{{ detail_table_title }}</h3></div>
         <div class="card-body table-responsive p-0">
           <table class="table align-middle bi-table"><thead><tr><th>Grupo</th><th>Qtd vendas</th><th>Qtd itens</th><th>Bruto</th><th>Descontos</th><th>Acrescimos</th><th>Total</th></tr></thead><tbody>
-          {% for item in detail_group_items %}<tr><td>{{ item.label }}</td><td>{{ item.total_records }}</td><td>{{ item.quantity_sold }}</td><td>{{ item.gross_value }}</td><td>{{ item.discount_value }}</td><td>{{ item.surcharge_value }}</td><td>{{ item.total_sales_value }}</td></tr>{% endfor %}
+          {% for item in detail_group_items %}<tr><td>{{ item.label }}</td><td>{{ item.total_records }}</td><td>{{ item.quantity_sold }}</td><td class="bi-money">{{ item.gross_value|brl }}</td><td class="bi-money">{{ item.discount_value|brl }}</td><td class="bi-money">{{ item.surcharge_value|brl }}</td><td class="bi-money">{{ item.total_sales_value|brl }}</td></tr>{% endfor %}
           </tbody></table>
         </div>
         <div class="card-footer bi-table-footer">
           <span>Total geral: {{ overview.total_quantity }} item(ns)</span>
-          <strong>{{ overview.total_sales_value }}</strong>
+          <strong class="bi-money">{{ overview.total_sales_value|brl }}</strong>
         </div>
       </article>
     </section>
@@ -298,7 +298,7 @@
       <div class="card-header bi-panel-head"><h3 class="card-title">Produtos por faturamento</h3></div>
       <div class="card-body table-responsive p-0">
         <table class="table align-middle bi-table"><thead><tr><th>Codigo</th><th>Produto</th><th>Familia</th><th>Categoria</th><th>Qtd</th><th>Valor medio</th><th>Bruto</th><th>Desconto</th><th>Total</th></tr></thead><tbody>
-        {% for item in top_items %}<tr><td>{{ item.codigo_produto_local or '-' }}</td><td>{{ item.produto }}</td><td>{{ item.familia_produto or '-' }}</td><td>{{ item.categoria_produto or '-' }}</td><td>{{ item.quantity_sold }}</td><td>{{ item.average_unit_value }}</td><td>{{ item.gross_value }}</td><td>{{ item.discount_value }}</td><td>{{ item.total_sales_value }}</td></tr>{% endfor %}
+        {% for item in top_items %}<tr><td>{{ item.codigo_produto_local or '-' }}</td><td>{{ item.produto }}</td><td>{{ item.familia_produto or '-' }}</td><td>{{ item.categoria_produto or '-' }}</td><td>{{ item.quantity_sold }}</td><td class="bi-money">{{ item.average_unit_value|brl }}</td><td class="bi-money">{{ item.gross_value|brl }}</td><td class="bi-money">{{ item.discount_value|brl }}</td><td class="bi-money">{{ item.total_sales_value|brl }}</td></tr>{% endfor %}
         </tbody></table>
       </div>
     </section>
@@ -311,7 +311,7 @@
       <article class="card card-outline card-primary bi-panel bi-panel--wide">
         <div class="card-header bi-panel-head"><h3 class="card-title">Totais por familia</h3></div>
         <div class="card-body table-responsive p-0"><table class="table align-middle bi-table"><thead><tr><th>Familia</th><th>Vendas</th><th>Qtd</th><th>Bruto</th><th>Desconto</th><th>Acrescimo</th><th>Total</th></tr></thead><tbody>
-        {% for item in family_items %}<tr><td>{{ item.label }}</td><td>{{ item.total_records }}</td><td>{{ item.quantity_sold }}</td><td>{{ item.gross_value }}</td><td>{{ item.discount_value }}</td><td>{{ item.surcharge_value }}</td><td>{{ item.total_sales_value }}</td></tr>{% endfor %}
+        {% for item in family_items %}<tr><td>{{ item.label }}</td><td>{{ item.total_records }}</td><td>{{ item.quantity_sold }}</td><td class="bi-money">{{ item.gross_value|brl }}</td><td class="bi-money">{{ item.discount_value|brl }}</td><td class="bi-money">{{ item.surcharge_value|brl }}</td><td class="bi-money">{{ item.total_sales_value|brl }}</td></tr>{% endfor %}
         </tbody></table></div>
       </article>
     </section>
@@ -324,7 +324,7 @@
       <article class="card card-outline card-primary bi-panel bi-panel--wide">
         <div class="card-header bi-panel-head"><h3 class="card-title">Totais por terminal</h3></div>
         <div class="card-body table-responsive p-0"><table class="table align-middle bi-table"><thead><tr><th>Terminal</th><th>Vendas</th><th>Qtd</th><th>Bruto</th><th>Desconto</th><th>Acrescimo</th><th>Total</th></tr></thead><tbody>
-        {% for item in terminal_items %}<tr><td>{{ item.label }}</td><td>{{ item.total_records }}</td><td>{{ item.quantity_sold }}</td><td>{{ item.gross_value }}</td><td>{{ item.discount_value }}</td><td>{{ item.surcharge_value }}</td><td>{{ item.total_sales_value }}</td></tr>{% endfor %}
+        {% for item in terminal_items %}<tr><td>{{ item.label }}</td><td>{{ item.total_records }}</td><td>{{ item.quantity_sold }}</td><td class="bi-money">{{ item.gross_value|brl }}</td><td class="bi-money">{{ item.discount_value|brl }}</td><td class="bi-money">{{ item.surcharge_value|brl }}</td><td class="bi-money">{{ item.total_sales_value|brl }}</td></tr>{% endfor %}
         </tbody></table></div>
       </article>
     </section>
@@ -339,7 +339,7 @@
           <thead><tr><th data-sort="text">Produto</th><th data-sort="text">Codigo local</th><th data-sort="number">Qtd</th><th data-sort="number">Valor</th><th data-sort="text">Data</th><th data-sort="text">Pagamento</th><th data-sort="text">Tipo</th><th data-sort="text">Familia</th><th data-sort="text">Filial</th><th data-sort="text">Terminal</th><th data-sort="text">Operador</th><th data-sort="text">Status</th><th data-sort="text">Codigo</th></tr></thead>
           <tbody>
             {% for item in recent_items %}
-            <tr><td>{{ item.produto }}</td><td>{{ item.codigo_produto_local or '-' }}</td><td>{{ item.quantidade or '1' }}</td><td>{{ item.valor }}</td><td>{{ item.data }}</td><td>{{ item.forma_pagamento or '-' }}</td><td>{{ item.tipo_venda or '-' }}</td><td>{{ item.familia_produto or '-' }}</td><td>{{ item.branch_code or '-' }}</td><td>{{ item.terminal_code or '-' }}</td><td>{{ item.operador or '-' }}</td><td>{{ item.status_venda or '-' }}</td><td><code>{{ item.uuid }}</code></td></tr>
+            <tr><td>{{ item.produto }}</td><td>{{ item.codigo_produto_local or '-' }}</td><td>{{ item.quantidade or '1' }}</td><td class="bi-money">{{ item.valor|brl }}</td><td>{{ item.data }}</td><td>{{ item.forma_pagamento or '-' }}</td><td>{{ item.tipo_venda or '-' }}</td><td>{{ item.familia_produto or '-' }}</td><td>{{ item.branch_code or '-' }}</td><td>{{ item.terminal_code or '-' }}</td><td>{{ item.operador or '-' }}</td><td>{{ item.status_venda or '-' }}</td><td><code>{{ item.uuid }}</code></td></tr>
             {% endfor %}
           </tbody>
         </table>

@@ -15,6 +15,14 @@
     return Number(value || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
   }
 
+  function parseLocalizedNumber(value) {
+    const normalized = String(value || '')
+      .replace(/[^\d,.-]/g, '')
+      .replace(/\./g, '')
+      .replace(',', '.');
+    return Number(normalized) || 0;
+  }
+
   function chartConfig(canvas, type, color) {
     const labels = parseJson(canvas.dataset.labels);
     const values = parseJson(canvas.dataset.values);
@@ -181,8 +189,8 @@
         const sorted = rows.slice().sort((a, b) => {
           const left = a.children[columnIndex]?.textContent.trim() || '';
           const right = b.children[columnIndex]?.textContent.trim() || '';
-          const leftValue = header.dataset.sort === 'number' ? Number(left.replace('.', '').replace(',', '.')) || 0 : left;
-          const rightValue = header.dataset.sort === 'number' ? Number(right.replace('.', '').replace(',', '.')) || 0 : right;
+          const leftValue = header.dataset.sort === 'number' ? parseLocalizedNumber(left) : left;
+          const rightValue = header.dataset.sort === 'number' ? parseLocalizedNumber(right) : right;
           if (leftValue < rightValue) return direction === 'asc' ? -1 : 1;
           if (leftValue > rightValue) return direction === 'asc' ? 1 : -1;
           return 0;

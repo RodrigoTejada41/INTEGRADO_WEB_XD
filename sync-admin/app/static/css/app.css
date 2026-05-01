@@ -1406,6 +1406,24 @@ body[data-theme="dark"] .breadcrumb-item.active {
   margin-top: 0.75rem;
 }
 
+.bi-filter-strip .form-control,
+.bi-filter-strip .form-select {
+  color: #0f172a;
+  font-weight: 600;
+}
+
+.bi-filter-strip .form-control::placeholder {
+  color: #475569;
+  opacity: 1;
+}
+
+.bi-money {
+  color: #0f172a;
+  font-variant-numeric: tabular-nums;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
 .bi-dashboard-summary,
 .bi-report-detail {
   display: grid;
@@ -1478,6 +1496,16 @@ body[data-theme="dark"] .bi-filter-strip-form label span,
 body[data-theme="dark"] .bi-advanced-filters summary,
 body[data-theme="dark"] .bi-highlight-list span,
 body[data-theme="dark"] .bi-highlight-list small {
+  color: #cbd5e1;
+}
+
+body[data-theme="dark"] .bi-filter-strip .form-control,
+body[data-theme="dark"] .bi-filter-strip .form-select,
+body[data-theme="dark"] .bi-money {
+  color: #f8fafc;
+}
+
+body[data-theme="dark"] .bi-filter-strip .form-control::placeholder {
   color: #cbd5e1;
 }
 
