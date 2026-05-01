@@ -36,6 +36,9 @@
   - atalhos do Painel Local e Status abrem via `.vbs` com `pythonw.exe`;
   - evita tela preta ao iniciar o sincronizador;
   - corrige abertura do botao Painel Local no instalador.
+- Hotfix adicional:
+  - menu do icone abre Painel Local via `.vbs`;
+  - iniciar sincronizacao pelo icone usa `pythonw.exe`.
 - ZIP de entrega:
   - `release-artifacts/MoviSyncAgent_Installer_v2026-05-01_tray.zip`
 - Validacao:

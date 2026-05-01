@@ -22,9 +22,10 @@ def _creation_flags() -> int:
 
 def _python_executable() -> str:
     executable = Path(sys.executable)
-    python = executable.with_name("python.exe")
-    if python.exists():
-        return str(python)
+    if os.name == "nt":
+        pythonw = executable.with_name("pythonw.exe")
+        if pythonw.exists():
+            return str(pythonw)
     return str(executable)
 
 
@@ -159,7 +160,9 @@ def _open_path(path: Path) -> None:
 
 
 def open_panel() -> None:
-    panel = Path("Abrir_Painel_Local.cmd")
+    panel = Path("Abrir_Painel_Local.vbs")
+    if not panel.exists():
+        panel = Path("Abrir_Painel_Local.cmd")
     if panel.exists():
         _open_path(panel)
 
