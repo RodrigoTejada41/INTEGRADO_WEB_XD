@@ -113,17 +113,9 @@
             <option value="">Todas familias</option>
             {% for option in filter_options.families %}<option value="{{ option }}" {% if family == option %}selected{% endif %}>{{ option }}</option>{% endfor %}
           </select>
-          <select class="form-select" name="category">
-            <option value="">Todas categorias</option>
-            {% for option in filter_options.categories %}<option value="{{ option }}" {% if category == option %}selected{% endif %}>{{ option }}</option>{% endfor %}
-          </select>
           <select class="form-select" name="payment_method">
             <option value="">Todos pagamentos</option>
             {% for option in filter_options.payment_methods %}<option value="{{ option }}" {% if payment_method == option %}selected{% endif %}>{{ option }}</option>{% endfor %}
-          </select>
-          <select class="form-select" name="card_brand">
-            <option value="">Todas bandeiras</option>
-            {% for option in filter_options.card_brands %}<option value="{{ option }}" {% if card_brand == option %}selected{% endif %}>{{ option }}</option>{% endfor %}
           </select>
           <select class="form-select" name="operator">
             <option value="">Todos operadores</option>
@@ -283,7 +275,7 @@
       <article class="card card-outline card-primary bi-panel bi-panel--wide">
         <div class="card-header bi-panel-head"><h3 class="card-title">{{ detail_table_title }}</h3></div>
         <div class="card-body table-responsive p-0">
-          <table class="table align-middle bi-table"><thead><tr><th>Grupo</th><th>Qtd vendas</th><th>Qtd itens</th><th>Bruto</th><th>Descontos</th><th>Acrescimos</th><th>Total</th></tr></thead><tbody>
+          <table class="table align-middle bi-table"><thead><tr><th>{{ detail_group_label }}</th><th>Qtd vendas</th><th>Qtd itens</th><th>Bruto</th><th>Descontos</th><th>Acrescimos</th><th>Total</th></tr></thead><tbody>
           {% for item in detail_group_items %}<tr><td>{{ item.label }}</td><td>{{ item.total_records }}</td><td>{{ item.quantity_sold }}</td><td class="bi-money">{{ item.gross_value|brl }}</td><td class="bi-money">{{ item.discount_value|brl }}</td><td class="bi-money">{{ item.surcharge_value|brl }}</td><td class="bi-money">{{ item.total_sales_value|brl }}</td></tr>{% endfor %}
           </tbody></table>
         </div>
