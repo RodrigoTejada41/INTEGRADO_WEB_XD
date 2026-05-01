@@ -80,7 +80,7 @@ def test_kpi_cards_show_explicit_growth_and_sync_states() -> None:
     assert card_by_key["average_ticket"]["value"] == "R$ 10,00"
 
 
-def test_kpi_cards_show_new_when_previous_period_has_no_revenue() -> None:
+def test_kpi_cards_show_growth_value_when_previous_period_has_no_revenue() -> None:
     _ensure_sync_admin_path()
 
     from app.web.routes import pages
@@ -95,8 +95,51 @@ def test_kpi_cards_show_new_when_previous_period_has_no_revenue() -> None:
     )
     card_by_key = {card["key"]: card for card in cards}
 
-    assert card_by_key["growth"]["value"] == "Novo"
+    assert card_by_key["growth"]["value"] == "+R$ 100,00"
+    assert "periodo anterior sem faturamento" in card_by_key["growth"]["hint"]
     assert card_by_key["growth"]["tone"] == "success"
+
+
+def test_kpi_cards_show_growth_percent_and_value_against_previous_period() -> None:
+    _ensure_sync_admin_path()
+
+    from app.web.routes import pages
+
+    cards = pages._build_kpi_cards(
+        overview={"total_records": 10, "total_sales_value": "100.00", "distinct_products": 3},
+        comparison={
+            "previous_total_sales_value": "80.00",
+            "delta_total_sales_value": "+20.00",
+            "delta_total_sales_value_pct": "+25.0",
+        },
+        sync_status={"status": "online", "last_sync_at": "2026-04-30T02:00+00:00", "reason": "ok"},
+    )
+    card_by_key = {card["key"]: card for card in cards}
+
+    assert card_by_key["growth"]["value"] == "+25.0%"
+    assert "+R$ 20,00" in card_by_key["growth"]["hint"]
+    assert card_by_key["growth"]["tone"] == "success"
+
+
+def test_kpi_cards_show_negative_growth_against_previous_period() -> None:
+    _ensure_sync_admin_path()
+
+    from app.web.routes import pages
+
+    cards = pages._build_kpi_cards(
+        overview={"total_records": 8, "total_sales_value": "80.00", "distinct_products": 3},
+        comparison={
+            "previous_total_sales_value": "100.00",
+            "delta_total_sales_value": "-20.00",
+            "delta_total_sales_value_pct": "-20.0",
+        },
+        sync_status={"status": "online", "last_sync_at": "2026-04-30T02:00+00:00", "reason": "ok"},
+    )
+    card_by_key = {card["key"]: card for card in cards}
+
+    assert card_by_key["growth"]["value"] == "-20.0%"
+    assert "-R$ 20,00" in card_by_key["growth"]["hint"]
+    assert card_by_key["growth"]["tone"] == "error"
 
 
 def test_report_values_are_formatted_as_brl_currency() -> None:
