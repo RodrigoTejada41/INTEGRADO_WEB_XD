@@ -26,6 +26,23 @@ function New-DesktopShortcut(
     $shortcut.Save()
 }
 
+function New-StartupShortcut(
+    [string]$Name,
+    [string]$TargetPath,
+    [string]$WorkingDirectory
+) {
+    $startup = [Environment]::GetFolderPath("Startup")
+    if ([string]::IsNullOrWhiteSpace($startup)) {
+        return
+    }
+    $shortcutPath = Join-Path $startup $Name
+    $shell = New-Object -ComObject WScript.Shell
+    $shortcut = $shell.CreateShortcut($shortcutPath)
+    $shortcut.TargetPath = $TargetPath
+    $shortcut.WorkingDirectory = $WorkingDirectory
+    $shortcut.Save()
+}
+
 $packageRoot = Split-Path -Parent $MyInvocation.MyCommand.Path
 $sourceAgent = Join-Path $packageRoot "agent_local"
 $sourceBackend = Join-Path $packageRoot "backend"
@@ -75,6 +92,16 @@ else {
 
 Write-Step "Criando atalhos cmd"
 New-Item -ItemType Directory -Force -Path (Join-Path $InstallDir "logs") | Out-Null
+New-Item -ItemType Directory -Force -Path (Join-Path $InstallDir "agent_local\data") | Out-Null
+
+$localApiTokenFile = Join-Path $InstallDir "agent_local\data\local_api_token.txt"
+if (!(Test-Path $localApiTokenFile)) {
+    $tokenBytes = New-Object byte[] 32
+    $rng = [System.Security.Cryptography.RandomNumberGenerator]::Create()
+    $rng.GetBytes($tokenBytes)
+    ($tokenBytes | ForEach-Object { $_.ToString("x2") }) -join "" |
+        Set-Content -Path $localApiTokenFile -Encoding ascii
+}
 
 @'
 @echo off
@@ -114,12 +141,26 @@ shell.Run """" & "$InstallDir\.venv\Scripts\pythonw.exe" & """ -m agent_local.tr
 "@
 $statusVbsContent | Set-Content -Path "Abrir_Status_Sync.vbs" -Encoding ascii
 
+$localApiVbsContent = @"
+Set shell = CreateObject("WScript.Shell")
+shell.CurrentDirectory = "$InstallDir"
+shell.Run """" & "$InstallDir\.venv\Scripts\pythonw.exe" & """ -m uvicorn agent_local.local_api:app --host 127.0.0.1 --port 8765", 0, False
+"@
+$localApiVbsContent | Set-Content -Path "Abrir_API_Local.vbs" -Encoding ascii
+
 $agentVbsContent = @"
 Set shell = CreateObject("WScript.Shell")
 shell.CurrentDirectory = "$InstallDir"
 shell.Run """" & "$InstallDir\.venv\Scripts\pythonw.exe" & """ -m agent_local.main", 0, False
 "@
 $agentVbsContent | Set-Content -Path "Iniciar_Agente.vbs" -Encoding ascii
+
+$windowsStartupVbsContent = @"
+Set shell = CreateObject("WScript.Shell")
+shell.CurrentDirectory = "$InstallDir"
+shell.Run """" & "$InstallDir\.venv\Scripts\pythonw.exe" & """ -m agent_local.windows_autostart", 0, False
+"@
+$windowsStartupVbsContent | Set-Content -Path "Iniciar_MoviSync_Windows.vbs" -Encoding ascii
 
 @'
 @echo off
@@ -143,7 +184,11 @@ if (Test-Path ".\scripts\set-agent-manual-password.ps1") {
 Write-Step "Criando atalhos na area de trabalho"
 New-DesktopShortcut -Name "MoviSync Painel Local.lnk" -TargetPath (Join-Path $InstallDir "Abrir_Painel_Local.vbs") -WorkingDirectory $InstallDir
 New-DesktopShortcut -Name "MoviSync Status do Sync.lnk" -TargetPath (Join-Path $InstallDir "Abrir_Status_Sync.vbs") -WorkingDirectory $InstallDir
-New-DesktopShortcut -Name "MoviSync Iniciar Agente.lnk" -TargetPath (Join-Path $InstallDir "Abrir_Status_Sync.vbs") -WorkingDirectory $InstallDir
+New-DesktopShortcut -Name "MoviSync Iniciar Agente.lnk" -TargetPath (Join-Path $InstallDir "Iniciar_MoviSync_Windows.vbs") -WorkingDirectory $InstallDir
+New-DesktopShortcut -Name "MoviSync API Local.lnk" -TargetPath (Join-Path $InstallDir "Abrir_API_Local.vbs") -WorkingDirectory $InstallDir
+
+Write-Step "Configurando inicializacao com Windows"
+New-StartupShortcut -Name "MoviSync AutoStart.lnk" -TargetPath (Join-Path $InstallDir "Iniciar_MoviSync_Windows.vbs") -WorkingDirectory $InstallDir
 
 Pop-Location
 
@@ -153,12 +198,13 @@ Write-Host "Proximos passos no painel local:"
 Write-Host "1) Informe o codigo de vinculacao."
 Write-Host "2) Configure o banco MariaDB local."
 Write-Host "3) Clique para testar e salvar."
-Write-Host "4) Use o icone perto do relogio para iniciar, parar ou reiniciar."
+Write-Host "4) A API local, o Sync e o icone iniciam junto com o Windows."
+Write-Host "5) Use o icone perto do relogio para iniciar, parar ou reiniciar."
 
 if ($OpenPanel) {
     Write-Step "Abrindo painel local"
     Start-Process -FilePath "wscript.exe" -ArgumentList @("//nologo", (Join-Path $InstallDir "Abrir_Painel_Local.vbs")) -WorkingDirectory $InstallDir -WindowStyle Hidden
     Write-Step "Abrindo icone de status"
-    Start-Process -FilePath "wscript.exe" -ArgumentList @("//nologo", (Join-Path $InstallDir "Abrir_Status_Sync.vbs")) -WorkingDirectory $InstallDir -WindowStyle Hidden
+    Start-Process -FilePath "wscript.exe" -ArgumentList @("//nologo", (Join-Path $InstallDir "Iniciar_MoviSync_Windows.vbs")) -WorkingDirectory $InstallDir -WindowStyle Hidden
 }
 
