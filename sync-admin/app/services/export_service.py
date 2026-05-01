@@ -106,6 +106,59 @@ def report_recent_sales_to_csv(rows: list[dict]) -> str:
     return output.getvalue()
 
 
+def report_table_to_csv(headers: list[str], rows: list[dict], totals: dict[str, object]) -> str:
+    output = io.StringIO()
+    writer = csv.DictWriter(output, fieldnames=headers, delimiter=';', extrasaction='ignore')
+    writer.writeheader()
+    for row in rows:
+        writer.writerow({header: row.get(header, '') for header in headers})
+    writer.writerow({})
+    writer.writerow(_totals_export_row(headers, totals))
+    return output.getvalue()
+
+
+def report_table_to_xlsx_bytes(
+    headers: list[str],
+    rows: list[dict],
+    totals: dict[str, object],
+    *,
+    sheet_name: str = 'Relatorio',
+) -> bytes:
+    export_rows = [{header: row.get(header, '') for header in headers} for row in rows]
+    export_rows.append({})
+    export_rows.append(_totals_export_row(headers, totals))
+    return _build_xlsx([(sheet_name, headers, export_rows)])
+
+
+def report_table_to_pdf_bytes(
+    headers: list[str],
+    rows: list[dict],
+    totals: dict[str, object],
+    *,
+    title: str = 'Relatorio',
+) -> bytes:
+    document = _PdfDocument(title=title)
+    document.heading(title)
+    document.paragraph(f'Gerado em: {datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")}')
+    document.table(
+        title='Resultado filtrado',
+        headers=headers[:6],
+        rows=[[row.get(header, '-') for header in headers[:6]] for row in rows[:45]],
+        widths=_fit_pdf_widths(headers[:6]),
+    )
+    document.section('Total geral')
+    document.key_values(
+        [
+            ('Quantidade total', totals.get('Quantidade total', 0)),
+            ('Valor bruto total', _format_currency(totals.get('Valor bruto total', 0))),
+            ('Desconto total', _format_currency(totals.get('Desconto total', 0))),
+            ('Acrescimo total', _format_currency(totals.get('Acrescimo total', 0))),
+            ('Valor final total', _format_currency(totals.get('Valor final total', 0))),
+        ]
+    )
+    return document.render()
+
+
 def report_to_xlsx_bytes(
     overview: dict,
     daily_rows: list[dict],
@@ -224,6 +277,23 @@ def _client_sale_row(row: dict) -> dict[str, object]:
         'Cancelada': 'sim' if row.get('cancelada') else 'nao',
         'Codigo': row.get('uuid') or '-',
     }
+
+
+def _totals_export_row(headers: list[str], totals: dict[str, object]) -> dict[str, object]:
+    row = {header: '' for header in headers}
+    first_header = headers[0] if headers else 'Total'
+    row[first_header] = 'TOTAL GERAL'
+    for key, value in totals.items():
+        if key in row:
+            row[key] = value
+    return row
+
+
+def _fit_pdf_widths(headers: list[str]) -> list[int]:
+    if not headers:
+        return []
+    width = max(55, int(500 / len(headers)))
+    return [width for _ in headers]
 
 
 def report_to_pdf_bytes(

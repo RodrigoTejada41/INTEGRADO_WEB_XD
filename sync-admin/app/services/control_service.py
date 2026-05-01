@@ -851,6 +851,34 @@ class ControlService:
             data = response.json()
         return [str(item) for item in data.get('items', [])]
 
+    def fetch_report_filter_options(
+        self,
+        *,
+        empresa_id: str | None = None,
+        start_date: str | None = None,
+        end_date: str | None = None,
+        branch_code: str | None = None,
+        terminal_code: str | None = None,
+    ) -> dict:
+        params = {
+            key: value
+            for key, value in {
+                'start_date': start_date,
+                'end_date': end_date,
+                'branch_code': branch_code,
+                'terminal_code': terminal_code,
+            }.items()
+            if value
+        }
+        with httpx.Client(timeout=20.0) as client:
+            response = client.get(
+                f'{self.base_url}/admin/tenants/{empresa_id or settings.control_empresa_id}/reports/filter-options',
+                headers=self.admin_headers,
+                params=params,
+            )
+            response.raise_for_status()
+            return response.json()
+
     def fetch_produto_de_para(
         self,
         *,

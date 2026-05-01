@@ -140,3 +140,22 @@ class TenantReportBranchesResponse(BaseModel):
     end_date: date | None = None
     terminal_code: str | None = None
     items: list[str] = Field(default_factory=list)
+
+
+class TenantReportProductOptionResponse(BaseModel):
+    produto: str
+    codigo_produto_local: str | None = None
+
+
+class TenantReportFilterOptionsResponse(BaseModel):
+    empresa_id: str
+    products: list[TenantReportProductOptionResponse] = Field(default_factory=list)
+    product_codes: list[str] = Field(default_factory=list)
+    families: list[str] = Field(default_factory=list)
+    categories: list[str] = Field(default_factory=list)
+    payment_methods: list[str] = Field(default_factory=list)
+    card_brands: list[str] = Field(default_factory=list)
+    customers: list[str] = Field(default_factory=list)
+    operators: list[str] = Field(default_factory=list)
+    terminals: list[str] = Field(default_factory=list)
+    statuses: list[str] = Field(default_factory=list)
