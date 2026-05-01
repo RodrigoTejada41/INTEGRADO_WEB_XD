@@ -41,6 +41,11 @@ Write-Step "Copiando runtime do agente"
 Copy-Item -Path (Join-Path $repoRoot "agent_local") -Destination $releaseDir -Recurse -Force
 Copy-Item -Path (Join-Path $repoRoot "backend") -Destination $releaseDir -Recurse -Force
 Copy-Item -Path (Join-Path $repoRoot "requirements.txt") -Destination $releaseDir -Force
+Add-Content -Path (Join-Path $releaseDir "requirements.txt") -Encoding ascii -Value @(
+    ""
+    "pystray==0.19.5"
+    "Pillow==10.4.0"
+)
 
 Write-Step "Limpando arquivos temporarios de runtime"
 Get-ChildItem -Path $releaseDir -Recurse -Directory -Filter "__pycache__" -ErrorAction SilentlyContinue |

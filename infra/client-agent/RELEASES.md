@@ -20,6 +20,25 @@
   - pacote contem heartbeat `/sync/status`;
   - `py -3 -m compileall infra\client-agent\releases\v2026-05-01_facil\agent_local infra\client-agent\releases\v2026-05-01_facil\backend -q` sem erro.
 
+## v2026-05-01_tray
+
+- Icone `MoviSync` na bandeja do Windows, perto do relogio.
+- Menu do icone:
+  - iniciar sincronizacao;
+  - parar sincronizacao;
+  - reiniciar sincronizacao;
+  - abrir painel local;
+  - abrir log.
+- Status visual:
+  - verde: sincronizador ativo;
+  - vermelho: sincronizador parado.
+- ZIP de entrega:
+  - `release-artifacts/MoviSyncAgent_Installer_v2026-05-01_tray.zip`
+- Validacao:
+  - pacote contem `agent_local/tray_app.py`;
+  - pacote contem `pystray` e `Pillow` no `requirements.txt` da release;
+  - `py -3 -m compileall infra\client-agent\releases\v2026-05-01_tray\agent_local infra\client-agent\releases\v2026-05-01_tray\backend -q` sem erro.
+
 ## v2026-05-01_heartbeat
 
 - Pacote atualizado apos deploy do heartbeat de status do agente.
