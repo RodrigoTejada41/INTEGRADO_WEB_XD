@@ -1,5 +1,25 @@
 # Releases - Cliente Agent
 
+## v2026-05-01_facil
+
+- Pacote para instalacao por usuario leigo.
+- Novo ponto de entrada:
+  - `COMECE_AQUI.bat`
+- Fluxo:
+  - pede permissao de administrador automaticamente;
+  - instala em `C:\MoviSyncAgent`;
+  - configura senha local de suporte;
+  - cria atalhos na area de trabalho;
+  - abre o painel local ao final.
+- Mantem compatibilidade:
+  - `Setup_Instalar_Cliente.bat` chama o fluxo guiado.
+- ZIP de entrega:
+  - `release-artifacts/MoviSyncAgent_Installer_v2026-05-01_facil.zip`
+- Validacao:
+  - pacote contem `COMECE_AQUI.bat`;
+  - pacote contem heartbeat `/sync/status`;
+  - `py -3 -m compileall infra\client-agent\releases\v2026-05-01_facil\agent_local infra\client-agent\releases\v2026-05-01_facil\backend -q` sem erro.
+
 ## v2026-05-01_heartbeat
 
 - Pacote atualizado apos deploy do heartbeat de status do agente.
