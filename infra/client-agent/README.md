@@ -4,11 +4,17 @@ Este pacote instala somente o agente local no Windows, com painel local para ban
 
 ## Execucao rapida
 
-1. Abra `Setup_Instalar_Cliente.bat` como administrador.
-2. Apos instalar, execute:
-   - `Definir_Senha_Manual.cmd`
-   - `Abrir_Painel_Local.cmd`
-   - `Iniciar_Agente.cmd`
+1. Abra `COMECE_AQUI.bat`.
+2. Clique em `Sim` quando o Windows pedir permissao.
+3. Aguarde a instalacao terminar.
+4. No painel que abre automaticamente:
+   - informe o codigo de vinculacao;
+   - configure o banco MariaDB local;
+   - clique para testar e salvar.
+5. Use o atalho `MoviSync Iniciar Agente` na area de trabalho.
+
+Compatibilidade:
+- `Setup_Instalar_Cliente.bat` continua existindo, mas agora chama o fluxo guiado.
 
 ## Painel local
 
@@ -19,6 +25,13 @@ O painel local permite configurar sem editar JSON ou `.env` manualmente:
 - banco local MariaDB;
 - teste de conexao do banco;
 - salvamento de host, porta, banco, usuario, senha, intervalo e lote.
+
+## Arquivos criados no computador do cliente
+
+- `C:\MoviSyncAgent`
+- Atalho `MoviSync Painel Local` na area de trabalho
+- Atalho `MoviSync Iniciar Agente` na area de trabalho
+- Log em `C:\MoviSyncAgent\logs\agent-sync.log`
 
 ## Gerar pasta versionada do instalador
 

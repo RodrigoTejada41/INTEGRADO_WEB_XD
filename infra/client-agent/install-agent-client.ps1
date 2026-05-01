@@ -1,11 +1,29 @@
 param(
-    [string]$InstallDir = "C:\MoviSyncAgent"
+    [string]$InstallDir = "C:\MoviSyncAgent",
+    [switch]$OpenPanel
 )
 
 $ErrorActionPreference = "Stop"
 
 function Write-Step([string]$Message) {
     Write-Host "[instalador] $Message"
+}
+
+function New-DesktopShortcut(
+    [string]$Name,
+    [string]$TargetPath,
+    [string]$WorkingDirectory
+) {
+    $desktop = [Environment]::GetFolderPath("Desktop")
+    if ([string]::IsNullOrWhiteSpace($desktop)) {
+        return
+    }
+    $shortcutPath = Join-Path $desktop $Name
+    $shell = New-Object -ComObject WScript.Shell
+    $shortcut = $shell.CreateShortcut($shortcutPath)
+    $shortcut.TargetPath = $TargetPath
+    $shortcut.WorkingDirectory = $WorkingDirectory
+    $shortcut.Save()
 }
 
 $packageRoot = Split-Path -Parent $MyInvocation.MyCommand.Path
@@ -56,6 +74,8 @@ else {
 }
 
 Write-Step "Criando atalhos cmd"
+New-Item -ItemType Directory -Force -Path (Join-Path $InstallDir "logs") | Out-Null
+
 @'
 @echo off
 cd /d %~dp0
@@ -71,8 +91,28 @@ cd /d %~dp0
 @'
 @echo off
 cd /d %~dp0
-".\.venv\Scripts\python.exe" -m agent_local.main
+if not exist ".\agent_local\data\agent_api_key.txt" (
+  echo [MoviSync] O agente ainda nao foi vinculado.
+  echo Abra primeiro o Painel Local e informe o codigo de vinculacao.
+  pause
+  exit /b 1
+)
+wscript //nologo "%~dp0Iniciar_Agente.vbs"
 '@ | Set-Content -Path "Iniciar_Agente.cmd" -Encoding ascii
+
+$vbsContent = @"
+Set shell = CreateObject("WScript.Shell")
+shell.CurrentDirectory = "$InstallDir"
+shell.Run "cmd /c ""$InstallDir\.venv\Scripts\python.exe -m agent_local.main >> $InstallDir\logs\agent-sync.log 2>&1""", 0, False
+"@
+$vbsContent | Set-Content -Path "Iniciar_Agente.vbs" -Encoding ascii
+
+@'
+@echo off
+cd /d %~dp0
+".\.venv\Scripts\python.exe" -m agent_local.main
+pause
+'@ | Set-Content -Path "Iniciar_Agente_Debug.cmd" -Encoding ascii
 
 @'
 @echo off
@@ -81,12 +121,27 @@ powershell -ExecutionPolicy Bypass -File ".\scripts\set-agent-manual-password.ps
 pause
 '@ | Set-Content -Path "Definir_Senha_Manual.cmd" -Encoding ascii
 
+if (Test-Path ".\scripts\set-agent-manual-password.ps1") {
+    Write-Step "Configurando senha local de suporte"
+    powershell -NoProfile -ExecutionPolicy Bypass -File ".\scripts\set-agent-manual-password.ps1" -Password 25032015 | Out-Null
+}
+
+Write-Step "Criando atalhos na area de trabalho"
+New-DesktopShortcut -Name "MoviSync Painel Local.lnk" -TargetPath (Join-Path $InstallDir "Abrir_Painel_Local.cmd") -WorkingDirectory $InstallDir
+New-DesktopShortcut -Name "MoviSync Iniciar Agente.lnk" -TargetPath (Join-Path $InstallDir "Iniciar_Agente.cmd") -WorkingDirectory $InstallDir
+
 Pop-Location
 
 Write-Step "Instalacao concluida."
 Write-Host ""
-Write-Host "Proximos passos:"
-Write-Host "1) Execute: $InstallDir\Definir_Senha_Manual.cmd"
-Write-Host "2) Execute: $InstallDir\Abrir_Painel_Local.cmd"
-Write-Host "3) Depois execute: $InstallDir\Iniciar_Agente.cmd"
+Write-Host "Proximos passos no painel local:"
+Write-Host "1) Informe o codigo de vinculacao."
+Write-Host "2) Configure o banco MariaDB local."
+Write-Host "3) Clique para testar e salvar."
+Write-Host "4) Use o atalho 'MoviSync Iniciar Agente' para iniciar a sincronizacao."
+
+if ($OpenPanel) {
+    Write-Step "Abrindo painel local"
+    Start-Process -FilePath (Join-Path $InstallDir "Abrir_Painel_Local.cmd") -WorkingDirectory $InstallDir
+}
 

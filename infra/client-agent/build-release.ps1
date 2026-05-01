@@ -29,6 +29,7 @@ Write-Step "Criando release em $releaseDir"
 New-Item -ItemType Directory -Path $releaseDir -Force | Out-Null
 
 Write-Step "Copiando instalador"
+Copy-Item -Path (Join-Path $clientRoot "COMECE_AQUI.bat") -Destination $releaseDir -Force
 Copy-Item -Path (Join-Path $clientRoot "install-agent-client.ps1") -Destination $releaseDir -Force
 Copy-Item -Path (Join-Path $clientRoot "Setup_Instalar_Cliente.bat") -Destination $releaseDir -Force
 Copy-Item -Path (Join-Path $clientRoot "README.md") -Destination $releaseDir -Force
@@ -52,7 +53,7 @@ $manifestPath = Join-Path $releaseDir "release-manifest.txt"
     "version=$VersionTag"
     "created_at=$(Get-Date -Format s)"
     "source_repo=$repoRoot"
-    "contents=install-agent-client.ps1,Setup_Instalar_Cliente.bat,README.md,scripts/,agent_local/,backend/,requirements.txt"
+    "contents=COMECE_AQUI.bat,install-agent-client.ps1,Setup_Instalar_Cliente.bat,README.md,scripts/,agent_local/,backend/,requirements.txt"
 ) | Set-Content -Path $manifestPath -Encoding ascii
 
 Write-Step "Release pronta."
