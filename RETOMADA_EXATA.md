@@ -1,6 +1,107 @@
 # RETOMADA EXATA - INTEGRADO_WEB_XD
 
-Data de atualizacao: 2026-04-30
+Data de atualizacao: 2026-05-01
+
+## Checkpoint instalador cliente, tray e sync oculto - 2026-05-01
+
+### Problema operacional
+- O instalador precisava ficar simples para usuario leigo.
+- O sincronizador precisava mostrar estado perto do relogio.
+- O usuario precisava iniciar, parar e reiniciar o sync pelo icone.
+- A tela preta ainda aparecia ao ativar o Sync.
+- O botao `Painel Local` nao abria de forma confiavel quando chamado por atalho/menu.
+
+### Correcao aplicada
+- Criado instalador guiado com ponto de entrada:
+  - `infra/client-agent/COMECE_AQUI.bat`
+- Atualizado instalador:
+  - `infra/client-agent/install-agent-client.ps1`
+  - `infra/client-agent/Setup_Instalar_Cliente.bat`
+- Criado icone de bandeja do Windows:
+  - `agent_local/tray_app.py`
+- Menu do icone:
+  - iniciar sincronizacao;
+  - parar sincronizacao;
+  - reiniciar sincronizacao;
+  - abrir Painel Local;
+  - abrir log.
+- Atalhos do Desktop agora apontam para `.vbs`, nao para `.cmd`.
+- Painel Local abre por:
+  - `Abrir_Painel_Local.vbs`
+  - `pythonw.exe -m agent_local.pairing_ui`
+- Status/icone abre por:
+  - `Abrir_Status_Sync.vbs`
+  - `pythonw.exe -m agent_local.tray_app`
+- Sync oculto abre por:
+  - `Iniciar_Agente.vbs`
+  - `pythonw.exe -m agent_local.main`
+- O tray tambem passou a iniciar o sync com `pythonw.exe`.
+- O menu `Abrir painel local` prioriza `.vbs` e so usa `.cmd` como fallback.
+
+### Instalador renovado
+- Release atual:
+  - `infra/client-agent/releases/v2026-05-01_tray`
+- ZIP atual:
+  - `release-artifacts/MoviSyncAgent_Installer_v2026-05-01_tray.zip`
+- Tamanho validado:
+  - `128411` bytes
+- Data local do ZIP:
+  - `2026-05-01 01:05:41`
+
+### Atualizacao aplicada no cliente instalado
+- Instalacao real atualizada em:
+  - `C:\MoviSyncAgent`
+- Arquivos atualizados no instalado:
+  - `C:\MoviSyncAgent\agent_local\tray_app.py`
+  - `C:\MoviSyncAgent\Abrir_Painel_Local.vbs`
+  - `C:\MoviSyncAgent\Abrir_Status_Sync.vbs`
+  - `C:\MoviSyncAgent\Iniciar_Agente.vbs`
+- Processo validado apos reinicio:
+  - `agent_local.tray_app` rodando como `pythonw.exe`
+  - `agent_local.main` rodando como `pythonw.exe`
+- Nao havia mais `python.exe` do MoviSync depois do hotfix.
+
+### Validacao local
+- `install-agent-client.ps1` parse OK.
+- `py -3 -m compileall infra\client-agent\releases\v2026-05-01_tray\agent_local infra\client-agent\releases\v2026-05-01_tray\backend -q` -> sem erro.
+- Atalhos do Desktop validados:
+  - `MoviSync Painel Local.lnk` -> `C:\MoviSyncAgent\Abrir_Painel_Local.vbs`
+  - `MoviSync Status do Sync.lnk` -> `C:\MoviSyncAgent\Abrir_Status_Sync.vbs`
+  - `MoviSync Iniciar Agente.lnk` -> `C:\MoviSyncAgent\Abrir_Status_Sync.vbs`
+
+### Git, PRs e deploy
+- PR `#35`:
+  - `Add guided client installer flow`
+  - deploy `25198835361` -> `success`
+- PR `#36`:
+  - `Add Windows tray sync controls`
+  - deploy `25199325790` -> `success`
+- PR `#37`:
+  - `Fix client tray launch shortcuts`
+  - deploy `25201374952` -> `success`
+- PR `#38`:
+  - `Hide sync activation console`
+  - deploy `25201493023` -> `success`
+
+### Producao validada apos ultimo deploy
+- `https://movisystecnologia.com.br/healthz` -> `ok`
+- `https://movisystecnologia.com.br/readyz/backend` -> `ready`
+- `https://movisystecnologia.com.br/admin/api/health/ready` -> `ready`
+
+### Proximo ponto de retomada
+1. Se o usuario ainda vir tela preta, verificar se ela vem de `Iniciar_Agente_Debug.cmd` ou de processo antigo aberto manualmente.
+2. Para nova instalacao em cliente, usar:
+   - `release-artifacts/MoviSyncAgent_Installer_v2026-05-01_tray.zip`
+3. Para atualizar cliente ja instalado, substituir:
+   - `agent_local/tray_app.py`
+   - `Abrir_Painel_Local.vbs`
+   - `Abrir_Status_Sync.vbs`
+   - `Iniciar_Agente.vbs`
+4. Confirmar processos com:
+   - `Get-CimInstance Win32_Process | Where-Object { ($_.Name -in @('python.exe','pythonw.exe')) -and $_.CommandLine -like '*C:\MoviSyncAgent*' }`
+5. Estado esperado:
+   - somente `pythonw.exe` para `agent_local.tray_app`
+   - somente `pythonw.exe` para `agent_local.main`
 
 ## Checkpoint status do agente local em relatorios - 2026-04-30
 
