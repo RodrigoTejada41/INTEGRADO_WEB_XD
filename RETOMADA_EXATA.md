@@ -2,6 +2,40 @@
 
 Data de atualizacao: 2026-05-01
 
+## Checkpoint data de criacao das vendas no agente local - 2026-05-01
+
+### Problema operacional
+- O agente local estava usando `CloseDate` como data principal da venda quando esse campo existia.
+- Isso podia fazer relatorios por data seguirem a data de fechamento/atualizacao, nao a data de criacao da venda no banco local.
+
+### Correcao aplicada
+- Em `salesdocumentsreportview`:
+  - `data` agora usa `DATE(COALESCE(v.CreationDate, v.CloseDate))`;
+  - `data_atualizacao` continua usando `COALESCE(v.CloseDate, v.CreationDate)`.
+- No fallback `Documentsbodys/Documentsheaders`:
+  - `data` prioriza `CreationDate`;
+  - `data_atualizacao` prioriza `CloseDate`.
+- Motivo tecnico:
+  - relatorios devem obedecer a data de criacao da venda;
+  - checkpoint incremental deve continuar usando data de fechamento/atualizacao para nao perder alteracoes posteriores.
+
+### Atualizacao aplicada no cliente instalado
+- Arquivo atualizado:
+  - `C:\MoviSyncAgent\agent_local\db\xd_sales_mapper.py`
+- Sync reiniciado pelo autostart:
+  - `http://127.0.0.1:8765/status` -> `sync_running=true`
+
+### Validacao local
+- `py -3 -m pytest tests\test_agent_local_sales_mapping.py tests\test_agent_checkpoint_reset.py -q` -> `8 passed`.
+- `py -3 -m compileall agent_local -q` -> sem erro.
+
+### Proximo ponto de retomada
+1. Reprocessar vendas antigas se precisar corrigir datas ja enviadas antes desta alteracao.
+2. Para reprocessar por empresa:
+   - resetar checkpoint do agente local;
+   - executar sync em lotes;
+   - validar relatorios por periodo.
+
 ## Checkpoint relatorios filtrados e exportacao fiel - 2026-05-01
 
 ### Problema operacional

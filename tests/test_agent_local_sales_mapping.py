@@ -59,6 +59,28 @@ def test_build_xd_salesdocuments_query_adds_family_and_payment_mapping() -> None
     assert "itemsgroups ig" in query
     assert "xconfigpaymenttypes xpt" in query
     assert "AS forma_pagamento" in query
+    assert "DATE(COALESCE(v.CreationDate, v.CloseDate)) AS data" in query
+    assert "COALESCE(v.CloseDate, v.CreationDate) AS data_atualizacao" in query
+
+
+def test_build_xd_documents_query_uses_creation_date_for_report_date() -> None:
+    columns = {
+        "DocumentKeyId",
+        "ItemKeyId",
+        "ItemDescription",
+        "TotalAmount",
+    }
+    tables = {"Documentsbodys", "Documentsheaders"}
+    table_columns = {
+        "Documentsbodys": {"Guid", "ItemKeyId", "ItemDescription", "TotalAmount", "CreationDate", "CloseDate"},
+        "Documentsheaders": {"SerieId", "Number"},
+    }
+
+    query = build_xd_salesdocuments_query(columns=columns, tables=tables, table_columns=table_columns)
+
+    assert "DATE(COALESCE(b.CreationDate, b.CloseDate)) AS data" in query
+    assert "COALESCE(b.CloseDate, b.CreationDate) AS data_atualizacao" in query
+    assert "WHERE COALESCE(b.CloseDate, b.CreationDate) > :since" in query
 
 
 def test_build_xd_salesdocuments_query_maps_family_through_items_table() -> None:
