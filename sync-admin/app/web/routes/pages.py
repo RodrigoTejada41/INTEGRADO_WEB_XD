@@ -34,6 +34,9 @@ from app.services.export_service import (
     records_to_pdf_bytes,
     records_to_xlsx_bytes,
     report_recent_sales_to_csv,
+    report_table_to_csv,
+    report_table_to_pdf_bytes,
+    report_table_to_xlsx_bytes,
     report_to_pdf_bytes,
     report_to_xlsx_bytes,
     write_markdown_snapshot,
@@ -76,10 +79,30 @@ REPORT_VIEW_CONFIG = {
         'title': 'Relatorio por Familia',
         'description': 'Totais agrupados por familia e categoria de produto.',
     },
+    'categories': {
+        'label': 'Categorias',
+        'title': 'Relatorio por Categoria',
+        'description': 'Totais filtrados e agrupados por categoria de produto.',
+    },
     'terminals': {
         'label': 'Terminais',
         'title': 'Relatorio por Terminal',
         'description': 'Faturamento, quantidade e ticket medio por PDV.',
+    },
+    'card_brands': {
+        'label': 'Bandeiras',
+        'title': 'Relatorio por Bandeira',
+        'description': 'Totais por bandeira de cartao informada nas vendas.',
+    },
+    'operators': {
+        'label': 'Operadores',
+        'title': 'Relatorio por Operador',
+        'description': 'Vendas, quantidades e totais por operador de caixa.',
+    },
+    'customers': {
+        'label': 'Clientes',
+        'title': 'Relatorio por Cliente',
+        'description': 'Vendas e faturamento agrupados por cliente.',
     },
     'sales': {
         'label': 'Vendas Detalhadas',
@@ -93,9 +116,33 @@ REPORT_ACTIONS = [
     ('payments', 'custom', 'Por Pagamento', 'Dinheiro, Pix, cartoes e demais meios.'),
     ('products', 'custom', 'Por Produto', 'Ranking por codigo local e faturamento.'),
     ('families', 'custom', 'Por Familia', 'Agrupamento por familia e categoria.'),
+    ('categories', 'custom', 'Por Categoria', 'Agrupamento por categoria real do banco.'),
+    ('card_brands', 'custom', 'Por Bandeira', 'Bandeiras de cartao sincronizadas.'),
+    ('operators', 'custom', 'Por Operador', 'Movimento por operador de caixa.'),
+    ('customers', 'custom', 'Por Cliente', 'Faturamento por cliente informado.'),
     ('terminals', 'custom', 'Por Terminal', 'PDV, ticket medio e movimento.'),
     ('sales', 'custom', 'Vendas Detalhadas', 'Lista completa filtravel e exportavel.'),
 ]
+
+REPORT_VIEW_GROUP_BY = {
+    'payments': 'forma_pagamento',
+    'families': 'familia_produto',
+    'categories': 'categoria_produto',
+    'terminals': 'terminal_code',
+    'card_brands': 'bandeira_cartao',
+    'operators': 'operador',
+    'customers': 'cliente',
+}
+
+REPORT_VIEW_TABLE_TITLES = {
+    'payments': 'Detalhe por forma de pagamento',
+    'families': 'Totais por familia',
+    'categories': 'Totais por categoria',
+    'terminals': 'Totais por terminal',
+    'card_brands': 'Totais por bandeira',
+    'operators': 'Totais por operador',
+    'customers': 'Totais por cliente',
+}
 
 _LOCAL_AUDIT_FIELD_LABELS = {
     'full_name': 'Nome',
@@ -797,6 +844,18 @@ def _normalize_report_view(report_view: str | None) -> str:
     return 'dashboard'
 
 
+def _detail_group_items_for_view(report_view: str, **groups: list[dict]) -> list[dict]:
+    return {
+        'payments': groups.get('payment_items', []),
+        'families': groups.get('family_items', []),
+        'categories': groups.get('category_items', []),
+        'terminals': groups.get('terminal_items', []),
+        'card_brands': groups.get('card_brand_items', []),
+        'operators': groups.get('operator_items', []),
+        'customers': groups.get('customer_items', []),
+    }.get(report_view, [])
+
+
 def _build_report_link(request: Request, **overrides: str | int | None) -> str:
     params = dict(request.query_params)
     for key, value in overrides.items():
@@ -1193,6 +1252,27 @@ def _build_report_payload(
         end_time=end_time,
         limit=normalized_top_limit,
     )
+    sales_by_category = control.fetch_report_breakdown(
+        empresa_id=empresa_id,
+        group_by='categoria_produto',
+        start_date=start_date,
+        end_date=end_date,
+        branch_code=branch_code,
+        terminal_code=terminal_code,
+        category=category,
+        product=product,
+        product_code=product_code,
+        family=family,
+        payment_method=payment_method,
+        card_brand=card_brand,
+        status_filter=status_filter,
+        canceled=canceled,
+        operator=operator,
+        customer=customer,
+        start_time=start_time,
+        end_time=end_time,
+        limit=100,
+    )
     sales_by_terminal = control.fetch_report_breakdown(
         empresa_id=empresa_id,
         group_by='terminal_code',
@@ -1213,6 +1293,69 @@ def _build_report_payload(
         start_time=start_time,
         end_time=end_time,
         limit=normalized_top_limit,
+    )
+    sales_by_card_brand = control.fetch_report_breakdown(
+        empresa_id=empresa_id,
+        group_by='bandeira_cartao',
+        start_date=start_date,
+        end_date=end_date,
+        branch_code=branch_code,
+        terminal_code=terminal_code,
+        category=category,
+        product=product,
+        product_code=product_code,
+        family=family,
+        payment_method=payment_method,
+        card_brand=card_brand,
+        status_filter=status_filter,
+        canceled=canceled,
+        operator=operator,
+        customer=customer,
+        start_time=start_time,
+        end_time=end_time,
+        limit=100,
+    )
+    sales_by_operator = control.fetch_report_breakdown(
+        empresa_id=empresa_id,
+        group_by='operador',
+        start_date=start_date,
+        end_date=end_date,
+        branch_code=branch_code,
+        terminal_code=terminal_code,
+        category=category,
+        product=product,
+        product_code=product_code,
+        family=family,
+        payment_method=payment_method,
+        card_brand=card_brand,
+        status_filter=status_filter,
+        canceled=canceled,
+        operator=operator,
+        customer=customer,
+        start_time=start_time,
+        end_time=end_time,
+        limit=100,
+    )
+    sales_by_customer = control.fetch_report_breakdown(
+        empresa_id=empresa_id,
+        group_by='cliente',
+        start_date=start_date,
+        end_date=end_date,
+        branch_code=branch_code,
+        terminal_code=terminal_code,
+        category=category,
+        product=product,
+        product_code=product_code,
+        family=family,
+        payment_method=payment_method,
+        card_brand=card_brand,
+        status_filter=status_filter,
+        canceled=canceled,
+        operator=operator,
+        customer=customer,
+        start_time=start_time,
+        end_time=end_time,
+        limit=100,
     )
     recent_sales = control.fetch_report_recent_sales(
         empresa_id=empresa_id,
@@ -1239,8 +1382,19 @@ def _build_report_payload(
     type_items = list(sales_by_type.get('items', []))
     payment_items = _normalize_payment_breakdown_items(list(sales_by_payment.get('items', [])))
     family_items = list(sales_by_family.get('items', []))
+    category_items = list(sales_by_category.get('items', []))
     terminal_items = list(sales_by_terminal.get('items', []))
+    card_brand_items = list(sales_by_card_brand.get('items', []))
+    operator_items = list(sales_by_operator.get('items', []))
+    customer_items = list(sales_by_customer.get('items', []))
     recent_items = list(recent_sales.get('items', []))
+    filter_options = control.fetch_report_filter_options(
+        empresa_id=empresa_id,
+        start_date=start_date,
+        end_date=end_date,
+        branch_code=branch_code,
+        terminal_code=terminal_code,
+    )
     previous_period = _compute_previous_period(start_date, end_date)
     previous_overview = None
     if previous_period:
@@ -1309,8 +1463,24 @@ def _build_report_payload(
         'type_items': type_items,
         'payment_items': payment_items,
         'family_items': family_items,
+        'category_items': category_items,
         'terminal_items': terminal_items,
+        'card_brand_items': card_brand_items,
+        'operator_items': operator_items,
+        'customer_items': customer_items,
         'recent_items': recent_items,
+        'detail_group_items': _detail_group_items_for_view(
+            normalized_report_view,
+            payment_items=payment_items,
+            family_items=family_items,
+            category_items=category_items,
+            terminal_items=terminal_items,
+            card_brand_items=card_brand_items,
+            operator_items=operator_items,
+            customer_items=customer_items,
+        ),
+        'detail_table_title': REPORT_VIEW_TABLE_TITLES.get(normalized_report_view, 'Resultado filtrado'),
+        'filter_options': filter_options,
         'comparison': comparison,
         'sync_status': sync_status,
         'kpi_cards': kpi_cards,
@@ -2166,6 +2336,139 @@ def _build_report_payload_for_api(
     ) | {'selected_empresa_id': resolved_empresa_id}
 
 
+def _report_totals(payload: dict) -> dict[str, object]:
+    overview = payload.get('overview') or {}
+    return {
+        'Quantidade total': overview.get('total_quantity', 0),
+        'Valor bruto total': overview.get('total_gross_value', 0),
+        'Desconto total': overview.get('total_discount_value', 0),
+        'Acrescimo total': overview.get('total_surcharge_value', 0),
+        'Valor final total': overview.get('total_sales_value', 0),
+        'Registros': overview.get('total_records', 0),
+    }
+
+
+def _group_export_rows(items: list[dict], label_header: str) -> tuple[list[str], list[dict]]:
+    headers = [
+        label_header,
+        'Registros',
+        'Quantidade total',
+        'Valor bruto total',
+        'Desconto total',
+        'Acrescimo total',
+        'Valor final total',
+    ]
+    rows = [
+        {
+            label_header: item.get('label', '-'),
+            'Registros': item.get('total_records', 0),
+            'Quantidade total': item.get('quantity_sold', 0),
+            'Valor bruto total': item.get('gross_value', 0),
+            'Desconto total': item.get('discount_value', 0),
+            'Acrescimo total': item.get('surcharge_value', 0),
+            'Valor final total': item.get('total_sales_value', 0),
+        }
+        for item in items
+    ]
+    return headers, rows
+
+
+def _product_export_rows(items: list[dict]) -> tuple[list[str], list[dict]]:
+    headers = [
+        'Codigo Produto',
+        'Produto',
+        'Familia',
+        'Categoria',
+        'Registros',
+        'Quantidade total',
+        'Valor bruto total',
+        'Desconto total',
+        'Acrescimo total',
+        'Valor final total',
+    ]
+    rows = [
+        {
+            'Codigo Produto': item.get('codigo_produto_local') or '-',
+            'Produto': item.get('produto') or '-',
+            'Familia': item.get('familia_produto') or '-',
+            'Categoria': item.get('categoria_produto') or '-',
+            'Registros': item.get('total_records', 0),
+            'Quantidade total': item.get('quantity_sold', 0),
+            'Valor bruto total': item.get('gross_value', 0),
+            'Desconto total': item.get('discount_value', 0),
+            'Acrescimo total': item.get('surcharge_value', 0),
+            'Valor final total': item.get('total_sales_value', 0),
+        }
+        for item in items
+    ]
+    return headers, rows
+
+
+def _sales_export_rows(items: list[dict]) -> tuple[list[str], list[dict]]:
+    headers = [
+        'Data',
+        'Codigo Produto',
+        'Produto',
+        'Quantidade total',
+        'Valor bruto total',
+        'Desconto total',
+        'Acrescimo total',
+        'Valor final total',
+        'Pagamento',
+        'Bandeira',
+        'Familia',
+        'Categoria',
+        'Terminal',
+        'Operador',
+        'Cliente',
+    ]
+    rows = [
+        {
+            'Data': item.get('data') or '-',
+            'Codigo Produto': item.get('codigo_produto_local') or '-',
+            'Produto': item.get('produto') or '-',
+            'Quantidade total': item.get('quantidade') or 0,
+            'Valor bruto total': item.get('valor_bruto') or 0,
+            'Desconto total': item.get('desconto') or 0,
+            'Acrescimo total': item.get('acrescimo') or 0,
+            'Valor final total': item.get('valor_liquido') or item.get('valor') or 0,
+            'Pagamento': item.get('forma_pagamento') or '-',
+            'Bandeira': item.get('bandeira_cartao') or '-',
+            'Familia': item.get('familia_produto') or '-',
+            'Categoria': item.get('categoria_produto') or '-',
+            'Terminal': item.get('terminal_code') or '-',
+            'Operador': item.get('operador') or '-',
+            'Cliente': item.get('cliente') or '-',
+        }
+        for item in items
+    ]
+    return headers, rows
+
+
+def _report_export_table(payload: dict) -> tuple[list[str], list[dict], dict[str, object], str]:
+    report_view = payload.get('report_view') or 'dashboard'
+    title = (payload.get('report_view_config') or {}).get('title') or 'Relatorio'
+    if report_view in {'products', 'daily_revenue'}:
+        headers, rows = _product_export_rows(payload.get('top_items', []))
+    elif report_view == 'payments':
+        headers, rows = _group_export_rows(payload.get('payment_items', []), 'Forma de pagamento')
+    elif report_view == 'families':
+        headers, rows = _group_export_rows(payload.get('family_items', []), 'Familia')
+    elif report_view == 'categories':
+        headers, rows = _group_export_rows(payload.get('category_items', []), 'Categoria')
+    elif report_view == 'terminals':
+        headers, rows = _group_export_rows(payload.get('terminal_items', []), 'Terminal')
+    elif report_view == 'card_brands':
+        headers, rows = _group_export_rows(payload.get('card_brand_items', []), 'Bandeira')
+    elif report_view == 'operators':
+        headers, rows = _group_export_rows(payload.get('operator_items', []), 'Operador')
+    elif report_view == 'customers':
+        headers, rows = _group_export_rows(payload.get('customer_items', []), 'Cliente')
+    else:
+        headers, rows = _sales_export_rows(payload.get('recent_items', []))
+    return headers, rows, _report_totals(payload), str(title)
+
+
 def _extract_report_api_payload(
     *,
     current_user: User,
@@ -2411,6 +2714,7 @@ def export_reports_csv(
     branch_code: str | None = None,
     terminal_code: str | None = None,
     category: str | None = None,
+    report_view: str | None = None,
     recent_limit: int = 50,
     _: object = Depends(require_web_permission('reports.view')),
 ):
@@ -2425,10 +2729,12 @@ def export_reports_csv(
         terminal_code=terminal_code,
         category=category,
         **_advanced_report_params(request),
+        report_view=report_view,
         top_limit=10,
         recent_limit=recent_limit,
     )
-    csv_text = report_recent_sales_to_csv(payload['recent_items'])
+    headers, rows, totals, _ = _report_export_table(payload)
+    csv_text = report_table_to_csv(headers, rows, totals)
     return Response(
         content=csv_text,
         media_type='text/csv',
@@ -2450,6 +2756,7 @@ def export_reports_xlsx(
     branch_code: str | None = None,
     terminal_code: str | None = None,
     category: str | None = None,
+    report_view: str | None = None,
     top_limit: int = 10,
     recent_limit: int = 50,
     _: object = Depends(require_web_permission('reports.view')),
@@ -2465,15 +2772,12 @@ def export_reports_xlsx(
         terminal_code=terminal_code,
         category=category,
         **_advanced_report_params(request),
+        report_view=report_view,
         top_limit=top_limit,
         recent_limit=recent_limit,
     )
-    xlsx_bytes = report_to_xlsx_bytes(
-        payload['overview'],
-        payload['daily_items'],
-        payload['top_items'],
-        payload['recent_items'],
-    )
+    headers, rows, totals, title = _report_export_table(payload)
+    xlsx_bytes = report_table_to_xlsx_bytes(headers, rows, totals, sheet_name=title[:31])
     return Response(
         content=xlsx_bytes,
         media_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
@@ -2495,6 +2799,7 @@ def export_reports_pdf(
     branch_code: str | None = None,
     terminal_code: str | None = None,
     category: str | None = None,
+    report_view: str | None = None,
     top_limit: int = 10,
     recent_limit: int = 50,
     _: object = Depends(require_web_permission('reports.view')),
@@ -2510,22 +2815,12 @@ def export_reports_pdf(
         terminal_code=terminal_code,
         category=category,
         **_advanced_report_params(request),
+        report_view=report_view,
         top_limit=top_limit,
         recent_limit=recent_limit,
     )
-    pdf_bytes = report_to_pdf_bytes(
-        payload['overview'],
-        payload['daily_items'],
-        payload['top_items'],
-        payload['recent_items'],
-        payload['payment_items'],
-        build_report_pdf_summary(
-            overview=payload['overview'],
-            product_rows=payload['top_items'],
-            payment_rows=payload['payment_items'],
-        ),
-        title='Relatorios administrativos',
-    )
+    headers, rows, totals, title = _report_export_table(payload)
+    pdf_bytes = report_table_to_pdf_bytes(headers, rows, totals, title=title)
     return Response(
         content=pdf_bytes,
         media_type='application/pdf',
@@ -2545,6 +2840,7 @@ def export_client_reports_csv(
     branch_code: str | None = None,
     terminal_code: str | None = None,
     category: str | None = None,
+    report_view: str | None = None,
     recent_limit: int = 50,
     current_user: User = Depends(require_client_portal_access),
     db: Session = Depends(get_db),
@@ -2569,10 +2865,12 @@ def export_client_reports_csv(
         terminal_code=terminal_code,
         category=category,
         **_advanced_report_params(request),
+        report_view=report_view,
         top_limit=10,
         recent_limit=recent_limit,
     )
-    csv_text = report_recent_sales_to_csv(payload['recent_items'])
+    headers, rows, totals, _ = _report_export_table(payload)
+    csv_text = report_table_to_csv(headers, rows, totals)
     return Response(
         content=csv_text,
         media_type='text/csv',
@@ -2592,6 +2890,7 @@ def export_client_reports_xlsx(
     branch_code: str | None = None,
     terminal_code: str | None = None,
     category: str | None = None,
+    report_view: str | None = None,
     top_limit: int = 10,
     recent_limit: int = 50,
     current_user: User = Depends(require_client_portal_access),
@@ -2617,15 +2916,12 @@ def export_client_reports_xlsx(
         terminal_code=terminal_code,
         category=category,
         **_advanced_report_params(request),
+        report_view=report_view,
         top_limit=top_limit,
         recent_limit=recent_limit,
     )
-    xlsx_bytes = report_to_xlsx_bytes(
-        payload['overview'],
-        payload['daily_items'],
-        payload['top_items'],
-        payload['recent_items'],
-    )
+    headers, rows, totals, title = _report_export_table(payload)
+    xlsx_bytes = report_table_to_xlsx_bytes(headers, rows, totals, sheet_name=title[:31])
     return Response(
         content=xlsx_bytes,
         media_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
@@ -2645,6 +2941,7 @@ def export_client_reports_pdf(
     branch_code: str | None = None,
     terminal_code: str | None = None,
     category: str | None = None,
+    report_view: str | None = None,
     top_limit: int = 10,
     recent_limit: int = 50,
     current_user: User = Depends(require_client_portal_access),
@@ -2670,22 +2967,12 @@ def export_client_reports_pdf(
         terminal_code=terminal_code,
         category=category,
         **_advanced_report_params(request),
+        report_view=report_view,
         top_limit=top_limit,
         recent_limit=recent_limit,
     )
-    pdf_bytes = report_to_pdf_bytes(
-        payload['overview'],
-        payload['daily_items'],
-        payload['top_items'],
-        payload['recent_items'],
-        payload['payment_items'],
-        build_report_pdf_summary(
-            overview=payload['overview'],
-            product_rows=payload['top_items'],
-            payment_rows=payload['payment_items'],
-        ),
-        title='Relatorios do cliente',
-    )
+    headers, rows, totals, title = _report_export_table(payload)
+    pdf_bytes = report_table_to_pdf_bytes(headers, rows, totals, title=title)
     return Response(
         content=pdf_bytes,
         media_type='application/pdf',

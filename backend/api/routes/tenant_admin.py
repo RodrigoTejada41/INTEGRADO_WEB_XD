@@ -45,6 +45,7 @@ from backend.schemas.tenant_jobs import TenantJobResponse, TenantJobRetryRespons
 from backend.schemas.tenant_observability import TenantObservabilityResponse
 from backend.schemas.tenant_reports import (
     TenantReportBranchesResponse,
+    TenantReportFilterOptionsResponse,
     TenantDailySalesResponse,
     TenantRecentSaleResponse,
     TenantRecentSalesResponse,
@@ -1369,6 +1370,30 @@ def get_report_branches(
         terminal_code=terminal_code,
         items=items,
     )
+
+
+@router.get(
+    "/tenants/{empresa_id}/reports/filter-options",
+    response_model=TenantReportFilterOptionsResponse,
+    dependencies=[Depends(require_admin_token)],
+)
+def get_report_filter_options(
+    empresa_id: str,
+    start_date: date | None = None,
+    end_date: date | None = None,
+    branch_code: str | None = None,
+    terminal_code: str | None = None,
+    session: Session = Depends(get_session),
+) -> TenantReportFilterOptionsResponse:
+    service = _tenant_report_service(session)
+    options = service.get_filter_options(
+        empresa_id=empresa_id,
+        start_date=start_date,
+        end_date=end_date,
+        branch_code=branch_code,
+        terminal_code=terminal_code,
+    )
+    return TenantReportFilterOptionsResponse(empresa_id=empresa_id, **options)
 
 
 @router.get(

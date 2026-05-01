@@ -2,6 +2,76 @@
 
 Data de atualizacao: 2026-05-01
 
+## Checkpoint relatorios filtrados e exportacao fiel - 2026-05-01
+
+### Problema operacional
+- A tela de relatorios mostrava filtros como campos livres.
+- Familia, categoria, pagamento, bandeira, cliente, operador, terminal e produto nao vinham como opcoes reais do banco.
+- Exportacoes podiam sair com outra visao, porque CSV, Excel e PDF usavam estruturas genericas em vez do resultado do relatorio selecionado.
+- Categoria usava busca ampla em produto/familia/codigo, gerando risco de misturar dados fora do filtro selecionado.
+
+### Correcao aplicada
+- Criado endpoint backend:
+  - `GET /admin/tenants/{empresa_id}/reports/filter-options`
+- As opcoes agora saem dinamicamente da tabela `vendas`, sempre por `empresa_id`.
+- Filtros dinamicos cobertos:
+  - produto;
+  - codigo local;
+  - familia;
+  - categoria;
+  - forma de pagamento;
+  - bandeira;
+  - cliente;
+  - operador;
+  - terminal;
+  - status.
+- Filtros de familia, categoria, produto, bandeira, cliente e operador passaram a respeitar valor selecionado.
+- Forma de pagamento tambem trata labels compostas por virgula, sem precisar de opcoes fixas.
+- Relatorios novos no portal:
+  - por categoria;
+  - por bandeira;
+  - por operador;
+  - por cliente.
+- Exportacao agora usa a tabela do `report_view` selecionado:
+  - PDF;
+  - Excel;
+  - CSV.
+- Exportacao inclui total geral:
+  - quantidade total;
+  - valor bruto total;
+  - desconto total;
+  - acrescimo total;
+  - valor final total.
+
+### Arquivos alterados
+- `backend/api/routes/tenant_admin.py`
+- `backend/repositories/venda_repository.py`
+- `backend/schemas/tenant_reports.py`
+- `backend/services/tenant_report_service.py`
+- `sync-admin/app/services/control_service.py`
+- `sync-admin/app/services/export_service.py`
+- `sync-admin/app/templates/partials/report_dashboard_content.html`
+- `sync-admin/app/web/routes/pages.py`
+- `tests/test_sync_admin_rbac.py`
+- `tests/test_sync_upsert.py`
+
+### Validacao local
+- `py -3 -m compileall backend sync-admin\app -q` -> sem erro.
+- `py -3 -m pytest tests\test_sync_upsert.py tests\test_sync_admin_rbac.py tests\test_sync_admin_report_ui.py -q` -> `21 passed`.
+- `py -3 -m pytest tests\test_api_integration.py tests\test_release_smoke_contract.py -q` -> `2 passed, 1 skipped`.
+- A suite completa `py -3 -m pytest -q` excedeu 5 minutos e foi interrompida por timeout do ambiente.
+- O timeout deixou lock temporario em `output/test_sync_admin_rbac.db`; o arquivo foi removido e os testes focados passaram.
+
+### Proximo ponto de retomada
+1. Validar visualmente `/client/reports` em producao com:
+   - pagamento `PIX`;
+   - produto + periodo;
+   - operador;
+   - categoria;
+   - bandeira.
+2. Baixar PDF, Excel e CSV para cada visao e comparar com a tabela exibida.
+3. Se algum campo vier vazio, verificar se o agente local esta recebendo esse campo da base XD antes de mexer na tela.
+
 ## Checkpoint instalador cliente, tray e sync oculto - 2026-05-01
 
 ### Problema operacional

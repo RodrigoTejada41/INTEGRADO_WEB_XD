@@ -568,6 +568,35 @@ class VendaRepository:
         )
         return [str(item) for item in self.session.scalars(stmt).all() if item]
 
+    def report_filter_options(
+        self,
+        *,
+        empresa_id: str,
+        start_date: date | None = None,
+        end_date: date | None = None,
+        branch_code: str | None = None,
+        terminal_code: str | None = None,
+    ) -> dict[str, object]:
+        base_filters = {
+            "empresa_id": empresa_id,
+            "start_date": start_date,
+            "end_date": end_date,
+            "branch_code": branch_code,
+            "terminal_code": terminal_code,
+        }
+        return {
+            "products": self._product_options(**base_filters),
+            "product_codes": self._distinct_values(Venda.codigo_produto_local, **base_filters),
+            "families": self._distinct_values(Venda.familia_produto, **base_filters),
+            "categories": self._distinct_values(Venda.categoria_produto, **base_filters),
+            "payment_methods": self._split_distinct_values(Venda.forma_pagamento, **base_filters),
+            "card_brands": self._distinct_values(Venda.bandeira_cartao, **base_filters),
+            "customers": self._distinct_values(Venda.cliente, **base_filters),
+            "operators": self._distinct_values(Venda.operador, **base_filters),
+            "terminals": self._distinct_values(Venda.terminal_code, **base_filters),
+            "statuses": self._distinct_values(Venda.status_venda, **base_filters),
+        }
+
     @staticmethod
     def _deduplicate_by_uuid(records: list[dict]) -> list[dict]:
         grouped: dict[str, dict] = {}
@@ -614,38 +643,124 @@ class VendaRepository:
         if terminal_code:
             stmt = stmt.where(Venda.terminal_code == terminal_code)
         if product:
-            stmt = stmt.where(Venda.produto.ilike(f"%{product.strip()}%"))
+            stmt = stmt.where(self._text_equals(Venda.produto, product))
         if product_code:
             stmt = stmt.where(Venda.codigo_produto_local == product_code)
         if family:
-            stmt = stmt.where(Venda.familia_produto.ilike(f"%{family.strip()}%"))
+            stmt = stmt.where(self._text_equals(Venda.familia_produto, family))
         if payment_method:
-            stmt = stmt.where(Venda.forma_pagamento == payment_method)
+            stmt = stmt.where(self._multi_value_equals(Venda.forma_pagamento, payment_method))
         if card_brand:
-            stmt = stmt.where(Venda.bandeira_cartao == card_brand)
+            stmt = stmt.where(self._text_equals(Venda.bandeira_cartao, card_brand))
         if status:
             stmt = stmt.where(Venda.status_venda == status)
         if canceled is not None:
             stmt = stmt.where(Venda.cancelada.is_(canceled))
         if operator:
-            stmt = stmt.where(Venda.operador.ilike(f"%{operator.strip()}%"))
+            stmt = stmt.where(self._text_equals(Venda.operador, operator))
         if customer:
-            stmt = stmt.where(Venda.cliente.ilike(f"%{customer.strip()}%"))
+            stmt = stmt.where(self._text_equals(Venda.cliente, customer))
         if category and category.strip():
-            category_pattern = f"%{category.strip()}%"
-            stmt = stmt.where(
-                or_(
-                    Venda.produto.ilike(category_pattern),
-                    Venda.familia_produto.ilike(category_pattern),
-                    Venda.categoria_produto.ilike(category_pattern),
-                    Venda.codigo_produto_local.ilike(category_pattern),
-                )
-            )
+            stmt = stmt.where(self._text_equals(Venda.categoria_produto, category))
         if start_time is not None:
             stmt = stmt.where(self._time_expression() >= self._time_filter_value(start_time))
         if end_time is not None:
             stmt = stmt.where(self._time_expression() <= self._time_filter_value(end_time))
         return stmt
+
+    def _product_options(
+        self,
+        *,
+        empresa_id: str,
+        start_date: date | None = None,
+        end_date: date | None = None,
+        branch_code: str | None = None,
+        terminal_code: str | None = None,
+        limit: int = 500,
+    ) -> list[dict[str, str | None]]:
+        stmt = (
+            select(
+                func.trim(Venda.produto).label("produto"),
+                func.nullif(func.trim(Venda.codigo_produto_local), "").label("codigo_produto_local"),
+            )
+            .where(Venda.produto.is_not(None), func.trim(Venda.produto) != "")
+            .distinct()
+            .order_by(func.trim(Venda.produto).asc())
+            .limit(limit)
+        )
+        stmt = self._apply_report_filters(
+            stmt,
+            empresa_id=empresa_id,
+            start_date=start_date,
+            end_date=end_date,
+            branch_code=branch_code,
+            terminal_code=terminal_code,
+        )
+        return [
+            {
+                "produto": str(row.produto),
+                "codigo_produto_local": str(row.codigo_produto_local) if row.codigo_produto_local else None,
+            }
+            for row in self.session.execute(stmt).all()
+        ]
+
+    def _distinct_values(
+        self,
+        column,
+        *,
+        empresa_id: str,
+        start_date: date | None = None,
+        end_date: date | None = None,
+        branch_code: str | None = None,
+        terminal_code: str | None = None,
+        limit: int = 500,
+    ) -> list[str]:
+        value = func.trim(column)
+        stmt = (
+            select(value)
+            .where(column.is_not(None), value != "")
+            .distinct()
+            .order_by(value.asc())
+            .limit(limit)
+        )
+        stmt = self._apply_report_filters(
+            stmt,
+            empresa_id=empresa_id,
+            start_date=start_date,
+            end_date=end_date,
+            branch_code=branch_code,
+            terminal_code=terminal_code,
+        )
+        return [str(item) for item in self.session.scalars(stmt).all() if item]
+
+    def _split_distinct_values(self, column, **filters) -> list[str]:
+        values: dict[str, str] = {}
+        for raw_value in self._distinct_values(column, **filters):
+            for part in raw_value.split(","):
+                normalized = " ".join(part.split())
+                if normalized:
+                    values.setdefault(normalized.casefold(), normalized)
+        return sorted(values.values(), key=str.casefold)
+
+    @staticmethod
+    def _text_equals(column, value: str):
+        normalized = " ".join(value.split()).casefold()
+        return func.lower(func.trim(column)) == normalized
+
+    def _multi_value_equals(self, column, value: str):
+        normalized = " ".join(value.split()).casefold()
+        lowered = func.lower(func.trim(column))
+        return or_(
+            lowered == normalized,
+            lowered.like(f"{normalized},%"),
+            lowered.like(f"{normalized} ,%"),
+            lowered.like(f"%,{normalized}"),
+            lowered.like(f"%, {normalized}"),
+            lowered.like(f"%,{normalized},%"),
+            lowered.like(f"%, {normalized},%"),
+            lowered.like(f"%,{normalized} ,%"),
+            lowered.like(f"%, {normalized} ,%"),
+        )
 
     @staticmethod
     def _sale_value_expression():

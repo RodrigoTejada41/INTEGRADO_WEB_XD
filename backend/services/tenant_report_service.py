@@ -106,3 +106,22 @@ class TenantReportService:
             end_date=end_date,
             terminal_code=terminal_code,
         )
+
+    def get_filter_options(
+        self,
+        *,
+        empresa_id: str,
+        start_date: date | None = None,
+        end_date: date | None = None,
+        branch_code: str | None = None,
+        terminal_code: str | None = None,
+    ) -> dict[str, object]:
+        self.ensure_tenant_exists(empresa_id)
+        self.validate_date_range(start_date, end_date)
+        return self.venda_repository.report_filter_options(
+            empresa_id=empresa_id,
+            start_date=start_date,
+            end_date=end_date,
+            branch_code=branch_code,
+            terminal_code=terminal_code,
+        )

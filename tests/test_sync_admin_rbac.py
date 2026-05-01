@@ -378,6 +378,59 @@ def test_report_csv_and_excel_are_client_readable() -> None:
     assert "789001" in sales_sheet
 
 
+def test_selected_report_export_keeps_only_filtered_result_table() -> None:
+    _ensure_sync_admin_path()
+
+    from app.services.export_service import report_table_to_csv, report_table_to_pdf_bytes, report_table_to_xlsx_bytes
+
+    headers = [
+        "Forma de pagamento",
+        "Registros",
+        "Quantidade total",
+        "Valor bruto total",
+        "Desconto total",
+        "Acrescimo total",
+        "Valor final total",
+    ]
+    rows = [
+        {
+            "Forma de pagamento": "PIX",
+            "Registros": 2,
+            "Quantidade total": "3.000",
+            "Valor bruto total": "110.00",
+            "Desconto total": "10.00",
+            "Acrescimo total": "0.00",
+            "Valor final total": "100.00",
+        }
+    ]
+    totals = {
+        "Quantidade total": "3.000",
+        "Valor bruto total": "110.00",
+        "Desconto total": "10.00",
+        "Acrescimo total": "0.00",
+        "Valor final total": "100.00",
+    }
+
+    csv_text = report_table_to_csv(headers, rows, totals)
+    assert "PIX" in csv_text
+    assert "TOTAL GERAL" in csv_text
+    assert "Cartao" not in csv_text
+
+    xlsx_bytes = report_table_to_xlsx_bytes(headers, rows, totals, sheet_name="Pagamentos")
+    with zipfile.ZipFile(io.BytesIO(xlsx_bytes)) as archive:
+        workbook = archive.read("xl/workbook.xml").decode("utf-8")
+        sheet = archive.read("xl/worksheets/sheet1.xml").decode("utf-8")
+    assert "Pagamentos" in workbook
+    assert "PIX" in sheet
+    assert "TOTAL GERAL" in sheet
+
+    pdf = report_table_to_pdf_bytes(headers, rows, totals, title="Relatorio por Forma de Pagamento")
+    assert pdf.startswith(b"%PDF-1.4")
+    assert b"Relatorio por Forma de Pagamento" in pdf
+    assert b"PIX" in pdf
+    assert b"Total geral" in pdf
+
+
 def test_report_dashboard_uses_modern_bi_layout() -> None:
     template = (
         ROOT

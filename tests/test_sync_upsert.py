@@ -241,7 +241,7 @@ def test_report_breakdowns_and_time_filter() -> None:
         empresa_id="11111111000101",
         start_date=date(2026, 4, 16),
         end_date=date(2026, 4, 16),
-        category="beb",
+        category="agua",
     )
     assert category_overview["total_records"] == 1
     assert category_overview["total_sales_value"] == Decimal("10.00")
@@ -251,7 +251,7 @@ def test_report_breakdowns_and_time_filter() -> None:
         limit=10,
         start_date=date(2026, 4, 16),
         end_date=date(2026, 4, 16),
-        category="sand",
+        category="sanduiches",
     )
     assert [sale.produto for sale in category_recent_sales] == ["Sanduiche"]
 
@@ -270,6 +270,14 @@ def test_report_breakdowns_and_time_filter() -> None:
         limit=10,
     )
     assert operator_breakdown[0]["label"] == "Caixa 02"
+
+    filter_options = repository.report_filter_options(empresa_id="11111111000101")
+    assert filter_options["families"] == ["bebidas", "lanches"]
+    assert filter_options["categories"] == ["agua", "sanduiches"]
+    assert filter_options["payment_methods"] == ["cartao", "pix"]
+    assert filter_options["card_brands"] == ["Master"]
+    assert filter_options["operators"] == ["Caixa 02"]
+    assert {"produto": "Agua", "codigo_produto_local": "AGUA01"} in filter_options["products"]
 
 
 def test_report_breakdown_treats_blank_family_as_not_informed() -> None:
