@@ -88,6 +88,13 @@ cd /d %~dp0
 ".\.venv\Scripts\python.exe" -m agent_local.pairing_ui
 '@ | Set-Content -Path "Abrir_Painel_Local.cmd" -Encoding ascii
 
+$panelVbsContent = @"
+Set shell = CreateObject("WScript.Shell")
+shell.CurrentDirectory = "$InstallDir"
+shell.Run """" & "$InstallDir\.venv\Scripts\pythonw.exe" & """ -m agent_local.pairing_ui", 0, False
+"@
+$panelVbsContent | Set-Content -Path "Abrir_Painel_Local.vbs" -Encoding ascii
+
 @'
 @echo off
 cd /d %~dp0
@@ -103,7 +110,7 @@ wscript //nologo "%~dp0Abrir_Status_Sync.vbs"
 $statusVbsContent = @"
 Set shell = CreateObject("WScript.Shell")
 shell.CurrentDirectory = "$InstallDir"
-shell.Run "cmd /c ""$InstallDir\.venv\Scripts\pythonw.exe -m agent_local.tray_app >> $InstallDir\logs\agent-tray.log 2>&1""", 0, False
+shell.Run """" & "$InstallDir\.venv\Scripts\pythonw.exe" & """ -m agent_local.tray_app", 0, False
 "@
 $statusVbsContent | Set-Content -Path "Abrir_Status_Sync.vbs" -Encoding ascii
 
@@ -134,9 +141,9 @@ if (Test-Path ".\scripts\set-agent-manual-password.ps1") {
 }
 
 Write-Step "Criando atalhos na area de trabalho"
-New-DesktopShortcut -Name "MoviSync Painel Local.lnk" -TargetPath (Join-Path $InstallDir "Abrir_Painel_Local.cmd") -WorkingDirectory $InstallDir
-New-DesktopShortcut -Name "MoviSync Status do Sync.lnk" -TargetPath (Join-Path $InstallDir "Abrir_Status_Sync.cmd") -WorkingDirectory $InstallDir
-New-DesktopShortcut -Name "MoviSync Iniciar Agente.lnk" -TargetPath (Join-Path $InstallDir "Iniciar_Agente.cmd") -WorkingDirectory $InstallDir
+New-DesktopShortcut -Name "MoviSync Painel Local.lnk" -TargetPath (Join-Path $InstallDir "Abrir_Painel_Local.vbs") -WorkingDirectory $InstallDir
+New-DesktopShortcut -Name "MoviSync Status do Sync.lnk" -TargetPath (Join-Path $InstallDir "Abrir_Status_Sync.vbs") -WorkingDirectory $InstallDir
+New-DesktopShortcut -Name "MoviSync Iniciar Agente.lnk" -TargetPath (Join-Path $InstallDir "Abrir_Status_Sync.vbs") -WorkingDirectory $InstallDir
 
 Pop-Location
 
@@ -150,8 +157,8 @@ Write-Host "4) Use o icone perto do relogio para iniciar, parar ou reiniciar."
 
 if ($OpenPanel) {
     Write-Step "Abrindo painel local"
-    Start-Process -FilePath (Join-Path $InstallDir "Abrir_Painel_Local.cmd") -WorkingDirectory $InstallDir
+    Start-Process -FilePath "wscript.exe" -ArgumentList @("//nologo", (Join-Path $InstallDir "Abrir_Painel_Local.vbs")) -WorkingDirectory $InstallDir -WindowStyle Hidden
     Write-Step "Abrindo icone de status"
-    Start-Process -FilePath (Join-Path $InstallDir "Abrir_Status_Sync.cmd") -WorkingDirectory $InstallDir
+    Start-Process -FilePath "wscript.exe" -ArgumentList @("//nologo", (Join-Path $InstallDir "Abrir_Status_Sync.vbs")) -WorkingDirectory $InstallDir -WindowStyle Hidden
 }
 
