@@ -117,7 +117,7 @@ $statusVbsContent | Set-Content -Path "Abrir_Status_Sync.vbs" -Encoding ascii
 $agentVbsContent = @"
 Set shell = CreateObject("WScript.Shell")
 shell.CurrentDirectory = "$InstallDir"
-shell.Run "cmd /c ""$InstallDir\.venv\Scripts\python.exe -m agent_local.main >> $InstallDir\logs\agent-sync.log 2>&1""", 0, False
+shell.Run """" & "$InstallDir\.venv\Scripts\pythonw.exe" & """ -m agent_local.main", 0, False
 "@
 $agentVbsContent | Set-Content -Path "Iniciar_Agente.vbs" -Encoding ascii
 
