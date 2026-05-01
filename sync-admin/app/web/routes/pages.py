@@ -117,8 +117,6 @@ REPORT_ACTIONS = [
     ('payments', 'custom', 'Por Pagamento', 'Dinheiro, Pix, cartoes e demais meios.'),
     ('products', 'custom', 'Por Produto', 'Ranking por codigo local e faturamento.'),
     ('families', 'custom', 'Por Familia', 'Agrupamento por familia e categoria.'),
-    ('categories', 'custom', 'Por Categoria', 'Agrupamento por categoria real do banco.'),
-    ('card_brands', 'custom', 'Por Bandeira', 'Bandeiras de cartao sincronizadas.'),
     ('operators', 'custom', 'Por Operador', 'Movimento por operador de caixa.'),
     ('customers', 'custom', 'Por Cliente', 'Faturamento por cliente informado.'),
     ('terminals', 'custom', 'Por Terminal', 'PDV, ticket medio e movimento.'),
@@ -143,6 +141,16 @@ REPORT_VIEW_TABLE_TITLES = {
     'card_brands': 'Totais por bandeira',
     'operators': 'Totais por operador',
     'customers': 'Totais por cliente',
+}
+
+REPORT_VIEW_GROUP_LABELS = {
+    'payments': 'Forma de pagamento',
+    'families': 'Familia',
+    'categories': 'Categoria',
+    'terminals': 'Terminal',
+    'card_brands': 'Bandeira',
+    'operators': 'Operador',
+    'customers': 'Cliente',
 }
 
 _LOCAL_AUDIT_FIELD_LABELS = {
@@ -1501,6 +1509,7 @@ def _build_report_payload(
             customer_items=customer_items,
         ),
         'detail_table_title': REPORT_VIEW_TABLE_TITLES.get(normalized_report_view, 'Resultado filtrado'),
+        'detail_group_label': REPORT_VIEW_GROUP_LABELS.get(normalized_report_view, 'Item'),
         'filter_options': filter_options,
         'comparison': comparison,
         'sync_status': sync_status,

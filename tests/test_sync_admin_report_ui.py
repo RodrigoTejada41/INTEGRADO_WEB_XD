@@ -120,3 +120,22 @@ def test_report_template_uses_clear_filter_placeholders_and_currency_filter() ->
     assert "{{ item.valor|brl }}" in template
     assert "{{ item.total_sales_value|brl }}" in template
     assert "parseLocalizedNumber" in script
+
+
+def test_report_filters_and_group_column_are_simplified() -> None:
+    _ensure_sync_admin_path()
+
+    from app.web.routes import pages
+
+    template = Path("sync-admin/app/templates/partials/report_dashboard_content.html").read_text(
+        encoding="utf-8"
+    )
+    action_views = [view for view, *_rest in pages.REPORT_ACTIONS]
+
+    assert "name=\"category\"" not in template
+    assert "name=\"card_brand\"" not in template
+    assert "<th>Grupo</th>" not in template
+    assert "<th>{{ detail_group_label }}</th>" in template
+    assert pages.REPORT_VIEW_GROUP_LABELS["families"] == "Familia"
+    assert "categories" not in action_views
+    assert "card_brands" not in action_views
