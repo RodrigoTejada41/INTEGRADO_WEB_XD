@@ -4,7 +4,7 @@
 
 O projeto e uma plataforma de sincronizacao de dados multi-tenant com memoria local-first em `.cerebro-vivo/` e uma camada executiva visivel em `cerebro_vivo/` para coordenacao multi-agentes.
 
-Checkpoint mais recente em 2026-04-30: a correcao visual/operacional dos relatorios de pagamento foi aplicada, mergeada e publicada em producao. Em seguida foi iniciada a correcao estrutural do `Status da sincronizacao`: o backend ganhou `POST /sync/status`, autenticado por `X-Empresa-Id` + `X-API-Key`, e o agente local passou a enviar heartbeat de sync em todo ciclo, inclusive quando nao ha registros novos. Isso atualiza `local_clients.last_sync_at` e evita que o relatorio continue exibindo `Sem sync` apos um ciclo real do agente.
+Checkpoint mais recente em 2026-05-01: a correcao estrutural do `Status da sincronizacao` foi mergeada, deployada e validada. O backend ganhou `POST /sync/status`, autenticado por `X-Empresa-Id` + `X-API-Key`, e o agente local passou a enviar heartbeat de sync em todo ciclo, inclusive quando nao ha registros novos. Producao esta em `ba4d98e`, deploy GitHub Actions `25198198983` com sucesso. O agente instalado em `C:\MoviSyncAgent` foi atualizado, executou ciclo unico com `POST /sync/status` -> `200 OK` e ficou rodando em background com intervalo de 15 minutos.
 
 Na governanca oficial atual, `backend/`, `agent_local/`, `sync-admin/` e `infra/` sao as fontes canonicas operacionais. `backend/src`, `frontend`, `database`, `devops` e `docker-compose.yml` na raiz permanecem como camadas de compatibilidade e onboarding.
 
@@ -20,8 +20,8 @@ Na retomada canonica mais recente, o backlog funcional estava concluido ate `P18
 ## Estado consolidado encontrado
 
 - Branch local atual: `main`
-- Estado Git ao pausar: alteracoes locais pendentes para heartbeat de status do agente e documentacao de checkpoint.
-- Producao atual: VPS em `8a0cf2f`, deploy do PR `#30` concluido com sucesso; nova correcao de `/sync/status` ainda nao foi deployada.
+- Estado Git ao pausar: `main` limpo apos merge/deploy da correcao de status do agente; somente este checkpoint foi atualizado depois.
+- Producao atual: VPS em `ba4d98e`, deploy do PR `#32` concluido com sucesso.
 - Validacao mais recente: `py -3 -m compileall backend agent_local -q`; `py -3 -m pytest tests\test_sync_status_reporting.py tests\test_api_integration.py tests\test_sync_admin_report_ui.py -q` com `7 passed`; `py -3 -m pytest tests\test_agent_checkpoint_reset.py tests\test_agent_local_sales_mapping.py -q` com `7 passed`; `py -3 -m pytest -q` com `61 passed, 1 skipped`.
 - Checkpoint canonico de retomada: backlog concluido ate P18
 - Estado corrente desta sessao: P20 concluido + backlog pos-P20 em execucao
@@ -65,15 +65,13 @@ Na retomada canonica mais recente, o backlog funcional estava concluido ate `P18
 32. Reset seguro de checkpoint do agente local criado: `agent_local.sync.reset_checkpoint` permite reprocessar vendas antigas por tenant sem edicao manual de JSON.
 33. Reprocessamento real iniciado no agente instalado: `C:\MoviSyncAgent` atualizado para autodeteccao, filtro de valor positivo e normalizacao booleana de `cancelada`.
 34. Relatorios de pagamento corrigidos em producao: labels compostas sao separadas por forma individual, grafico pizza limita legenda, `Crescimento` nao mascara ausencia de base e `Status da sincronizacao` nao exibe mais `-`.
-35. Heartbeat de status do agente local iniciado: `POST /sync/status` registra `last_sync_at` por tenant/agente, e `agent_local` chama esse endpoint apos ciclos com lote e ciclos sem registros.
+35. Heartbeat de status do agente local concluido em producao: `POST /sync/status` registra `last_sync_at` por tenant/agente, `agent_local` chama esse endpoint apos ciclos com lote e sem registros, e `C:\MoviSyncAgent` ja enviou status real com `last_sync_at=2026-05-01T01:52:33.970303Z`.
 
 ## Proximos passos mapeados
 
-1. Fazer commit/PR da correcao de `/sync/status`.
-2. Deployar em producao e atualizar o agente instalado em `C:\MoviSyncAgent`.
-3. Rodar um ciclo do agente e validar se o relatorio troca `Sem sync` por data real.
-4. Conferir uma amostra do unico registro ainda sem `familia_produto`.
-5. Validar exportacoes PDF, Excel e CSV em producao com filtros combinados.
+1. Validar visualmente se o relatorio troca `Sem sync` por data real.
+2. Conferir uma amostra do unico registro ainda sem `familia_produto`.
+3. Validar exportacoes PDF, Excel e CSV em producao com filtros combinados.
 
 ## Atualizacao desta continuidade
 

@@ -44,11 +44,37 @@ Data de atualizacao: 2026-04-30
 - `py -3 -m pytest -q` -> `61 passed, 1 skipped`.
 
 ### Proximo passo seguro
-1. Fazer commit/PR da correcao.
-2. Deployar em producao.
-3. Atualizar o agente instalado em `C:\MoviSyncAgent`.
-4. Rodar um ciclo do agente.
-5. Validar se o relatorio troca `Sem sync` por data real de sincronizacao.
+1. Validar visualmente se o relatorio troca `Sem sync` por data real.
+2. Conferir uma amostra do unico registro ainda sem `familia_produto`.
+3. Validar exportacoes PDF, Excel e CSV em producao com filtros combinados.
+
+### Git, deploy e agente instalado
+- Branch:
+  - `codex/fix-agent-sync-status-heartbeat`
+- PR:
+  - `#32` - `Fix agent sync status heartbeat`
+- Merge em `main`:
+  - `ba4d98e` - `Fix agent sync status heartbeat`
+- Deploy GitHub Actions:
+  - run `25198198983`
+  - status `success`
+- Producao validada apos deploy:
+  - `https://movisystecnologia.com.br/healthz` -> `ok`
+  - `https://movisystecnologia.com.br/readyz/backend` -> `ready`
+  - `https://movisystecnologia.com.br/readyz/sync-admin` -> `ready`
+  - `https://movisystecnologia.com.br/admin/api/health/ready` -> `ready`
+- Agente instalado atualizado em:
+  - `C:\MoviSyncAgent`
+- Backup dos arquivos antigos:
+  - `C:\MoviSyncAgent\backup_status_heartbeat_20260430_225158`
+- Ciclo unico executado:
+  - `POST https://movisystecnologia.com.br/admin/api/sync/status` -> `200 OK`
+  - retorno: `status=ok`, `empresa_id=12345678000199`, `client_id=492490b3-2b1a-5fa0-9962-4cf5a1130f9a`
+  - `last_sync_at=2026-05-01T01:52:33.970303Z`
+- Agente em background iniciado:
+  - processo `python.exe` em `C:\MoviSyncAgent\.venv\Scripts\python.exe`
+  - intervalo `SYNC_INTERVAL_MINUTES=15`
+  - log confirmou novo ciclo com `POST /sync/status` -> `200 OK` em `2026-05-01T01:52:46Z`
 
 ## Checkpoint relatorios - grafico por pagamento e KPIs - 2026-04-30
 
