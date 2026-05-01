@@ -135,7 +135,7 @@ def build_xd_salesdocuments_query(
                             '|',
                             IFNULL(v.ItemKeyId, ''),
                             '|',
-                            DATE_FORMAT(COALESCE(v.CreationDate, v.CloseDate), '%Y-%m-%d %H:%i:%s')
+                            DATE_FORMAT(COALESCE(v.CloseDate, v.CreationDate), '%Y-%m-%d %H:%i:%s')
                         ),
                         256
                     ) AS uuid,
@@ -210,7 +210,7 @@ def build_xd_documents_query(*, tables: set[str], table_columns: Mapping[str, se
                             '|',
                             IFNULL(h.Number, ''),
                             '|',
-                            DATE_FORMAT({sale_date}, '%Y-%m-%d %H:%i:%s')
+                            DATE_FORMAT({update_date}, '%Y-%m-%d %H:%i:%s')
                         ),
                         256
                     ) AS uuid,

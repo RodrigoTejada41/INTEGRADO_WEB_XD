@@ -1536,6 +1536,42 @@ Este arquivo e o ponto de entrada para retomar o projeto sem redescobrir context
 - Abrir/atualizar PR da branch `codex/local-agent-db-panel`.
 - Depois do merge, atualizar VPS.
 
+## Checkpoint: data de venda por criacao sem duplicar UUID - 2026-05-01
+
+### Problema
+- Os relatorios devem respeitar a data de criacao da venda no banco local.
+- A primeira correcao alterava tambem a base do UUID para `CreationDate`.
+- Isso poderia gerar duplicidade ao reprocessar vendas antigas ja sincronizadas.
+
+### Correcao aplicada
+- Campo de relatorio `data` usa `CreationDate` com fallback para `CloseDate`.
+- Campo `data_atualizacao` continua usando `CloseDate` com fallback para `CreationDate`.
+- UUID continua baseado em `CloseDate/CreationDate`, preservando compatibilidade com vendas ja enviadas.
+- Checkpoint da sincronizacao continua baseado em `data_atualizacao`.
+
+### Aplicacao local
+- Arquivo atualizado no agente instalado:
+  - `C:\MoviSyncAgent\agent_local\db\xd_sales_mapper.py`
+- Backup antes do reprocessamento:
+  - `C:\MoviSyncAgent\backup_reprocess_creation_date_20260501_173840`
+- Checkpoint resetado para reprocessar vendas:
+  - `12345678000199:vendas=1970-01-01T00:00:00+00:00`
+- Banco local validado:
+  - origem: `salesdocumentsreportview`;
+  - total local: `51475`;
+  - ultimo `CloseDate/CreationDate`: `2026-03-28 15:36:02`;
+  - ultimo `CreationDate/CloseDate`: `2026-03-28 15:00:13`.
+- Reprocessamento em segundo plano:
+  - PID inicial validado: `1960`;
+  - log: `C:\MoviSyncAgent\logs\reprocess_creation_date_20260501.log`.
+
+### Validacao
+- Testes focados:
+  - `py -3 -m pytest tests\test_agent_local_sales_mapping.py tests\test_agent_checkpoint_reset.py -q`
+  - resultado: `8 passed`
+- Compile local:
+  - `py -3 -m compileall agent_local -q`
+
 ## Checkpoint: usuario cliente padrao e portal separado - 2026-04-28
 
 ### Entrega
