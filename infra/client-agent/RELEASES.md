@@ -1,5 +1,21 @@
 # Releases - Cliente Agent
 
+## v2026-05-01_heartbeat
+
+- Pacote atualizado apos deploy do heartbeat de status do agente.
+- Inclui:
+  - `POST /sync/status` no cliente local;
+  - envio de `X-Agent-Device-Label`;
+  - heartbeat em ciclos com lote e em ciclos sem registros;
+  - compatibilidade com `Status da sincronizacao` exibindo `last_sync_at` real.
+- Pasta local:
+  - `infra/client-agent/releases/v2026-05-01_heartbeat`
+- ZIP de entrega:
+  - `release-artifacts/MoviSyncAgent_Installer_v2026-05-01_heartbeat.zip`
+- Validacao:
+  - pacote contem `send_sync_status`;
+  - `py -3 -m compileall infra\client-agent\releases\v2026-05-01_heartbeat\agent_local infra\client-agent\releases\v2026-05-01_heartbeat\backend -q` sem erro.
+
 ## v2026-04-22_2258
 
 - Primeiro pacote versionado do instalador cliente.
