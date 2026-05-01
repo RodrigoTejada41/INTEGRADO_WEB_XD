@@ -381,6 +381,15 @@ def _format_brl(value: object) -> str:
     return f'R$ {sign}{".".join(reversed(groups))},{decimal_part}'
 
 
+def _format_brl_delta(value: object) -> str:
+    amount = _safe_float(value)
+    if amount > 0:
+        return f'+{_format_brl(amount)}'
+    if amount < 0:
+        return f'-{_format_brl(abs(amount))}'
+    return _format_brl(0)
+
+
 templates.env.filters['brl'] = _format_brl
 
 
@@ -1025,26 +1034,27 @@ def _build_kpi_cards(
     distinct_products = int(overview.get('distinct_products', 0) or 0)
     average_ticket = total_sales / total_records if total_records else 0.0
     previous_total = _safe_float((comparison or {}).get('previous_total_sales_value'))
+    growth_amount = total_sales - previous_total
     growth_pct = comparison.get('delta_total_sales_value_pct') if comparison else None
     if comparison is None:
         growth_value = 'Sem base'
         growth_hint = 'Filtro sem periodo anterior valido para comparacao.'
         growth_tone = 'neutral'
     elif growth_pct is None and total_sales > 0 and previous_total == 0:
-        growth_value = 'Novo'
-        growth_hint = 'Periodo anterior sem faturamento para comparar.'
+        growth_value = _format_brl_delta(growth_amount)
+        growth_hint = 'Crescimento no periodo; periodo anterior sem faturamento.'
         growth_tone = 'success'
     elif growth_pct is None:
-        growth_value = '0.0%'
-        growth_hint = 'Sem variacao calculavel no periodo anterior.'
-        growth_tone = 'neutral'
+        growth_value = _format_brl_delta(growth_amount)
+        growth_hint = 'Variacao em valor contra periodo anterior.'
+        growth_tone = 'success' if growth_amount > 0 else 'neutral'
     else:
         growth_value = f'{growth_pct}%'
-        growth_hint = 'Comparado ao periodo anterior.'
+        growth_hint = f'{_format_brl_delta(growth_amount)} contra periodo anterior.'
         growth_tone = 'success'
-    if growth_value.startswith('-'):
+    if growth_amount < 0:
         growth_tone = 'error'
-    elif growth_value in {'0.0%', '+0.0%', 'Sem base'}:
+    elif growth_amount == 0 or growth_value in {'0.0%', '+0.0%', 'Sem base'}:
         growth_tone = 'neutral'
     return [
         {
