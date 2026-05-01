@@ -1564,6 +1564,13 @@ Este arquivo e o ponto de entrada para retomar o projeto sem redescobrir context
 - Reprocessamento em segundo plano:
   - PID inicial validado: `1960`;
   - log: `C:\MoviSyncAgent\logs\reprocess_creation_date_20260501.log`.
+- Resultado final:
+  - reprocessamento concluiu em `2026-05-01T18:41:58-03:00`;
+  - ultimo lote util enviou `64` registros e processou `63`;
+  - ciclo seguinte retornou `no_records_to_sync`;
+  - checkpoint final: `12345678000199:vendas=2026-03-28T15:36:02+00:00`;
+  - autostart local religou API local, tray e sync normal sem tela preta;
+  - status local confirmado em `http://127.0.0.1:8765/status` com `sync_running=true`.
 
 ### Validacao
 - Testes focados:
@@ -1571,6 +1578,34 @@ Este arquivo e o ponto de entrada para retomar o projeto sem redescobrir context
   - resultado: `8 passed`
 - Compile local:
   - `py -3 -m compileall agent_local -q`
+
+## Checkpoint: valores dos relatorios em moeda BRL - 2026-05-01
+
+### Entrega
+- Valores monetarios da tela de relatorios agora usam formato brasileiro:
+  - exemplo: `R$ 1.000,00`.
+- Valores monetarios ganharam classe visual dedicada:
+  - `bi-money`.
+- Filtros ficaram mais claros:
+  - `Nome do produto`;
+  - `Codigo local do produto`.
+- Ordenacao numerica da tabela passou a entender valores com `R$`, ponto e virgula.
+
+### Publicacao
+- PR: `#44`.
+- Commit na main: `e0a9ea1`.
+- Deploy producao: sucesso.
+- Health producao:
+  - `/healthz`: `ok`;
+  - `/admin/api/health/ready`: `ready`.
+
+### Validacao
+- `py -3 -m pytest tests\test_sync_admin_report_ui.py -q`
+  - resultado: `5 passed`
+- `py -3 -m pytest tests\test_sync_admin_rbac.py::test_report_dashboard_uses_modern_bi_layout -q`
+  - resultado: `1 passed`
+- `py -3 -m compileall sync-admin\app -q`
+  - resultado: OK
 
 ## Checkpoint: usuario cliente padrao e portal separado - 2026-04-28
 
