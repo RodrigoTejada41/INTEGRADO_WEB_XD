@@ -135,14 +135,14 @@ def build_xd_salesdocuments_query(
                             '|',
                             IFNULL(v.ItemKeyId, ''),
                             '|',
-                            DATE_FORMAT(COALESCE(v.CloseDate, v.CreationDate), '%Y-%m-%d %H:%i:%s')
+                            DATE_FORMAT(COALESCE(v.CreationDate, v.CloseDate), '%Y-%m-%d %H:%i:%s')
                         ),
                         256
                     ) AS uuid,
                     :empresa_id AS empresa_id,
                     COALESCE(v.ItemDescription, 'SEM_DESCRICAO') AS produto,
                     COALESCE(v.TotalAmount, 0) AS valor,
-                    DATE(COALESCE(v.CloseDate, v.CreationDate)) AS data,
+                    DATE(COALESCE(v.CreationDate, v.CloseDate)) AS data,
                     COALESCE(v.CloseDate, v.CreationDate) AS data_atualizacao,
                     {optional_sql}
                 FROM salesdocumentsreportview v
@@ -166,10 +166,13 @@ def build_xd_documents_query(*, tables: set[str], table_columns: Mapping[str, se
     if missing:
         raise RuntimeError(f"Documentsbodys/Documentsheaders sem colunas obrigatorias: {', '.join(sorted(missing))}")
 
-    body_date = _coalesce_columns("b", ("CloseDate", "CreationDate", "TaxPointDate"), body_columns)
-    header_date = _coalesce_columns("h", ("CloseDate", "CreationDate", "TaxPointDate"), header_columns)
-    event_date = body_date if body_date != "NULL" else header_date
-    if event_date == "NULL":
+    body_created_date = _coalesce_columns("b", ("CreationDate", "CloseDate", "TaxPointDate"), body_columns)
+    header_created_date = _coalesce_columns("h", ("CreationDate", "CloseDate", "TaxPointDate"), header_columns)
+    sale_date = body_created_date if body_created_date != "NULL" else header_created_date
+    body_update_date = _coalesce_columns("b", ("CloseDate", "CreationDate", "TaxPointDate"), body_columns)
+    header_update_date = _coalesce_columns("h", ("CloseDate", "CreationDate", "TaxPointDate"), header_columns)
+    update_date = body_update_date if body_update_date != "NULL" else header_update_date
+    if sale_date == "NULL" or update_date == "NULL":
         raise RuntimeError("Documentsbodys/Documentsheaders sem coluna de data utilizavel.")
 
     value_expr = _first_existing_column("b", ("TotalAmount", "NetTotal", "TotalNetAmount", "Price"), body_columns, "0")
@@ -207,15 +210,15 @@ def build_xd_documents_query(*, tables: set[str], table_columns: Mapping[str, se
                             '|',
                             IFNULL(h.Number, ''),
                             '|',
-                            DATE_FORMAT({event_date}, '%Y-%m-%d %H:%i:%s')
+                            DATE_FORMAT({sale_date}, '%Y-%m-%d %H:%i:%s')
                         ),
                         256
                     ) AS uuid,
                     :empresa_id AS empresa_id,
                     COALESCE(b.ItemDescription, 'SEM_DESCRICAO') AS produto,
                     COALESCE({value_expr}, 0) AS valor,
-                    DATE({event_date}) AS data,
-                    {event_date} AS data_atualizacao,
+                    DATE({sale_date}) AS data,
+                    {update_date} AS data_atualizacao,
                     {branch_expr} AS branch_code,
                     {terminal_expr} AS terminal_code,
                     {_first_existing_column('h', ('DocumentDescription', 'DocumentType', 'DocumentTypeId'), header_columns, 'NULL')} AS tipo_venda,
@@ -239,9 +242,9 @@ def build_xd_documents_query(*, tables: set[str], table_columns: Mapping[str, se
                 INNER JOIN Documentsheaders h
                     ON h.SerieId = b.SerieId
                    AND h.Number = b.Number
-               WHERE {event_date} > :since
+               WHERE {update_date} > :since
                  AND COALESCE({value_expr}, 0) > 0
-               ORDER BY {event_date} ASC
+               ORDER BY {update_date} ASC
                LIMIT :limit
                """
 
