@@ -135,10 +135,13 @@ def report_table_to_pdf_bytes(
     totals: dict[str, object],
     *,
     title: str = 'Relatorio',
+    period_label: str | None = None,
 ) -> bytes:
     document = _PdfDocument(title=title)
     document.heading(title)
     document.paragraph(f'Gerado em: {datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")}')
+    if period_label:
+        document.paragraph(f'Periodo do relatorio: {period_label}')
     document.table(
         title='Resultado filtrado',
         headers=headers[:6],
@@ -311,7 +314,7 @@ def report_to_pdf_bytes(
     document.key_values(
         [
             ('Empresa', overview.get('empresa_id', '-')),
-            ('Periodo', f'{overview.get("start_date", "-")} ate {overview.get("end_date", "-")}'),
+            ('Periodo', _format_period_label(overview.get('start_date'), overview.get('end_date'))),
             ('Filial', overview.get('branch_code') or 'Todas'),
             ('Terminal', overview.get('terminal_code') or 'Todos'),
             ('Horario', f'{overview.get("start_time") or "00:00"} ate {overview.get("end_time") or "23:59"}'),
@@ -654,6 +657,29 @@ def _format_currency(value: object) -> str:
         groups.append(integer_part[-3:])
         integer_part = integer_part[:-3]
     return f'R$ {sign}{".".join(reversed(groups))},{decimal_part}'
+
+
+def _format_period_label(start_date: object, end_date: object) -> str:
+    start = _format_date_br(start_date)
+    end = _format_date_br(end_date)
+    if start != '-' and end != '-':
+        return f'{start} ate {end}'
+    if start != '-':
+        return f'A partir de {start}'
+    if end != '-':
+        return f'Ate {end}'
+    return 'Todo o periodo'
+
+
+def _format_date_br(value: object) -> str:
+    if value in (None, ''):
+        return '-'
+    text = str(value).strip()
+    try:
+        parsed = datetime.fromisoformat(text[:10])
+        return parsed.strftime('%d/%m/%Y')
+    except ValueError:
+        return text
 
 
 def _format_quantity(value: object) -> str:

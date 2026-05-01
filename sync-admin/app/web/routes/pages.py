@@ -384,6 +384,28 @@ def _format_brl(value: object) -> str:
 templates.env.filters['brl'] = _format_brl
 
 
+def _format_report_period_label(start_date: object, end_date: object) -> str:
+    start = _format_report_date_br(start_date)
+    end = _format_report_date_br(end_date)
+    if start != '-' and end != '-':
+        return f'{start} ate {end}'
+    if start != '-':
+        return f'A partir de {start}'
+    if end != '-':
+        return f'Ate {end}'
+    return 'Todo o periodo'
+
+
+def _format_report_date_br(value: object) -> str:
+    if value in (None, ''):
+        return '-'
+    text = str(value).strip()
+    try:
+        return datetime.fromisoformat(text[:10]).strftime('%d/%m/%Y')
+    except ValueError:
+        return text
+
+
 _PAYMENT_NUMERIC_FIELDS = (
     'total_records',
     'quantity_sold',
@@ -2810,7 +2832,13 @@ def export_reports_pdf(
         recent_limit=recent_limit,
     )
     headers, rows, totals, title = _report_export_table(payload)
-    pdf_bytes = report_table_to_pdf_bytes(headers, rows, totals, title=title)
+    pdf_bytes = report_table_to_pdf_bytes(
+        headers,
+        rows,
+        totals,
+        title=title,
+        period_label=_format_report_period_label(payload.get('start_date'), payload.get('end_date')),
+    )
     return Response(
         content=pdf_bytes,
         media_type='application/pdf',
@@ -2962,7 +2990,13 @@ def export_client_reports_pdf(
         recent_limit=recent_limit,
     )
     headers, rows, totals, title = _report_export_table(payload)
-    pdf_bytes = report_table_to_pdf_bytes(headers, rows, totals, title=title)
+    pdf_bytes = report_table_to_pdf_bytes(
+        headers,
+        rows,
+        totals,
+        title=title,
+        period_label=_format_report_period_label(payload.get('start_date'), payload.get('end_date')),
+    )
     return Response(
         content=pdf_bytes,
         media_type='application/pdf',
