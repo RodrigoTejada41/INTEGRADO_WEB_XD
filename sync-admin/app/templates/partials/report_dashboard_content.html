@@ -1,6 +1,6 @@
 {% set is_dashboard = report_view == 'dashboard' %}
 {% set selected_view = report_view_config if report_view_config is defined else {'title': 'Dashboard de Relatorios', 'description': ''} %}
-{% set report_query = 'empresa_id=' ~ (selected_empresa_id or '') ~ '&report_view=' ~ report_view ~ '&period_preset=' ~ period_preset ~ '&start_date=' ~ start_date ~ '&end_date=' ~ end_date ~ '&start_time=' ~ start_time ~ '&end_time=' ~ end_time ~ '&branch_code=' ~ branch_code ~ '&terminal_code=' ~ terminal_code ~ '&category=' ~ category ~ '&product=' ~ product ~ '&product_code=' ~ product_code ~ '&family=' ~ family ~ '&payment_method=' ~ payment_method ~ '&card_brand=' ~ card_brand ~ '&operator=' ~ operator ~ '&customer=' ~ customer ~ '&canceled=' ~ canceled ~ '&status_filter=' ~ status_filter ~ '&top_limit=' ~ top_limit ~ '&recent_limit=' ~ recent_limit %}
+{% set report_query = 'empresa_id=' ~ (selected_empresa_id or '') ~ '&report_view=' ~ report_view ~ '&period_preset=' ~ period_preset ~ '&start_date=' ~ start_date ~ '&end_date=' ~ end_date ~ '&start_time=' ~ start_time ~ '&end_time=' ~ end_time ~ '&branch_code=' ~ branch_code ~ '&terminal_code=' ~ terminal_code ~ '&product=' ~ product ~ '&product_code=' ~ product_code ~ '&family=' ~ family ~ '&payment_method=' ~ payment_method ~ '&card_brand=' ~ card_brand ~ '&operator=' ~ operator ~ '&customer=' ~ customer ~ '&canceled=' ~ canceled ~ '&status_filter=' ~ status_filter ~ '&top_limit=' ~ top_limit ~ '&recent_limit=' ~ recent_limit %}
 <section
   class="bi-dashboard bi-dashboard-v2 bi-report-workspace"
   data-dashboard-endpoint="{{ api_endpoints.dashboard if api_endpoints is defined else '' }}"
@@ -270,7 +270,7 @@
         </div>
       </article>
     </section>
-    {% elif report_view in ['payments', 'families', 'categories', 'terminals', 'card_brands', 'operators', 'customers'] %}
+    {% elif report_view in ['payments', 'families', 'terminals', 'card_brands', 'operators', 'customers'] %}
     <section class="bi-detail-grid" data-payment-title="Detalhe por forma de pagamento">
       <article class="card card-outline card-primary bi-panel bi-panel--wide">
         <div class="card-header bi-panel-head"><h3 class="card-title">{{ detail_table_title }}</h3></div>
@@ -289,8 +289,8 @@
     <section class="card card-outline card-primary bi-table-panel">
       <div class="card-header bi-panel-head"><h3 class="card-title">Produtos por faturamento</h3></div>
       <div class="card-body table-responsive p-0">
-        <table class="table align-middle bi-table"><thead><tr><th>Codigo</th><th>Produto</th><th>Familia</th><th>Categoria</th><th>Qtd</th><th>Valor medio</th><th>Bruto</th><th>Desconto</th><th>Total</th></tr></thead><tbody>
-        {% for item in top_items %}<tr><td>{{ item.codigo_produto_local or '-' }}</td><td>{{ item.produto }}</td><td>{{ item.familia_produto or '-' }}</td><td>{{ item.categoria_produto or '-' }}</td><td>{{ item.quantity_sold }}</td><td class="bi-money">{{ item.average_unit_value|brl }}</td><td class="bi-money">{{ item.gross_value|brl }}</td><td class="bi-money">{{ item.discount_value|brl }}</td><td class="bi-money">{{ item.total_sales_value|brl }}</td></tr>{% endfor %}
+        <table class="table align-middle bi-table"><thead><tr><th>Codigo</th><th>Produto</th><th>Familia</th><th>Qtd</th><th>Valor medio</th><th>Bruto</th><th>Desconto</th><th>Total</th></tr></thead><tbody>
+        {% for item in top_items %}<tr><td>{{ item.codigo_produto_local or '-' }}</td><td>{{ item.produto }}</td><td>{{ item.familia_produto or '-' }}</td><td>{{ item.quantity_sold }}</td><td class="bi-money">{{ item.average_unit_value|brl }}</td><td class="bi-money">{{ item.gross_value|brl }}</td><td class="bi-money">{{ item.discount_value|brl }}</td><td class="bi-money">{{ item.total_sales_value|brl }}</td></tr>{% endfor %}
         </tbody></table>
       </div>
     </section>

@@ -78,12 +78,7 @@ REPORT_VIEW_CONFIG = {
     'families': {
         'label': 'Familias',
         'title': 'Relatorio por Familia',
-        'description': 'Totais agrupados por familia e categoria de produto.',
-    },
-    'categories': {
-        'label': 'Categorias',
-        'title': 'Relatorio por Categoria',
-        'description': 'Totais filtrados e agrupados por categoria de produto.',
+        'description': 'Totais agrupados por familia de produto.',
     },
     'terminals': {
         'label': 'Terminais',
@@ -116,7 +111,7 @@ REPORT_ACTIONS = [
     ('daily_revenue', 'today', 'Faturamento do Dia', 'Total, produtos e pagamentos do dia.'),
     ('payments', 'custom', 'Por Pagamento', 'Dinheiro, Pix, cartoes e demais meios.'),
     ('products', 'custom', 'Por Produto', 'Ranking por codigo local e faturamento.'),
-    ('families', 'custom', 'Por Familia', 'Agrupamento por familia e categoria.'),
+    ('families', 'custom', 'Por Familia', 'Agrupamento por familia de produto.'),
     ('operators', 'custom', 'Por Operador', 'Movimento por operador de caixa.'),
     ('customers', 'custom', 'Por Cliente', 'Faturamento por cliente informado.'),
     ('terminals', 'custom', 'Por Terminal', 'PDV, ticket medio e movimento.'),
@@ -126,7 +121,6 @@ REPORT_ACTIONS = [
 REPORT_VIEW_GROUP_BY = {
     'payments': 'forma_pagamento',
     'families': 'familia_produto',
-    'categories': 'categoria_produto',
     'terminals': 'terminal_code',
     'card_brands': 'bandeira_cartao',
     'operators': 'operador',
@@ -136,7 +130,6 @@ REPORT_VIEW_GROUP_BY = {
 REPORT_VIEW_TABLE_TITLES = {
     'payments': 'Detalhe por forma de pagamento',
     'families': 'Totais por familia',
-    'categories': 'Totais por categoria',
     'terminals': 'Totais por terminal',
     'card_brands': 'Totais por bandeira',
     'operators': 'Totais por operador',
@@ -146,7 +139,6 @@ REPORT_VIEW_TABLE_TITLES = {
 REPORT_VIEW_GROUP_LABELS = {
     'payments': 'Forma de pagamento',
     'families': 'Familia',
-    'categories': 'Categoria',
     'terminals': 'Terminal',
     'card_brands': 'Bandeira',
     'operators': 'Operador',
@@ -852,7 +844,6 @@ def _build_filter_chips(
         {'label': 'Horario', 'value': f'{start_time or "00:00"} ate {end_time or "23:59"}'},
         {'label': 'Filial', 'value': branch_code or 'Todas'},
         {'label': 'Terminal', 'value': terminal_code or 'Todos'},
-        {'label': 'Categoria', 'value': category or 'Todas'},
         {'label': 'Produto', 'value': product or product_code or 'Todos'},
         {'label': 'Familia', 'value': family or 'Todas'},
         {'label': 'Pagamento', 'value': payment_method or 'Todos'},
@@ -877,7 +868,6 @@ def _detail_group_items_for_view(report_view: str, **groups: list[dict]) -> list
     return {
         'payments': groups.get('payment_items', []),
         'families': groups.get('family_items', []),
-        'categories': groups.get('category_items', []),
         'terminals': groups.get('terminal_items', []),
         'card_brands': groups.get('card_brand_items', []),
         'operators': groups.get('operator_items', []),
@@ -1281,27 +1271,6 @@ def _build_report_payload(
         end_time=end_time,
         limit=normalized_top_limit,
     )
-    sales_by_category = control.fetch_report_breakdown(
-        empresa_id=empresa_id,
-        group_by='categoria_produto',
-        start_date=start_date,
-        end_date=end_date,
-        branch_code=branch_code,
-        terminal_code=terminal_code,
-        category=category,
-        product=product,
-        product_code=product_code,
-        family=family,
-        payment_method=payment_method,
-        card_brand=card_brand,
-        status_filter=status_filter,
-        canceled=canceled,
-        operator=operator,
-        customer=customer,
-        start_time=start_time,
-        end_time=end_time,
-        limit=100,
-    )
     sales_by_terminal = control.fetch_report_breakdown(
         empresa_id=empresa_id,
         group_by='terminal_code',
@@ -1411,7 +1380,6 @@ def _build_report_payload(
     type_items = list(sales_by_type.get('items', []))
     payment_items = _normalize_payment_breakdown_items(list(sales_by_payment.get('items', [])))
     family_items = list(sales_by_family.get('items', []))
-    category_items = list(sales_by_category.get('items', []))
     terminal_items = list(sales_by_terminal.get('items', []))
     card_brand_items = list(sales_by_card_brand.get('items', []))
     operator_items = list(sales_by_operator.get('items', []))
@@ -1492,7 +1460,6 @@ def _build_report_payload(
         'type_items': type_items,
         'payment_items': payment_items,
         'family_items': family_items,
-        'category_items': category_items,
         'terminal_items': terminal_items,
         'card_brand_items': card_brand_items,
         'operator_items': operator_items,
@@ -1502,7 +1469,6 @@ def _build_report_payload(
             normalized_report_view,
             payment_items=payment_items,
             family_items=family_items,
-            category_items=category_items,
             terminal_items=terminal_items,
             card_brand_items=card_brand_items,
             operator_items=operator_items,
@@ -2408,7 +2374,6 @@ def _product_export_rows(items: list[dict]) -> tuple[list[str], list[dict]]:
         'Codigo Produto',
         'Produto',
         'Familia',
-        'Categoria',
         'Registros',
         'Quantidade total',
         'Valor bruto total',
@@ -2421,7 +2386,6 @@ def _product_export_rows(items: list[dict]) -> tuple[list[str], list[dict]]:
             'Codigo Produto': item.get('codigo_produto_local') or '-',
             'Produto': item.get('produto') or '-',
             'Familia': item.get('familia_produto') or '-',
-            'Categoria': item.get('categoria_produto') or '-',
             'Registros': item.get('total_records', 0),
             'Quantidade total': item.get('quantity_sold', 0),
             'Valor bruto total': item.get('gross_value', 0),
@@ -2447,7 +2411,6 @@ def _sales_export_rows(items: list[dict]) -> tuple[list[str], list[dict]]:
         'Pagamento',
         'Bandeira',
         'Familia',
-        'Categoria',
         'Terminal',
         'Operador',
         'Cliente',
@@ -2465,7 +2428,6 @@ def _sales_export_rows(items: list[dict]) -> tuple[list[str], list[dict]]:
             'Pagamento': item.get('forma_pagamento') or '-',
             'Bandeira': item.get('bandeira_cartao') or '-',
             'Familia': item.get('familia_produto') or '-',
-            'Categoria': item.get('categoria_produto') or '-',
             'Terminal': item.get('terminal_code') or '-',
             'Operador': item.get('operador') or '-',
             'Cliente': item.get('cliente') or '-',
@@ -2484,8 +2446,6 @@ def _report_export_table(payload: dict) -> tuple[list[str], list[dict], dict[str
         headers, rows = _group_export_rows(payload.get('payment_items', []), 'Forma de pagamento')
     elif report_view == 'families':
         headers, rows = _group_export_rows(payload.get('family_items', []), 'Familia')
-    elif report_view == 'categories':
-        headers, rows = _group_export_rows(payload.get('category_items', []), 'Categoria')
     elif report_view == 'terminals':
         headers, rows = _group_export_rows(payload.get('terminal_items', []), 'Terminal')
     elif report_view == 'card_brands':
