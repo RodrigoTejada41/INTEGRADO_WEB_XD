@@ -342,8 +342,9 @@ def test_report_csv_and_excel_are_client_readable() -> None:
 
     assert csv_text.splitlines()[0] == (
         "Data;Codigo Produto;Produto;Quantidade;Valor Bruto;Desconto;Acrescimo;Valor;Pagamento;"
-        "Bandeira;Tipo;Familia;Categoria;Filial;Terminal;Operador;Cliente;Status;Cancelada;Codigo"
+        "Bandeira;Tipo;Familia;Filial;Terminal;Operador;Cliente;Status;Cancelada;Codigo"
     )
+    assert "Categoria" not in csv_text.splitlines()[0]
     assert "789001" in csv_text
     assert "Teste Integracao Real Atualizado" in csv_text
     assert "campo_extra" not in csv_text

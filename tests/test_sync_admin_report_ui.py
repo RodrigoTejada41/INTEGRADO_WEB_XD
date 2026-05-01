@@ -134,6 +134,9 @@ def test_report_filters_and_group_column_are_simplified() -> None:
 
     assert "name=\"category\"" not in template
     assert "name=\"card_brand\"" not in template
+    assert "Categoria" not in template
+    assert "categoria_produto" not in template
+    assert "categories" not in template
     assert "<th>Grupo</th>" not in template
     assert "<th>{{ detail_group_label }}</th>" in template
     assert pages.REPORT_VIEW_GROUP_LABELS["families"] == "Familia"
