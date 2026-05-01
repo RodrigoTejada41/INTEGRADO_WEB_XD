@@ -103,6 +103,42 @@ Data de atualizacao: 2026-05-01
    - somente `pythonw.exe` para `agent_local.tray_app`
    - somente `pythonw.exe` para `agent_local.main`
 
+### Hotfix API local no Windows - 2026-05-01
+- Problema reportado:
+  - API Sync local nao subia junto com o Windows.
+- Correcao aplicada:
+  - criado `agent_local/local_api.py`;
+  - criado `agent_local/windows_autostart.py`;
+  - instalador cria `Abrir_API_Local.vbs`;
+  - instalador cria `Iniciar_MoviSync_Windows.vbs`;
+  - instalador cria `MoviSync AutoStart.lnk` na pasta Startup do usuario.
+- API local:
+  - `GET http://127.0.0.1:8765/health`;
+  - `GET http://127.0.0.1:8765/status`;
+  - `POST http://127.0.0.1:8765/sync/start`;
+  - `POST http://127.0.0.1:8765/sync/stop`;
+  - `POST http://127.0.0.1:8765/sync/restart`.
+- Seguranca:
+  - API escuta somente em `127.0.0.1`;
+  - comandos POST usam `X-Local-Token` quando existe `agent_local/data/local_api_token.txt`.
+- Atualizacao aplicada no instalado:
+  - `C:\MoviSyncAgent\agent_local\local_api.py`;
+  - `C:\MoviSyncAgent\agent_local\windows_autostart.py`;
+  - `C:\MoviSyncAgent\Abrir_API_Local.vbs`;
+  - `C:\MoviSyncAgent\Iniciar_MoviSync_Windows.vbs`;
+  - `C:\Users\Rodrigo Tejada\AppData\Roaming\Microsoft\Windows\Start Menu\Programs\Startup\MoviSync AutoStart.lnk`.
+- Dependencias instaladas no venv real:
+  - `fastapi==0.115.12`;
+  - `uvicorn==0.30.6`.
+- Validacao real:
+  - `curl http://127.0.0.1:8765/health` -> `{"status":"ok"}`;
+  - `curl http://127.0.0.1:8765/status` -> `sync_running=true`;
+  - processos `agent_local.local_api`, `agent_local.tray_app` e `agent_local.main` ativos.
+- Instalador renovado:
+  - `release-artifacts/MoviSyncAgent_Installer_v2026-05-01_tray.zip`;
+  - tamanho `130754` bytes;
+  - data local `2026-05-01 16:10:56`.
+
 ## Checkpoint status do agente local em relatorios - 2026-04-30
 
 ### Problema operacional

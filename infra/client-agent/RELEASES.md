@@ -39,6 +39,11 @@
 - Hotfix adicional:
   - menu do icone abre Painel Local via `.vbs`;
   - iniciar sincronizacao pelo icone usa `pythonw.exe`.
+- Hotfix autostart:
+  - cria `MoviSync AutoStart.lnk` na inicializacao do Windows;
+  - sobe API local em `http://127.0.0.1:8765`;
+  - sobe tray e sync junto com o login do Windows;
+  - evita processos duplicados por verificacao de command line.
 - ZIP de entrega:
   - `release-artifacts/MoviSyncAgent_Installer_v2026-05-01_tray.zip`
 - Validacao:
