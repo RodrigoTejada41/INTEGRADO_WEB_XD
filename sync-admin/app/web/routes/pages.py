@@ -1,6 +1,7 @@
 ﻿from __future__ import annotations
 
 from datetime import UTC, date, datetime, timedelta
+from decimal import Decimal, InvalidOperation
 import json
 from math import ceil
 from pathlib import Path
@@ -361,6 +362,26 @@ def _format_signed(value: float, decimals: int = 2) -> str:
 
 def _format_decimal(value: float, decimals: int = 2) -> str:
     return f'{value:.{decimals}f}'
+
+
+def _format_brl(value: object) -> str:
+    if isinstance(value, str) and value.strip().startswith('R$'):
+        return value.strip()
+    try:
+        number = Decimal(str(value or '0'))
+    except (InvalidOperation, ValueError):
+        number = Decimal('0')
+    sign = '-' if number < 0 else ''
+    number = abs(number).quantize(Decimal('0.01'))
+    integer_part, decimal_part = f'{number:.2f}'.split('.')
+    groups: list[str] = []
+    while integer_part:
+        groups.append(integer_part[-3:])
+        integer_part = integer_part[:-3]
+    return f'R$ {sign}{".".join(reversed(groups))},{decimal_part}'
+
+
+templates.env.filters['brl'] = _format_brl
 
 
 _PAYMENT_NUMERIC_FIELDS = (
@@ -916,19 +937,19 @@ def _build_report_highlights(
     return [
         {
             'label': 'Ticket medio',
-            'value': _format_decimal(average_ticket),
+            'value': _format_brl(average_ticket),
             'hint': 'Valor medio por registro no periodo filtrado.',
         },
         {
             'label': 'Media diaria',
-            'value': _format_decimal(average_daily_sales),
+            'value': _format_brl(average_daily_sales),
             'hint': f'{active_days} dia(s) com movimentacao capturada.',
         },
         {
             'label': 'Melhor dia',
             'value': best_day.get('day', '-') if best_day else '-',
             'hint': (
-                f"Valor {_format_decimal(_safe_float(best_day.get('total_sales_value')))}"
+                f"Valor {_format_brl(best_day.get('total_sales_value'))}"
                 if best_day
                 else 'Sem serie diaria para o filtro atual.'
             ),
@@ -1010,7 +1031,7 @@ def _build_kpi_cards(
             'key': 'total_sales',
             'icon': 'R$',
             'label': 'Faturamento total',
-            'value': _format_decimal(total_sales),
+            'value': _format_brl(total_sales),
             'hint': 'Receita liquida do periodo filtrado.',
             'tone': 'success',
         },
@@ -1026,7 +1047,7 @@ def _build_kpi_cards(
             'key': 'average_ticket',
             'icon': 'TM',
             'label': 'Ticket medio',
-            'value': _format_decimal(average_ticket),
+            'value': _format_brl(average_ticket),
             'hint': 'Media de faturamento por venda.',
             'tone': 'info',
         },
