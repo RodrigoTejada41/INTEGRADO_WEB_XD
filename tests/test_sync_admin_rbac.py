@@ -233,6 +233,7 @@ def test_report_pdf_is_structured_and_readable() -> None:
     assert b"Resumo financeiro de produtos" in pdf
     assert b"Total por forma de pagamento" in pdf
     assert b"Resumo financeiro de pagamentos" in pdf
+    assert b"25/02/2025 ate 28/04/2026" in pdf
     assert b"R$ 99,90" in pdf
     assert b"R$ 110,00" in pdf
     assert b"R$ 10,10" in pdf
@@ -425,9 +426,16 @@ def test_selected_report_export_keeps_only_filtered_result_table() -> None:
     assert "PIX" in sheet
     assert "TOTAL GERAL" in sheet
 
-    pdf = report_table_to_pdf_bytes(headers, rows, totals, title="Relatorio por Forma de Pagamento")
+    pdf = report_table_to_pdf_bytes(
+        headers,
+        rows,
+        totals,
+        title="Relatorio por Forma de Pagamento",
+        period_label="01/02/2025 ate 10/12/2025",
+    )
     assert pdf.startswith(b"%PDF-1.4")
     assert b"Relatorio por Forma de Pagamento" in pdf
+    assert b"Periodo do relatorio: 01/02/2025 ate 10/12/2025" in pdf
     assert b"PIX" in pdf
     assert b"Total geral" in pdf
 

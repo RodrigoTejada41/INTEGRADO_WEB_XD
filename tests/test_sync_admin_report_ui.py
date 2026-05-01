@@ -107,6 +107,7 @@ def test_report_values_are_formatted_as_brl_currency() -> None:
     assert pages._format_brl("1000") == "R$ 1.000,00"
     assert pages._format_brl("1234.5") == "R$ 1.234,50"
     assert pages._format_brl("-10.1") == "R$ -10,10"
+    assert pages._format_report_period_label("2025-02-01", "2025-12-10") == "01/02/2025 ate 10/12/2025"
 
 
 def test_report_template_uses_clear_filter_placeholders_and_currency_filter() -> None:
