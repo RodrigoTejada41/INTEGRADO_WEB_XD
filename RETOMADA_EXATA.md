@@ -1,6 +1,151 @@
 # RETOMADA EXATA - INTEGRADO_WEB_XD
 
-Data de atualizacao: 2026-05-01
+Data de atualizacao: 2026-05-02
+
+## Checkpoint relatorios por periodo e reprocessamento pendente - 2026-05-02
+
+### Estado atual validado
+- Branch local atual:
+  - `main`
+- Git local:
+  - limpo no final da sessao.
+- Producao:
+  - ultimo deploy validado com sucesso.
+  - `https://movisystecnologia.com.br/healthz` -> `ok`
+  - `https://movisystecnologia.com.br/admin/api/health/ready` -> `ready`
+- Agente instalado:
+  - caminho real: `C:\MoviSyncAgent`
+  - API local ativa em `http://127.0.0.1:8765/status`
+  - status validado apos religar:
+    - `sync_running=true`
+    - processos `agent_local.main` ativos como `pythonw.exe`
+    - tray ativo como `pythonw.exe`
+- Nao ficou processo extra de reprocessamento rodando.
+
+### Problema reportado
+- Ao selecionar periodos pre-definidos (`Hoje`, `Mes`, `Semestre`, `Ano`), os relatorios ainda pareciam puxar tudo.
+- O problema aparecia tanto nos cards de total/faturamento quanto no detalhe agrupado, por exemplo `Forma de pagamento`.
+- Na tela, o preset `Semestre` aparecia selecionado, mas o total exibido continuava muito alto.
+
+### Diagnostico tecnico
+- Primeiro problema encontrado:
+  - `start_date` e `end_date` antigos continuavam sendo enviados pelo formulario;
+  - o backend priorizava essas datas antigas e ignorava o preset.
+- Correcao feita no PR `#53`:
+  - `Hoje`, `Mes`, `Semestre`, `Ano` agora prevalecem sobre datas manuais;
+  - datas manuais so valem quando `period_preset=custom`;
+  - frontend limpa/desabilita datas quando o periodo selecionado nao e `Personalizado`;
+  - ao editar data manual, o preset volta para `Personalizado`.
+- Segundo problema encontrado:
+  - a query do agente local estava usando `CreationDate` como `data` do relatorio;
+  - na base XD real, isso pode colocar muitas vendas antigas dentro do mesmo periodo, fazendo parecer que o filtro por periodo nao funciona;
+  - o filtro SQL central ja usa `Venda.data`, entao o problema era a data gravada em `Venda.data`, nao o WHERE dos relatorios.
+- Correcao feita no PR `#54`:
+  - `agent_local/db/xd_sales_mapper.py` passou a usar `CloseDate` como data da venda nos relatorios;
+  - fallback permanece em `CreationDate`;
+  - `data_atualizacao` continua usando `CloseDate` com fallback em `CreationDate`.
+
+### PRs recentes desta etapa
+- PR `#49`:
+  - `Show report growth value in KPI`
+  - KPI crescimento deixou de mostrar apenas `Novo`.
+- PR `#50`:
+  - `Show report growth amount and percent`
+  - Crescimento passou a mostrar valor e percentual.
+  - Cor de `Nao informado` no grafico circular passou a preto.
+- PR `#51`:
+  - `Fix report drilldown selection`
+  - Clique em produto/familia/pagamento/terminal passou a aplicar filtro real.
+- PR `#52`:
+  - `Show daily revenue KPI summary`
+  - Aba `Faturamento do Dia` passou a mostrar faturamento total, total de vendas e crescimento.
+  - API de KPIs passou a devolver tambem `kpi_cards`.
+- PR `#53`:
+  - `Fix report period preset filters`
+  - Presets de periodo passaram a prevalecer sobre datas antigas.
+- PR `#54`:
+  - `Use sale close date for report periods`
+  - Agente passou a gravar data de relatorio usando `CloseDate`.
+
+### Validacoes executadas nesta etapa
+- Para PR `#53`:
+  - `py -3 -m pytest tests\test_sync_admin_report_ui.py -q` -> `8 passed`
+  - `py -3 -m pytest tests\test_sync_admin_rbac.py::test_report_period_is_limited_to_fourteen_months tests\test_sync_admin_rbac.py::test_report_period_presets_override_manual_dates -q` -> `2 passed`
+  - `py -3 -m compileall sync-admin\app -q` -> sem erro
+- Para PR `#54`:
+  - `py -3 -m pytest tests\test_agent_local_sales_mapping.py -q` -> `6 passed`
+  - `py -3 -m pytest tests\test_sync_upsert.py -q` -> `5 passed`
+  - `py -3 -m pytest tests\test_sync_admin_report_ui.py tests\test_sync_admin_rbac.py::test_report_period_presets_override_manual_dates -q` -> `9 passed`
+  - `py -3 -m compileall agent_local backend sync-admin\app -q` -> sem erro
+
+### Alteracao aplicada no cliente instalado
+- Arquivo copiado manualmente do workspace para o agente instalado:
+  - origem: `E:\Projetos\INTEGRADO_WEB_XD\agent_local\db\xd_sales_mapper.py`
+  - destino: `C:\MoviSyncAgent\agent_local\db\xd_sales_mapper.py`
+- Sync local foi religado com:
+  - `C:\MoviSyncAgent\.venv\Scripts\python.exe -c "from agent_local.tray_app import start_agent; print(start_agent())"`
+- Estado final validado:
+  - `curl.exe -sS http://127.0.0.1:8765/status`
+  - retorno esperado:
+    - `sync_running=true`
+
+### Reprocessamento antigo ficou incompleto
+- Foi iniciado reprocessamento para reenviar vendas antigas com a data corrigida.
+- Passos executados:
+  - processos `agent_local.main` do instalado foram parados;
+  - checkpoint local do workspace foi resetado:
+    - `py -3 -m agent_local.sync.reset_checkpoint --since 1970-01-01T00:00:00+00:00 --confirm`
+  - o reprocessamento com `py -3 -m agent_local.sync.run_once` foi iniciado em loop.
+- O usuario interrompeu a execucao antes de terminar.
+- Resultado:
+  - reprocessamento ficou parcial;
+  - checkpoint chegou a:
+    - `12345678000199:vendas = 2025-10-19T13:00:17+00:00`
+  - processo extra foi parado depois;
+  - sync normal foi religado.
+- O arquivo `agent_local/data/checkpoints.json` do workspace foi restaurado no git para nao deixar sujeira local.
+
+### Ponto exato para continuar depois
+1. Confirmar estado atual:
+   ```powershell
+   curl.exe -sS http://127.0.0.1:8765/status
+   git status --short --branch
+   ```
+2. Se for corrigir os dados historicos ja enviados, parar o sync normal do instalado antes:
+   ```powershell
+   Get-CimInstance Win32_Process |
+     Where-Object { $_.Name -in @('python.exe','pythonw.exe') -and $_.CommandLine -like '*C:\MoviSyncAgent*' -and $_.CommandLine -like '*agent_local.main*' } |
+     ForEach-Object { Stop-Process -Id $_.ProcessId -Force }
+   ```
+3. Resetar checkpoint no ambiente correto.
+   - Se for usar o workspace:
+     ```powershell
+     py -3 -m agent_local.sync.reset_checkpoint --since 1970-01-01T00:00:00+00:00 --confirm
+     ```
+   - Se for usar o instalado, rodar em `C:\MoviSyncAgent` com a venv do instalado.
+4. Reprocessar ate `processed_count=0`.
+   - Nao interromper no meio.
+   - Rodar lotes repetidos de:
+     ```powershell
+     py -3 -m agent_local.sync.run_once
+     ```
+5. Depois religar sync normal:
+   ```powershell
+   C:\MoviSyncAgent\.venv\Scripts\python.exe -c "from agent_local.tray_app import start_agent; print(start_agent())"
+   ```
+6. Validar relatorios:
+   - `Hoje`
+   - `Mes`
+   - `Semestre`
+   - `Ano`
+   - detalhes por forma de pagamento
+   - faturamento total
+   - PDF/Excel/CSV com o mesmo periodo.
+
+### Observacao importante
+- PR `#54` corrige os proximos envios.
+- Para os relatorios historicos ficarem certos, os registros antigos no servidor precisam ser reenviados com a nova data.
+- Sem reprocessamento completo, parte dos dados antigos pode continuar aparecendo fora do periodo esperado.
 
 ## Checkpoint data de criacao das vendas no agente local - 2026-05-01
 
