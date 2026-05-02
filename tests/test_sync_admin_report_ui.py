@@ -158,6 +158,7 @@ def test_report_template_uses_clear_filter_placeholders_and_currency_filter() ->
         encoding="utf-8"
     )
     script = Path("sync-admin/app/static/js/reports.js").read_text(encoding="utf-8")
+    pages = Path("sync-admin/app/web/routes/pages.py").read_text(encoding="utf-8")
 
     assert 'placeholder="Nome do produto"' in template
     assert 'placeholder="Codigo local do produto"' in template
@@ -172,6 +173,10 @@ def test_report_template_uses_clear_filter_placeholders_and_currency_filter() ->
     assert 'data-drill-param="family"' in template
     assert 'data-drill-param="payment_method"' in template
     assert 'data-drill-param="terminal_code"' in template
+    assert "bi-daily-summary" in template
+    assert "card.key in ['total_sales', 'total_records', 'growth']" in template
+    assert "bi-daily-summary" in Path("sync-admin/app/static/css/app.css").read_text(encoding="utf-8")
+    assert "'kpi_cards': payload['kpi_cards']" in pages
 
 
 def test_report_filters_and_group_column_are_simplified() -> None:

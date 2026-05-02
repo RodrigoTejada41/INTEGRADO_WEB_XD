@@ -2618,7 +2618,11 @@ def api_reports_kpis(
         status_filter=status_filter,
         report_type=report_type,
     )
-    return {'items': payload['kpi_cards'], 'sync_status': payload['sync_status']}
+    return {
+        'items': payload['kpi_cards'],
+        'kpi_cards': payload['kpi_cards'],
+        'sync_status': payload['sync_status'],
+    }
 
 
 @router.get('/reports/api/charts')

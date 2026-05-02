@@ -239,6 +239,15 @@
     </div>
 
     {% if report_view == 'daily_revenue' %}
+    <section class="bi-daily-summary" aria-label="Resumo do faturamento do dia">
+      {% for card in kpi_cards if card.key in ['total_sales', 'total_records', 'growth'] %}
+      <article class="bi-daily-summary-card bi-daily-summary-card--{{ card.tone }}">
+        <span>{{ card.label }}</span>
+        <strong>{{ card.value }}</strong>
+        <small>{{ card.hint }}</small>
+      </article>
+      {% endfor %}
+    </section>
     <section class="bi-detail-grid">
       <article class="card card-primary card-outline bi-panel bi-panel--wide">
         <div class="card-header bi-panel-head"><h3 class="card-title">Produtos vendidos agrupados</h3></div>
