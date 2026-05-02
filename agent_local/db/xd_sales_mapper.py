@@ -142,7 +142,7 @@ def build_xd_salesdocuments_query(
                     :empresa_id AS empresa_id,
                     COALESCE(v.ItemDescription, 'SEM_DESCRICAO') AS produto,
                     COALESCE(v.TotalAmount, 0) AS valor,
-                    DATE(COALESCE(v.CreationDate, v.CloseDate)) AS data,
+                    DATE(COALESCE(v.CloseDate, v.CreationDate)) AS data,
                     COALESCE(v.CloseDate, v.CreationDate) AS data_atualizacao,
                     {optional_sql}
                 FROM salesdocumentsreportview v
@@ -166,12 +166,12 @@ def build_xd_documents_query(*, tables: set[str], table_columns: Mapping[str, se
     if missing:
         raise RuntimeError(f"Documentsbodys/Documentsheaders sem colunas obrigatorias: {', '.join(sorted(missing))}")
 
-    body_created_date = _coalesce_columns("b", ("CreationDate", "CloseDate", "TaxPointDate"), body_columns)
-    header_created_date = _coalesce_columns("h", ("CreationDate", "CloseDate", "TaxPointDate"), header_columns)
-    sale_date = body_created_date if body_created_date != "NULL" else header_created_date
     body_update_date = _coalesce_columns("b", ("CloseDate", "CreationDate", "TaxPointDate"), body_columns)
     header_update_date = _coalesce_columns("h", ("CloseDate", "CreationDate", "TaxPointDate"), header_columns)
     update_date = body_update_date if body_update_date != "NULL" else header_update_date
+    body_sale_date = _coalesce_columns("b", ("CloseDate", "CreationDate", "TaxPointDate"), body_columns)
+    header_sale_date = _coalesce_columns("h", ("CloseDate", "CreationDate", "TaxPointDate"), header_columns)
+    sale_date = body_sale_date if body_sale_date != "NULL" else header_sale_date
     if sale_date == "NULL" or update_date == "NULL":
         raise RuntimeError("Documentsbodys/Documentsheaders sem coluna de data utilizavel.")
 
