@@ -178,20 +178,8 @@ def _parse_date(value: str | None) -> date | None:
 
 
 def _resolve_report_period(period_preset: str | None, start_date: str | None, end_date: str | None) -> tuple[str | None, str | None, str]:
-    if start_date or end_date:
-        start = _parse_date(start_date)
-        end = _parse_date(end_date) or date.today()
-        if start is None:
-            start = end - timedelta(days=MAX_REPORT_WINDOW_DAYS)
-        if end < start:
-            start, end = end, start
-        min_start = end - timedelta(days=MAX_REPORT_WINDOW_DAYS)
-        if start < min_start:
-            start = min_start
-        return start.isoformat(), end.isoformat(), period_preset or "custom"
-
     today = date.today()
-    preset = period_preset or ""
+    preset = period_preset or "custom"
     if preset == "today":
         return today.isoformat(), today.isoformat(), preset
     if preset == "month":
@@ -204,6 +192,18 @@ def _resolve_report_period(period_preset: str | None, start_date: str | None, en
         return today.replace(month=semester_month, day=1).isoformat(), today.isoformat(), preset
     if preset == "year":
         return today.replace(month=1, day=1).isoformat(), today.isoformat(), preset
+
+    if start_date or end_date:
+        start = _parse_date(start_date)
+        end = _parse_date(end_date) or date.today()
+        if start is None:
+            start = end - timedelta(days=MAX_REPORT_WINDOW_DAYS)
+        if end < start:
+            start, end = end, start
+        min_start = end - timedelta(days=MAX_REPORT_WINDOW_DAYS)
+        if start < min_start:
+            start = min_start
+        return start.isoformat(), end.isoformat(), "custom"
     return (today - timedelta(days=MAX_REPORT_WINDOW_DAYS)).isoformat(), today.isoformat(), "custom"
 
 

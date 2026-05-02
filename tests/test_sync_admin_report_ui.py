@@ -169,6 +169,9 @@ def test_report_template_uses_clear_filter_placeholders_and_currency_filter() ->
     assert "nao informado') return '#000000'" in script
     assert "navigateReportFilter" in script
     assert "reportUrlWithFilter" in script
+    assert "syncPeriodFields" in script
+    assert "form.requestSubmit()" in script
+    assert "input.disabled = !isCustom" in script
     assert 'data-drill-view="products"' in template
     assert 'data-drill-param="family"' in template
     assert 'data-drill-param="payment_method"' in template

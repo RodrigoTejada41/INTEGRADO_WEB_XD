@@ -203,6 +203,18 @@
     window.location.href = reportUrlWithFilter(param, value, view);
   }
 
+  function syncPeriodFields(form) {
+    const preset = form.querySelector('[name="period_preset"]');
+    const start = form.querySelector('[name="start_date"]');
+    const end = form.querySelector('[name="end_date"]');
+    const isCustom = !preset || preset.value === 'custom';
+    [start, end].forEach(input => {
+      if (!input) return;
+      input.disabled = !isCustom;
+      if (!isCustom) input.value = '';
+    });
+  }
+
   function setupTableTools() {
     const table = document.querySelector('[data-report-table]');
     const search = document.querySelector('[data-table-search]');
@@ -274,8 +286,21 @@
 
   function setupAjaxFilters() {
     document.querySelectorAll('[data-report-filters]').forEach(form => {
+      syncPeriodFields(form);
+      form.querySelector('[name="period_preset"]')?.addEventListener('change', () => {
+        syncPeriodFields(form);
+        form.requestSubmit();
+      });
+      form.querySelectorAll('[name="start_date"], [name="end_date"]').forEach(input => {
+        input.addEventListener('change', () => {
+          const preset = form.querySelector('[name="period_preset"]');
+          if (preset) preset.value = 'custom';
+          syncPeriodFields(form);
+        });
+      });
       form.addEventListener('submit', event => {
         event.preventDefault();
+        syncPeriodFields(form);
         const url = `${form.action || window.location.pathname}?${new URLSearchParams(new FormData(form)).toString()}`;
         replaceDashboardFrom(url);
       });

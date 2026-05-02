@@ -171,6 +171,22 @@ def test_report_period_is_limited_to_fourteen_months() -> None:
     assert start_date == "2025-02-25"
 
 
+def test_report_period_presets_override_manual_dates() -> None:
+    _ensure_sync_admin_path()
+
+    from app.web.routes import pages
+
+    start_date, end_date, preset = pages._resolve_report_period(
+        "month",
+        "2026-01-01",
+        "2026-01-31",
+    )
+
+    assert preset == "month"
+    assert start_date.endswith("-01")
+    assert end_date != "2026-01-31"
+
+
 def test_report_pdf_is_structured_and_readable() -> None:
     _ensure_sync_admin_path()
 
