@@ -95,8 +95,8 @@ def test_kpi_cards_show_growth_value_when_previous_period_has_no_revenue() -> No
     )
     card_by_key = {card["key"]: card for card in cards}
 
-    assert card_by_key["growth"]["value"] == "+R$ 100,00"
-    assert "periodo anterior sem faturamento" in card_by_key["growth"]["hint"]
+    assert card_by_key["growth"]["value"] == "+R$ 100,00 (+100.0%)"
+    assert "percentual exibido como crescimento total" in card_by_key["growth"]["hint"]
     assert card_by_key["growth"]["tone"] == "success"
 
 
@@ -116,8 +116,8 @@ def test_kpi_cards_show_growth_percent_and_value_against_previous_period() -> No
     )
     card_by_key = {card["key"]: card for card in cards}
 
-    assert card_by_key["growth"]["value"] == "+25.0%"
-    assert "+R$ 20,00" in card_by_key["growth"]["hint"]
+    assert card_by_key["growth"]["value"] == "+R$ 20,00 (+25.0%)"
+    assert "Valor e percentual" in card_by_key["growth"]["hint"]
     assert card_by_key["growth"]["tone"] == "success"
 
 
@@ -137,8 +137,8 @@ def test_kpi_cards_show_negative_growth_against_previous_period() -> None:
     )
     card_by_key = {card["key"]: card for card in cards}
 
-    assert card_by_key["growth"]["value"] == "-20.0%"
-    assert "-R$ 20,00" in card_by_key["growth"]["hint"]
+    assert card_by_key["growth"]["value"] == "-R$ 20,00 (-20.0%)"
+    assert "Valor e percentual" in card_by_key["growth"]["hint"]
     assert card_by_key["growth"]["tone"] == "error"
 
 
@@ -164,6 +164,8 @@ def test_report_template_uses_clear_filter_placeholders_and_currency_filter() ->
     assert "{{ item.valor|brl }}" in template
     assert "{{ item.total_sales_value|brl }}" in template
     assert "parseLocalizedNumber" in script
+    assert "normalizeChartLabel" in script
+    assert "nao informado') return '#000000'" in script
 
 
 def test_report_filters_and_group_column_are_simplified() -> None:

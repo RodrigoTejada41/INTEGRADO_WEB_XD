@@ -23,6 +23,21 @@
     return Number(normalized) || 0;
   }
 
+  function normalizeChartLabel(value) {
+    return String(value || '')
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .trim()
+      .toLowerCase();
+  }
+
+  function circularColors(labels) {
+    return labels.map((label, index) => {
+      if (normalizeChartLabel(label) === 'nao informado') return '#000000';
+      return palette[index % palette.length];
+    });
+  }
+
   function chartConfig(canvas, type, color) {
     const labels = parseJson(canvas.dataset.labels);
     const values = parseJson(canvas.dataset.values);
@@ -36,7 +51,7 @@
           label: canvas.dataset.label || 'Valor de vendas',
           data: values,
           borderColor: isCircular ? '#ffffff' : color,
-          backgroundColor: isCircular ? palette : `${color}24`,
+          backgroundColor: isCircular ? circularColors(labels) : `${color}24`,
           borderWidth: isCircular ? 3 : 2,
           borderRadius: type === 'bar' ? 10 : 0,
           fill: type === 'line',
