@@ -186,7 +186,7 @@
           </div>
         </div>
         <div class="card-body chart-md">
-          <canvas id="reportPaymentChart" data-labels='{{ payment_chart_labels|safe }}' data-values='{{ payment_chart_values|safe }}' data-legend-limit="8"></canvas>
+          <canvas id="reportPaymentChart" data-labels='{{ payment_chart_labels|safe }}' data-values='{{ payment_chart_values|safe }}' data-legend-limit="8" data-drill-view="payments" data-drill-param="payment_method"></canvas>
         </div>
       </article>
     </section>
@@ -200,7 +200,7 @@
         </div>
         <div class="card-body bi-ranking-list">
           {% for item in top_items[:5] %}
-          <a class="bi-ranking-item" href="{{ report_root_path }}?{{ report_query }}&report_view=products&product_code={{ item.codigo_produto_local or '' }}">
+          <a class="bi-ranking-item" href="#" data-drill-view="products" data-drill-param="{% if item.codigo_produto_local %}product_code{% else %}product{% endif %}" data-drill-value="{{ item.codigo_produto_local or item.produto }}">
             <span>{{ loop.index }}</span>
             <strong>{{ item.produto }}</strong>
             <em class="bi-money">{{ item.total_sales_value|brl }}</em>
@@ -257,7 +257,7 @@
         <div class="card-header bi-panel-head"><h3 class="card-title">Total por forma de pagamento</h3></div>
         <div class="card-body bi-ranking-list">
           {% for item in payment_items %}
-          <div class="bi-ranking-item"><span>{{ loop.index }}</span><strong>{{ item.label }}</strong><em class="bi-money">{{ item.total_sales_value|brl }}</em></div>
+          <a class="bi-ranking-item" href="#" data-drill-view="payments" data-drill-param="payment_method" data-drill-value="{{ item.label }}"><span>{{ loop.index }}</span><strong>{{ item.label }}</strong><em class="bi-money">{{ item.total_sales_value|brl }}</em></a>
           {% endfor %}
         </div>
       </article>
@@ -265,7 +265,7 @@
         <div class="card-header bi-panel-head"><h3 class="card-title">Total por familia</h3></div>
         <div class="card-body bi-ranking-list">
           {% for item in family_items %}
-          <div class="bi-ranking-item"><span>{{ loop.index }}</span><strong>{{ item.label }}</strong><em class="bi-money">{{ item.total_sales_value|brl }}</em></div>
+          <a class="bi-ranking-item" href="#" data-drill-view="families" data-drill-param="family" data-drill-value="{{ item.label }}"><span>{{ loop.index }}</span><strong>{{ item.label }}</strong><em class="bi-money">{{ item.total_sales_value|brl }}</em></a>
           {% endfor %}
         </div>
       </article>
@@ -298,7 +298,7 @@
     <section class="bi-detail-grid">
       <article class="card card-danger card-outline bi-panel">
         <div class="card-header bi-panel-head"><h3 class="card-title">Grafico por familia</h3></div>
-        <div class="card-body chart-md"><canvas id="reportFamilyChart" data-labels='{{ family_chart_labels|safe }}' data-values='{{ family_chart_values|safe }}'></canvas></div>
+        <div class="card-body chart-md"><canvas id="reportFamilyChart" data-labels='{{ family_chart_labels|safe }}' data-values='{{ family_chart_values|safe }}' data-drill-view="families" data-drill-param="family"></canvas></div>
       </article>
       <article class="card card-outline card-primary bi-panel bi-panel--wide">
         <div class="card-header bi-panel-head"><h3 class="card-title">Totais por familia</h3></div>
@@ -311,7 +311,7 @@
     <section class="bi-detail-grid">
       <article class="card card-secondary card-outline bi-panel">
         <div class="card-header bi-panel-head"><h3 class="card-title">Grafico por terminal</h3></div>
-        <div class="card-body chart-md"><canvas id="reportTerminalChart" data-labels='{{ terminal_chart_labels|safe }}' data-values='{{ terminal_chart_values|safe }}'></canvas></div>
+        <div class="card-body chart-md"><canvas id="reportTerminalChart" data-labels='{{ terminal_chart_labels|safe }}' data-values='{{ terminal_chart_values|safe }}' data-drill-view="terminals" data-drill-param="terminal_code"></canvas></div>
       </article>
       <article class="card card-outline card-primary bi-panel bi-panel--wide">
         <div class="card-header bi-panel-head"><h3 class="card-title">Totais por terminal</h3></div>

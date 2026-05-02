@@ -166,6 +166,12 @@ def test_report_template_uses_clear_filter_placeholders_and_currency_filter() ->
     assert "parseLocalizedNumber" in script
     assert "normalizeChartLabel" in script
     assert "nao informado') return '#000000'" in script
+    assert "navigateReportFilter" in script
+    assert "reportUrlWithFilter" in script
+    assert 'data-drill-view="products"' in template
+    assert 'data-drill-param="family"' in template
+    assert 'data-drill-param="payment_method"' in template
+    assert 'data-drill-param="terminal_code"' in template
 
 
 def test_report_filters_and_group_column_are_simplified() -> None:

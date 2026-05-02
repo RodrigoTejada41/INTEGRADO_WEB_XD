@@ -89,6 +89,10 @@
         onClick(_event, elements, chart) {
           if (!elements.length) return;
           const label = chart.data.labels[elements[0].index];
+          if (canvas.dataset.drillParam) {
+            navigateReportFilter(canvas.dataset.drillParam, label, canvas.dataset.drillView);
+            return;
+          }
           applyTableSearch(label);
         },
       },
@@ -183,6 +187,22 @@
     search.dispatchEvent(new Event('input'));
   }
 
+  function reportUrlWithFilter(param, value, view) {
+    const form = document.querySelector('[data-report-filters]');
+    const params = form
+      ? new URLSearchParams(new FormData(form))
+      : new URLSearchParams(window.location.search);
+    if (view) params.set('report_view', view);
+    if (param && value) params.set(param, value);
+    const action = form?.action || window.location.pathname;
+    return `${action}?${params.toString()}`;
+  }
+
+  function navigateReportFilter(param, value, view) {
+    if (!param || !value) return;
+    window.location.href = reportUrlWithFilter(param, value, view);
+  }
+
   function setupTableTools() {
     const table = document.querySelector('[data-report-table]');
     const search = document.querySelector('[data-table-search]');
@@ -222,6 +242,12 @@
   function setupDrilldown() {
     document.querySelectorAll('[data-drilldown]').forEach(button => {
       button.addEventListener('click', () => applyTableSearch(button.dataset.drilldown));
+    });
+    document.querySelectorAll('[data-drill-param][data-drill-value]').forEach(element => {
+      element.addEventListener('click', event => {
+        event.preventDefault();
+        navigateReportFilter(element.dataset.drillParam, element.dataset.drillValue, element.dataset.drillView);
+      });
     });
   }
 
