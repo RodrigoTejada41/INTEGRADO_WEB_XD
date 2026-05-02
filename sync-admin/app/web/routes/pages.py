@@ -1041,16 +1041,16 @@ def _build_kpi_cards(
         growth_hint = 'Filtro sem periodo anterior valido para comparacao.'
         growth_tone = 'neutral'
     elif growth_pct is None and total_sales > 0 and previous_total == 0:
-        growth_value = _format_brl_delta(growth_amount)
-        growth_hint = 'Crescimento no periodo; periodo anterior sem faturamento.'
+        growth_value = f'{_format_brl_delta(growth_amount)} (+100.0%)'
+        growth_hint = 'Periodo anterior sem faturamento; percentual exibido como crescimento total do periodo.'
         growth_tone = 'success'
     elif growth_pct is None:
         growth_value = _format_brl_delta(growth_amount)
         growth_hint = 'Variacao em valor contra periodo anterior.'
         growth_tone = 'success' if growth_amount > 0 else 'neutral'
     else:
-        growth_value = f'{growth_pct}%'
-        growth_hint = f'{_format_brl_delta(growth_amount)} contra periodo anterior.'
+        growth_value = f'{_format_brl_delta(growth_amount)} ({growth_pct}%)'
+        growth_hint = 'Valor e percentual contra periodo anterior.'
         growth_tone = 'success'
     if growth_amount < 0:
         growth_tone = 'error'
