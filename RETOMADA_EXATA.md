@@ -2,6 +2,41 @@
 
 Data de atualizacao: 2026-05-03
 
+## Checkpoint Instalador Limpo Movi_commanda - 2026-05-03
+
+### Implementado
+- Instalador atualizado para desinstalar/remover residuos da versao antiga antes de instalar a nova.
+- Pasta padrao nova:
+  - `C:\Movi_commanda`
+- Pasta antiga removida quando existir:
+  - `C:\MoviSyncAgent`
+- Antes da remocao, o instalador preserva:
+  - `.env`
+  - `agent_local\data\agent_api_key.txt`
+  - `agent_local\data\local_api_token.txt`
+  - `agent_local\data\checkpoints.json`
+  - `agent_local\data\local_orders.db`
+- O instalador para processos antigos do proprio app por caminho de instalacao antes de apagar arquivos.
+- Atalhos antigos `Movi*` da area de trabalho e inicializacao sao removidos.
+- Atalhos novos ficam apenas como `Movi_commanda`.
+- Script de inicializacao renomeado para:
+  - `Iniciar_Movi_commanda_Windows.vbs`
+- Painel Tkinter:
+  - titulo `Movi_commanda - Definicoes`
+  - banco padrao visual vazio, sem exibir `xd` automaticamente.
+
+### Release gerada
+- `release-artifacts/Movi_commanda_Installer_v2026-05-03_comandas_r6.zip`
+- Tamanho:
+  - `162686` bytes
+
+### Validacao no workspace
+- Parser PowerShell do instalador: OK
+- `py -3 -m pytest tests\test_agent_local_orders.py -q` -> `10 passed`
+- `py -3 -m compileall agent_local -q` -> sem erro
+- `py -3 -m pytest -q` -> `79 passed, 1 skipped`
+- ZIP validado sem `__pycache__` e sem `.pyc`
+
 ## Checkpoint Menu Inicial Movi_commanda - 2026-05-03
 
 ### Implementado

@@ -1,5 +1,31 @@
 # Releases - Cliente Agent
 
+## v2026-05-03_comandas_r6
+
+- Release corretiva para instalacao limpa da marca `Movi_commanda`.
+- Instalador agora:
+  - instala por padrao em `C:\Movi_commanda`;
+  - para processos antigos do aplicativo antes da troca;
+  - preserva `.env`, tokens locais, checkpoints e `local_orders.db`;
+  - remove instalacoes antigas em `C:\MoviSyncAgent` e na pasta nova antes de copiar arquivos;
+  - remove atalhos antigos da area de trabalho e inicializacao do Windows;
+  - recria atalhos apenas como `Movi_commanda`;
+  - gera script de inicializacao `Iniciar_Movi_commanda_Windows.vbs`.
+- Painel Tkinter:
+  - titulo `Movi_commanda - Definicoes`;
+  - banco padrao visual vazio, sem exibir `xd` por default.
+- ZIP de entrega:
+  - `release-artifacts/Movi_commanda_Installer_v2026-05-03_comandas_r6.zip`
+- Tamanho validado:
+  - `162686` bytes
+- Validacao:
+  - parser PowerShell do instalador sem erro;
+  - `py -3 -m pytest tests\test_agent_local_orders.py -q` com `10 passed`;
+  - `py -3 -m compileall agent_local -q` sem erro;
+  - `py -3 -m pytest -q` com `79 passed, 1 skipped`;
+  - ZIP sem `__pycache__` e sem `.pyc`;
+  - release contem `package-version.txt` com `v2026-05-03_comandas_r6`.
+
 ## v2026-05-03_comandas_r5
 
 - Release com menu inicial e identidade `Movi_commanda`.

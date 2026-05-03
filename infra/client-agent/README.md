@@ -11,7 +11,7 @@ Este pacote instala somente o agente local no Windows, com painel local para ban
    - informe o codigo de vinculacao;
    - configure o banco MariaDB local;
    - clique para testar e salvar.
-5. Use o icone `MoviSync` perto do relogio do Windows para iniciar, parar ou reiniciar.
+5. Use o icone `Movi_commanda` perto do relogio do Windows para iniciar, parar ou reiniciar.
 
 Compatibilidade:
 - `Setup_Instalar_Cliente.bat` continua existindo, mas agora chama o fluxo guiado.
@@ -28,15 +28,15 @@ O painel local permite configurar sem editar JSON ou `.env` manualmente:
 
 ## Arquivos criados no computador do cliente
 
-- `C:\MoviSyncAgent`
-- Atalho `MoviSync Painel Local` na area de trabalho
-- Atalho `MoviSync Status do Sync` na area de trabalho
-- Atalho `MoviSync Iniciar Agente` na area de trabalho
-- Log em `C:\MoviSyncAgent\logs\agent-sync.log`
+- `C:\Movi_commanda`
+- Atalho `Movi_commanda Definicoes` na area de trabalho
+- Atalho `Movi_commanda Status` na area de trabalho
+- Atalho `Movi_commanda Iniciar Servico` na area de trabalho
+- Log em `C:\Movi_commanda\logs\agent-sync.log`
 
 ## Icone perto do relogio
 
-O icone `MoviSync` fica na bandeja do Windows:
+O icone `Movi_commanda` fica na bandeja do Windows:
 
 - verde: sincronizador ativo;
 - vermelho: sincronizador parado.
@@ -61,7 +61,7 @@ Isso cria uma pasta em `infra/client-agent/releases/vYYYY-MM-DD_HHMM` com todo o
 
 ## Resultado esperado
 
-- Instalacao em `C:\MoviSyncAgent`
+- Instalacao em `C:\Movi_commanda`
 - Virtualenv local com dependencias
 - `.env` criado automaticamente
 - Icone de status perto do relogio do Windows

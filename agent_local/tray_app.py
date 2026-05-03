@@ -8,7 +8,7 @@ import time
 from pathlib import Path
 
 
-APP_NAME = "MoviSync"
+APP_NAME = "Movi_commanda"
 AGENT_MODULE = "agent_local.main"
 PID_FILE = Path("agent_local/data/agent-sync.pid")
 LOG_FILE = Path("logs/agent-sync.log")
@@ -195,7 +195,7 @@ class TrayController:
     def refresh(self) -> None:
         active = is_agent_running()
         self.running = active
-        self.status_text = "MoviSync ativo" if active else "MoviSync parado"
+        self.status_text = "Movi_commanda ativo" if active else "Movi_commanda parado"
         if self.icon:
             self.icon.icon = self.build_image(active)
             self.icon.title = self.status_text
@@ -260,7 +260,7 @@ def main() -> int:
         import PIL  # noqa: F401
     except Exception as exc:
         print(f"Dependencia do icone ausente: {exc}")
-        print("Reinstale o pacote atualizado do MoviSync.")
+        print("Reinstale o pacote atualizado do Movi_commanda.")
         return 1
     TrayController().run()
     return 0

@@ -25,7 +25,7 @@ class PairingWindow:
         self.manual_config_password = resolve_manual_config_password()
         self.manual_config_target = resolve_manual_config_target()
         self.root = tk.Tk()
-        self.root.title("MoviSync - Painel Local")
+        self.root.title("Movi_commanda - Definicoes")
         self.root.geometry("820x620")
         self.root.resizable(False, False)
 
@@ -42,7 +42,7 @@ class PairingWindow:
         self.database_type_var = tk.StringVar(value=DEFAULT_DATABASE_TYPE)
         self.db_host_var = tk.StringVar(value="127.0.0.1")
         self.db_port_var = tk.StringVar(value=str(DEFAULT_MARIADB_PORT))
-        self.db_name_var = tk.StringVar(value="xd")
+        self.db_name_var = tk.StringVar(value="")
         self.db_username_var = tk.StringVar(value="root")
         self.db_password_var = tk.StringVar(value="")
         self.db_ssl_var = tk.BooleanVar(value=False)

@@ -1,13 +1,108 @@
 param(
-    [string]$InstallDir = "C:\MoviSyncAgent",
+    [string]$InstallDir = "C:\Movi_commanda",
     [switch]$OpenPanel,
     [switch]$OpenOrders
 )
 
 $ErrorActionPreference = "Stop"
+$LegacyInstallDirs = @("C:\MoviSyncAgent")
+$StateRelativePaths = @(
+    ".env",
+    "agent_local\data\agent_api_key.txt",
+    "agent_local\data\local_api_token.txt",
+    "agent_local\data\checkpoints.json",
+    "agent_local\data\local_orders.db"
+)
 
 function Write-Step([string]$Message) {
     Write-Host "[instalador] $Message"
+}
+
+function Resolve-FullPath([string]$Path) {
+    return [System.IO.Path]::GetFullPath($Path).TrimEnd("\")
+}
+
+function Stop-MoviProcesses([string[]]$InstallDirs) {
+    $resolvedDirs = $InstallDirs |
+        Where-Object { ![string]::IsNullOrWhiteSpace($_) } |
+        ForEach-Object { Resolve-FullPath $_ }
+
+    if ($resolvedDirs.Count -eq 0) {
+        return
+    }
+
+    Get-CimInstance Win32_Process -ErrorAction SilentlyContinue |
+        Where-Object {
+            $commandLine = $_.CommandLine
+            if ([string]::IsNullOrWhiteSpace($commandLine)) {
+                return $false
+            }
+            foreach ($dir in $resolvedDirs) {
+                if ($commandLine -like "*$dir*") {
+                    return $true
+                }
+            }
+            return $false
+        } |
+        ForEach-Object {
+            try {
+                Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue
+            }
+            catch {
+                Write-Step "Nao foi possivel parar processo antigo PID=$($_.ProcessId): $($_.Exception.Message)"
+            }
+        }
+}
+
+function Backup-InstallState([string[]]$InstallDirs, [string]$BackupRoot) {
+    foreach ($installDir in $InstallDirs) {
+        if ([string]::IsNullOrWhiteSpace($installDir) -or !(Test-Path $installDir)) {
+            continue
+        }
+        foreach ($relativePath in $StateRelativePaths) {
+            $source = Join-Path $installDir $relativePath
+            if (!(Test-Path $source)) {
+                continue
+            }
+            $destination = Join-Path $BackupRoot $relativePath
+            $destinationDir = Split-Path -Parent $destination
+            New-Item -ItemType Directory -Force -Path $destinationDir | Out-Null
+            Copy-Item -Path $source -Destination $destination -Force
+        }
+    }
+}
+
+function Restore-InstallState([string]$BackupRoot, [string]$InstallDir) {
+    if (!(Test-Path $BackupRoot)) {
+        return
+    }
+    foreach ($relativePath in $StateRelativePaths) {
+        $source = Join-Path $BackupRoot $relativePath
+        if (!(Test-Path $source)) {
+            continue
+        }
+        $destination = Join-Path $InstallDir $relativePath
+        $destinationDir = Split-Path -Parent $destination
+        New-Item -ItemType Directory -Force -Path $destinationDir | Out-Null
+        Copy-Item -Path $source -Destination $destination -Force
+    }
+}
+
+function Remove-InstallTree([string]$InstallDir) {
+    if ([string]::IsNullOrWhiteSpace($InstallDir) -or !(Test-Path $InstallDir)) {
+        return
+    }
+
+    $resolved = Resolve-FullPath $InstallDir
+    $hasInstallMarker = Test-Path (Join-Path $resolved "VERSAO_INSTALADA.txt")
+    $hasAgentRuntime = (Test-Path (Join-Path $resolved "agent_local")) -and (Test-Path (Join-Path $resolved "backend"))
+    $isKnownMoviPath = $resolved -match "^[A-Za-z]:\\Movi(SyncAgent|_commanda)$"
+
+    if (!($hasInstallMarker -or $hasAgentRuntime -or $isKnownMoviPath)) {
+        throw "Recusando remover pasta sem marcador de instalacao: $resolved"
+    }
+
+    Remove-Item -LiteralPath $resolved -Recurse -Force
 }
 
 function New-DesktopShortcut(
@@ -55,6 +150,17 @@ function New-StartupShortcut(
     $shortcut.Save()
 }
 
+function Remove-StartupShortcutsByPrefix([string[]]$Prefixes) {
+    $startup = [Environment]::GetFolderPath("Startup")
+    if ([string]::IsNullOrWhiteSpace($startup)) {
+        return
+    }
+    foreach ($prefix in $Prefixes) {
+        Get-ChildItem -Path $startup -Filter "$prefix*.lnk" -ErrorAction SilentlyContinue |
+            Remove-Item -Force -ErrorAction SilentlyContinue
+    }
+}
+
 $packageRoot = Split-Path -Parent $MyInvocation.MyCommand.Path
 $sourceAgent = Join-Path $packageRoot "agent_local"
 $sourceBackend = Join-Path $packageRoot "backend"
@@ -76,6 +182,22 @@ if (!(Test-Path $sourceAgent) -or !(Test-Path $sourceBackend) -or !(Test-Path $s
     throw "Pacote invalido. Esperado: agent_local/, backend/ e requirements.txt ao lado do instalador."
 }
 
+$candidateInstallDirs = @($LegacyInstallDirs + @($InstallDir)) |
+    ForEach-Object { Resolve-FullPath $_ } |
+    Select-Object -Unique
+$stateBackupRoot = Join-Path ([System.IO.Path]::GetTempPath()) ("Movi_commanda_install_state_" + [System.Guid]::NewGuid().ToString("N"))
+
+Write-Step "Parando processos antigos do aplicativo"
+Stop-MoviProcesses $candidateInstallDirs
+
+Write-Step "Preservando configuracao local e dados pendentes"
+Backup-InstallState $candidateInstallDirs $stateBackupRoot
+
+Write-Step "Removendo instalacoes antigas"
+foreach ($candidateDir in $candidateInstallDirs) {
+    Remove-InstallTree $candidateDir
+}
+
 Write-Step "Preparando pasta de instalacao em $InstallDir"
 New-Item -ItemType Directory -Force -Path $InstallDir | Out-Null
 
@@ -94,6 +216,10 @@ if (Test-Path $packageManifestFile) {
 if (Test-Path (Join-Path $packageRoot "scripts")) {
     Copy-Item -Path (Join-Path $packageRoot "scripts") -Destination $InstallDir -Recurse -Force
 }
+
+Write-Step "Restaurando configuracao local preservada"
+Restore-InstallState $stateBackupRoot $InstallDir
+Remove-Item -LiteralPath $stateBackupRoot -Recurse -Force -ErrorAction SilentlyContinue
 
 $pythonCmd = Get-Command py -ErrorAction SilentlyContinue
 if ($null -eq $pythonCmd) {
@@ -149,7 +275,7 @@ cd /d %~dp0
 @'
 @echo off
 cd /d %~dp0
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$base='http://127.0.0.1:8765'; for ($i=0; $i -lt 12; $i++) { try { $health=Invoke-RestMethod -Uri ($base + '/health') -TimeoutSec 5; if ($health.status -eq 'ok') { Start-Process ($base + '/orders/ui'); exit 0 } } catch { Start-Sleep -Seconds 2 } }; Write-Host 'API local nao esta acessivel em http://127.0.0.1:8765. Inicie o MoviSync local antes de abrir comandas.'; pause; exit 1"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$base='http://127.0.0.1:8765'; for ($i=0; $i -lt 12; $i++) { try { $health=Invoke-RestMethod -Uri ($base + '/health') -TimeoutSec 5; if ($health.status -eq 'ok') { Start-Process ($base + '/orders/ui'); exit 0 } } catch { Start-Sleep -Seconds 2 } }; Write-Host 'API local nao esta acessivel em http://127.0.0.1:8765. Inicie o Movi_commanda antes de abrir comandas.'; pause; exit 1"
 '@ | Set-Content -Path "Abrir_Comandas_Locais.cmd" -Encoding ascii
 
 $panelVbsContent = @"
@@ -204,7 +330,7 @@ Set shell = CreateObject("WScript.Shell")
 shell.CurrentDirectory = "$InstallDir"
 shell.Run """" & "$InstallDir\.venv\Scripts\pythonw.exe" & """ -m agent_local.windows_autostart", 0, False
 "@
-$windowsStartupVbsContent | Set-Content -Path "Iniciar_MoviSync_Windows.vbs" -Encoding ascii
+$windowsStartupVbsContent | Set-Content -Path "Iniciar_Movi_commanda_Windows.vbs" -Encoding ascii
 
 @'
 @echo off
@@ -227,20 +353,17 @@ if (Test-Path ".\scripts\set-agent-manual-password.ps1") {
 
 Write-Step "Criando atalhos na area de trabalho"
 Remove-DesktopShortcutsByPrefix @(
-    "MoviSync Painel Local",
-    "MoviSync Status do Sync",
-    "MoviSync Iniciar Agente",
-    "MoviSync API Local",
-    "MoviSync Comandas Locais"
+    "Movi"
 )
-New-DesktopShortcut -Name "MoviSync Painel Local - $packageVersion.lnk" -TargetPath (Join-Path $InstallDir "Abrir_Painel_Local.vbs") -WorkingDirectory $InstallDir
-New-DesktopShortcut -Name "MoviSync Status do Sync - $packageVersion.lnk" -TargetPath (Join-Path $InstallDir "Abrir_Status_Sync.vbs") -WorkingDirectory $InstallDir
-New-DesktopShortcut -Name "MoviSync Iniciar Agente - $packageVersion.lnk" -TargetPath (Join-Path $InstallDir "Iniciar_MoviSync_Windows.vbs") -WorkingDirectory $InstallDir
-New-DesktopShortcut -Name "MoviSync API Local - $packageVersion.lnk" -TargetPath (Join-Path $InstallDir "Abrir_API_Local.vbs") -WorkingDirectory $InstallDir
-New-DesktopShortcut -Name "MoviSync Comandas Locais - $packageVersion.lnk" -TargetPath (Join-Path $InstallDir "Abrir_Comandas_Locais.vbs") -WorkingDirectory $InstallDir
+New-DesktopShortcut -Name "Movi_commanda Definicoes - $packageVersion.lnk" -TargetPath (Join-Path $InstallDir "Abrir_Painel_Local.vbs") -WorkingDirectory $InstallDir
+New-DesktopShortcut -Name "Movi_commanda Status - $packageVersion.lnk" -TargetPath (Join-Path $InstallDir "Abrir_Status_Sync.vbs") -WorkingDirectory $InstallDir
+New-DesktopShortcut -Name "Movi_commanda Iniciar Servico - $packageVersion.lnk" -TargetPath (Join-Path $InstallDir "Iniciar_Movi_commanda_Windows.vbs") -WorkingDirectory $InstallDir
+New-DesktopShortcut -Name "Movi_commanda API Local - $packageVersion.lnk" -TargetPath (Join-Path $InstallDir "Abrir_API_Local.vbs") -WorkingDirectory $InstallDir
+New-DesktopShortcut -Name "Movi_commanda - $packageVersion.lnk" -TargetPath (Join-Path $InstallDir "Abrir_Comandas_Locais.vbs") -WorkingDirectory $InstallDir
 
 Write-Step "Configurando inicializacao com Windows"
-New-StartupShortcut -Name "MoviSync AutoStart.lnk" -TargetPath (Join-Path $InstallDir "Iniciar_MoviSync_Windows.vbs") -WorkingDirectory $InstallDir
+Remove-StartupShortcutsByPrefix @("Movi")
+New-StartupShortcut -Name "Movi_commanda AutoStart.lnk" -TargetPath (Join-Path $InstallDir "Iniciar_Movi_commanda_Windows.vbs") -WorkingDirectory $InstallDir
 
 Pop-Location
 
@@ -260,11 +383,11 @@ if ($OpenPanel) {
     Write-Step "Abrindo painel local"
     Start-Process -FilePath "wscript.exe" -ArgumentList @("//nologo", (Join-Path $InstallDir "Abrir_Painel_Local.vbs")) -WorkingDirectory $InstallDir -WindowStyle Hidden
     Write-Step "Abrindo icone de status"
-    Start-Process -FilePath "wscript.exe" -ArgumentList @("//nologo", (Join-Path $InstallDir "Iniciar_MoviSync_Windows.vbs")) -WorkingDirectory $InstallDir -WindowStyle Hidden
+    Start-Process -FilePath "wscript.exe" -ArgumentList @("//nologo", (Join-Path $InstallDir "Iniciar_Movi_commanda_Windows.vbs")) -WorkingDirectory $InstallDir -WindowStyle Hidden
 }
 elseif ($OpenOrders) {
-    Write-Step "Abrindo MoviSync e comandas locais"
-    Start-Process -FilePath "wscript.exe" -ArgumentList @("//nologo", (Join-Path $InstallDir "Iniciar_MoviSync_Windows.vbs")) -WorkingDirectory $InstallDir -WindowStyle Hidden
+    Write-Step "Abrindo Movi_commanda"
+    Start-Process -FilePath "wscript.exe" -ArgumentList @("//nologo", (Join-Path $InstallDir "Iniciar_Movi_commanda_Windows.vbs")) -WorkingDirectory $InstallDir -WindowStyle Hidden
     Start-Sleep -Seconds 3
     Start-Process -FilePath "wscript.exe" -ArgumentList @("//nologo", (Join-Path $InstallDir "Abrir_Comandas_Locais.vbs")) -WorkingDirectory $InstallDir -WindowStyle Hidden
 }

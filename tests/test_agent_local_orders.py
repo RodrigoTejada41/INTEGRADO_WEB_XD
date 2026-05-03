@@ -207,6 +207,21 @@ def test_local_orders_web_ui_is_available() -> None:
     assert "XDOrders" not in response.text
 
 
+def test_client_installer_removes_old_movisync_residue() -> None:
+    installer = Path("infra/client-agent/install-agent-client.ps1").read_text(encoding="utf-8")
+    quick_start = Path("infra/client-agent/COMECE_AQUI.bat").read_text(encoding="utf-8")
+    readme = Path("infra/client-agent/README.md").read_text(encoding="utf-8")
+
+    assert '[string]$InstallDir = "C:\\Movi_commanda"' in installer
+    assert '$LegacyInstallDirs = @("C:\\MoviSyncAgent")' in installer
+    assert "Backup-InstallState" in installer
+    assert "Restore-InstallState" in installer
+    assert "Remove-InstallTree" in installer
+    assert "Iniciar_Movi_commanda_Windows.vbs" in installer
+    assert "MoviSync" not in quick_start
+    assert "C:\\MoviSyncAgent" not in readme
+
+
 def test_local_commanda_settings_app_info_and_license() -> None:
     db_path = Path("output/test_agent_local_orders/settings.db")
     token_file = Path("output/test_agent_local_orders/settings_token.txt")

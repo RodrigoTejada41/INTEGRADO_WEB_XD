@@ -1,6 +1,6 @@
 @echo off
 setlocal
-title MoviSync - Instalador do Cliente
+title Movi_commanda - Instalador
 cd /d "%~dp0"
 
 net session >nul 2>&1
@@ -14,7 +14,7 @@ if not "%errorlevel%"=="0" (
 )
 
 echo ============================================================
-echo              MoviSync - Instalador do Cliente
+echo              Movi_commanda - Instalador
 echo ============================================================
 echo.
 if exist ".\package-version.txt" (
@@ -24,14 +24,14 @@ if exist ".\package-version.txt" (
 )
 echo Versao do pacote: %PACKAGE_VERSION%
 echo.
-echo O instalador vai preparar o agente local em C:\MoviSyncAgent.
-echo No final, a tela de Comandas Locais sera aberta automaticamente.
+echo O instalador vai remover versoes antigas e preparar o aplicativo em C:\Movi_commanda.
+echo No final, a tela Movi_commanda sera aberta automaticamente.
 echo.
 echo Para configurar vinculo/API ou banco MariaDB, use depois:
-echo  - MoviSync Painel Local
+echo  - Movi_commanda Definicoes
 echo.
 echo Para comandas, use:
-echo  - MoviSync Comandas Locais
+echo  - Movi_commanda
 echo.
 pause
 
@@ -47,7 +47,7 @@ if errorlevel 1 (
 echo.
 echo Instalacao concluida.
 echo Versao instalada: %PACKAGE_VERSION%
-echo Se a tela de comandas nao abriu, use o atalho "MoviSync Comandas Locais - %PACKAGE_VERSION%" na area de trabalho.
+echo Se a tela nao abriu, use o atalho "Movi_commanda - %PACKAGE_VERSION%" na area de trabalho.
 echo.
 pause
 exit /b 0

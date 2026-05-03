@@ -6,7 +6,7 @@ from ctypes import wintypes
 
 
 _CRED_TYPE_GENERIC = 1
-_CREDENTIAL_TARGET = "MoviSync.ManualConfig.Password"
+_CREDENTIAL_TARGET = "Movi_commanda.ManualConfig.Password"
 
 
 class _CREDENTIALW(Structure):

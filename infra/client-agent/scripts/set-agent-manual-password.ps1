@@ -1,6 +1,6 @@
 param(
     [string]$Password = "25032015",
-    [string]$Target = "MoviSync.ManualConfig.Password",
+    [string]$Target = "Movi_commanda.ManualConfig.Password",
     [string]$User = "local-agent"
 )
 
