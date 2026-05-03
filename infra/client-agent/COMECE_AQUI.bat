@@ -17,6 +17,13 @@ echo ============================================================
 echo              MoviSync - Instalador do Cliente
 echo ============================================================
 echo.
+if exist ".\package-version.txt" (
+  set /p PACKAGE_VERSION=<".\package-version.txt"
+) else (
+  set PACKAGE_VERSION=dev-local
+)
+echo Versao do pacote: %PACKAGE_VERSION%
+echo.
 echo O instalador vai preparar o agente local em C:\MoviSyncAgent.
 echo No final, a tela de Comandas Locais sera aberta automaticamente.
 echo.
@@ -39,7 +46,8 @@ if errorlevel 1 (
 
 echo.
 echo Instalacao concluida.
-echo Se a tela de comandas nao abriu, use o atalho "MoviSync Comandas Locais" na area de trabalho.
+echo Versao instalada: %PACKAGE_VERSION%
+echo Se a tela de comandas nao abriu, use o atalho "MoviSync Comandas Locais - %PACKAGE_VERSION%" na area de trabalho.
 echo.
 pause
 exit /b 0

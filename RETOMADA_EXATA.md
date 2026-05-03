@@ -2491,3 +2491,48 @@ Este arquivo e o ponto de entrada para retomar o projeto sem redescobrir context
   - confirmar `/orders/ui`;
   - criar comanda teste;
   - validar pre-conta e job de impressao.
+
+## Checkpoint: versao explicita para nao misturar releases - 2026-05-03
+
+### Problema
+- O pacote anterior podia confundir porque atalhos e instalacao mantinham nomes iguais aos pacotes antigos.
+- O usuario viu a tela `MoviSync - Painel Local`, que pertence ao sync/configuracao, nao a tela de comandas.
+
+### Correcao aplicada
+- Nova release oficial para teste:
+  - `v2026-05-03_comandas_r2`
+- ZIP correto:
+  - `release-artifacts/MoviSyncAgent_Installer_v2026-05-03_comandas_r2.zip`
+- Tamanho:
+  - `151236` bytes
+- `build-release.ps1` agora gera:
+  - `package-version.txt`
+- `install-agent-client.ps1` agora:
+  - le `package-version.txt`;
+  - grava `C:\MoviSyncAgent\VERSAO_INSTALADA.txt`;
+  - copia `release-manifest.txt` para `C:\MoviSyncAgent`;
+  - remove atalhos antigos `MoviSync *.lnk` da area de trabalho antes de criar novos;
+  - cria atalhos com versao no nome.
+- Atalho principal esperado:
+  - `MoviSync Comandas Locais - v2026-05-03_comandas_r2.lnk`
+
+### Validacao
+- Parser PowerShell:
+  - `parse-ok`
+- Teste focado:
+  - `py -3 -m pytest tests\test_agent_local_orders.py -q`
+  - `7 passed`
+- ZIP validado:
+  - `pycache_count=0`
+  - `orders_entries=5`
+  - `package_version_file=1`
+
+### Proximo teste do usuario
+1. Usar somente:
+   - `release-artifacts/MoviSyncAgent_Installer_v2026-05-03_comandas_r2.zip`
+2. Extrair em pasta nova.
+3. Rodar `COMECE_AQUI.bat` como administrador.
+4. Conferir atalho:
+   - `MoviSync Comandas Locais - v2026-05-03_comandas_r2.lnk`
+5. Conferir arquivo instalado:
+   - `C:\MoviSyncAgent\VERSAO_INSTALADA.txt`

@@ -600,3 +600,21 @@ Na retomada canonica mais recente, o backlog funcional estava concluido ate `P18
 - Proximo passo:
   - commitar alteracoes do instalador e `RELEASES.md`;
   - usar o ZIP `v2026-05-03_comandas` para instalacao/validacao real.
+
+## Release versionada sem mistura - 2026-05-03
+
+- Release correta para teste agora e:
+  - `v2026-05-03_comandas_r2`
+- ZIP correto:
+  - `release-artifacts/MoviSyncAgent_Installer_v2026-05-03_comandas_r2.zip`
+- A instalacao passa a gravar:
+  - `C:\MoviSyncAgent\VERSAO_INSTALADA.txt`
+  - `C:\MoviSyncAgent\release-manifest.txt`
+- Atalhos antigos `MoviSync *.lnk` sao removidos antes de criar novos.
+- Atalhos novos levam versao no nome.
+- Atalho principal:
+  - `MoviSync Comandas Locais - v2026-05-03_comandas_r2.lnk`
+- Validacao:
+  - `package-version.txt` presente no ZIP;
+  - ZIP sem cache Python;
+  - `tests\test_agent_local_orders.py` com `7 passed`.

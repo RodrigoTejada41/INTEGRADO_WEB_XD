@@ -1,5 +1,27 @@
 # Releases - Cliente Agent
 
+## v2026-05-03_comandas_r2
+
+- Release correta para teste das comandas locais.
+- Evita confusao com pacotes anteriores:
+  - inclui `package-version.txt`;
+  - grava `C:\MoviSyncAgent\VERSAO_INSTALADA.txt`;
+  - copia `release-manifest.txt` para `C:\MoviSyncAgent`;
+  - remove atalhos antigos `MoviSync *.lnk` da area de trabalho antes de criar novos;
+  - cria atalhos com versao no nome.
+- Atalho principal:
+  - `MoviSync Comandas Locais - v2026-05-03_comandas_r2.lnk`
+- ZIP de entrega:
+  - `release-artifacts/MoviSyncAgent_Installer_v2026-05-03_comandas_r2.zip`
+- Tamanho validado:
+  - `151236` bytes
+- Validacao:
+  - `package-version.txt` contem `v2026-05-03_comandas_r2`;
+  - ZIP sem `__pycache__` e sem `.pyc`;
+  - ZIP contem `agent_local\orders\*.py`;
+  - parser PowerShell OK;
+  - `py -3 -m pytest tests\test_agent_local_orders.py -q` com `7 passed`.
+
 ## v2026-05-03_comandas
 
 - Pacote oficial com comandas locais separadas da API de sync de relatorios.

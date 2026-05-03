@@ -27,6 +27,17 @@ function New-DesktopShortcut(
     $shortcut.Save()
 }
 
+function Remove-DesktopShortcutsByPrefix([string[]]$Prefixes) {
+    $desktop = [Environment]::GetFolderPath("Desktop")
+    if ([string]::IsNullOrWhiteSpace($desktop)) {
+        return
+    }
+    foreach ($prefix in $Prefixes) {
+        Get-ChildItem -Path $desktop -Filter "$prefix*.lnk" -ErrorAction SilentlyContinue |
+            Remove-Item -Force -ErrorAction SilentlyContinue
+    }
+}
+
 function New-StartupShortcut(
     [string]$Name,
     [string]$TargetPath,
@@ -48,6 +59,18 @@ $packageRoot = Split-Path -Parent $MyInvocation.MyCommand.Path
 $sourceAgent = Join-Path $packageRoot "agent_local"
 $sourceBackend = Join-Path $packageRoot "backend"
 $sourceRequirements = Join-Path $packageRoot "requirements.txt"
+$packageVersionFile = Join-Path $packageRoot "package-version.txt"
+$packageManifestFile = Join-Path $packageRoot "release-manifest.txt"
+$packageVersion = "dev-local"
+if (Test-Path $packageVersionFile) {
+    $packageVersion = (Get-Content $packageVersionFile -Raw).Trim()
+}
+elseif (Test-Path $packageManifestFile) {
+    $versionLine = Get-Content $packageManifestFile | Where-Object { $_ -like "version=*" } | Select-Object -First 1
+    if ($versionLine) {
+        $packageVersion = $versionLine.Substring("version=".Length).Trim()
+    }
+}
 
 if (!(Test-Path $sourceAgent) -or !(Test-Path $sourceBackend) -or !(Test-Path $sourceRequirements)) {
     throw "Pacote invalido. Esperado: agent_local/, backend/ e requirements.txt ao lado do instalador."
@@ -60,6 +83,13 @@ Write-Step "Copiando arquivos da aplicacao"
 Copy-Item -Path $sourceAgent -Destination $InstallDir -Recurse -Force
 Copy-Item -Path $sourceBackend -Destination $InstallDir -Recurse -Force
 Copy-Item -Path $sourceRequirements -Destination $InstallDir -Force
+Set-Content -Path (Join-Path $InstallDir "VERSAO_INSTALADA.txt") -Encoding ascii -Value @(
+    "version=$packageVersion"
+    "installed_at=$(Get-Date -Format s)"
+)
+if (Test-Path $packageManifestFile) {
+    Copy-Item -Path $packageManifestFile -Destination (Join-Path $InstallDir "release-manifest.txt") -Force
+}
 
 if (Test-Path (Join-Path $packageRoot "scripts")) {
     Copy-Item -Path (Join-Path $packageRoot "scripts") -Destination $InstallDir -Recurse -Force
@@ -196,11 +226,18 @@ if (Test-Path ".\scripts\set-agent-manual-password.ps1") {
 }
 
 Write-Step "Criando atalhos na area de trabalho"
-New-DesktopShortcut -Name "MoviSync Painel Local.lnk" -TargetPath (Join-Path $InstallDir "Abrir_Painel_Local.vbs") -WorkingDirectory $InstallDir
-New-DesktopShortcut -Name "MoviSync Status do Sync.lnk" -TargetPath (Join-Path $InstallDir "Abrir_Status_Sync.vbs") -WorkingDirectory $InstallDir
-New-DesktopShortcut -Name "MoviSync Iniciar Agente.lnk" -TargetPath (Join-Path $InstallDir "Iniciar_MoviSync_Windows.vbs") -WorkingDirectory $InstallDir
-New-DesktopShortcut -Name "MoviSync API Local.lnk" -TargetPath (Join-Path $InstallDir "Abrir_API_Local.vbs") -WorkingDirectory $InstallDir
-New-DesktopShortcut -Name "MoviSync Comandas Locais.lnk" -TargetPath (Join-Path $InstallDir "Abrir_Comandas_Locais.vbs") -WorkingDirectory $InstallDir
+Remove-DesktopShortcutsByPrefix @(
+    "MoviSync Painel Local",
+    "MoviSync Status do Sync",
+    "MoviSync Iniciar Agente",
+    "MoviSync API Local",
+    "MoviSync Comandas Locais"
+)
+New-DesktopShortcut -Name "MoviSync Painel Local - $packageVersion.lnk" -TargetPath (Join-Path $InstallDir "Abrir_Painel_Local.vbs") -WorkingDirectory $InstallDir
+New-DesktopShortcut -Name "MoviSync Status do Sync - $packageVersion.lnk" -TargetPath (Join-Path $InstallDir "Abrir_Status_Sync.vbs") -WorkingDirectory $InstallDir
+New-DesktopShortcut -Name "MoviSync Iniciar Agente - $packageVersion.lnk" -TargetPath (Join-Path $InstallDir "Iniciar_MoviSync_Windows.vbs") -WorkingDirectory $InstallDir
+New-DesktopShortcut -Name "MoviSync API Local - $packageVersion.lnk" -TargetPath (Join-Path $InstallDir "Abrir_API_Local.vbs") -WorkingDirectory $InstallDir
+New-DesktopShortcut -Name "MoviSync Comandas Locais - $packageVersion.lnk" -TargetPath (Join-Path $InstallDir "Abrir_Comandas_Locais.vbs") -WorkingDirectory $InstallDir
 
 Write-Step "Configurando inicializacao com Windows"
 New-StartupShortcut -Name "MoviSync AutoStart.lnk" -TargetPath (Join-Path $InstallDir "Iniciar_MoviSync_Windows.vbs") -WorkingDirectory $InstallDir
@@ -208,6 +245,9 @@ New-StartupShortcut -Name "MoviSync AutoStart.lnk" -TargetPath (Join-Path $Insta
 Pop-Location
 
 Write-Step "Instalacao concluida."
+Write-Host ""
+Write-Host "Versao instalada: $packageVersion"
+Write-Host "Arquivo de versao: $InstallDir\VERSAO_INSTALADA.txt"
 Write-Host ""
 Write-Host "Proximos passos no painel local:"
 Write-Host "1) Informe o codigo de vinculacao."
