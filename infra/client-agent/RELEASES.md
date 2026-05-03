@@ -1,5 +1,37 @@
 # Releases - Cliente Agent
 
+## v2026-05-03_comandas_r5
+
+- Release com menu inicial e identidade `Movi_commanda`.
+- Remove referencias visuais antigas da UI/API local de comandas:
+  - `XD`;
+  - `XD Orders`;
+  - `XDOrders`;
+  - `Comandas Locais`;
+  - `MoviSync`.
+- Inclui:
+  - menu inicial com marca, versao e botoes `USUARIOS`, `DEFINICOES`, `INICIAR`;
+  - tela `DEFINICOES` com servidor, impressora Bluetooth, outras configuracoes, ajuda e sobre;
+  - persistencia local em `local_commanda_settings`;
+  - endpoints de app-info, settings, teste de conexao, carga de dados, licenca e validacao de licenca.
+- Referencias externas de banco reaproveitadas:
+  - `items`;
+  - `itemsgroups`;
+  - `operators`;
+  - `xconfigoperators`;
+  - `Documentsbodys`;
+  - `Documentsheaders`;
+  - `salesdocumentsreportview`.
+- ZIP de entrega:
+  - `release-artifacts/Movi_commanda_Installer_v2026-05-03_comandas_r5.zip`
+- Tamanho validado:
+  - `161759` bytes
+- Validacao:
+  - `py -3 -m pytest tests\test_agent_local_orders.py -q` com `9 passed`;
+  - `py -3 -m compileall agent_local -q` sem erro;
+  - `py -3 -m pytest -q` com `78 passed, 1 skipped`;
+  - busca em `agent_local/orders/ui.py` e `agent_local/local_api.py` sem nomes antigos.
+
 ## v2026-05-03_comandas_r4
 
 - Release com tela principal operacional no estilo do print.

@@ -13,6 +13,7 @@ from uuid import uuid4
 
 from agent_local.orders.schemas import (
     LocalOrderCloseRequest,
+    LocalCommandaSettings,
     LocalOrderCreate,
     LocalOrderDiscountRequest,
     LocalOrderItemCreate,
@@ -213,6 +214,15 @@ class LocalOrderRepository:
             )
             connection.execute(
                 """
+                CREATE TABLE IF NOT EXISTS local_commanda_settings (
+                    key TEXT PRIMARY KEY,
+                    value TEXT NULL,
+                    updated_at TEXT NOT NULL
+                )
+                """
+            )
+            connection.execute(
+                """
                 CREATE TABLE IF NOT EXISTS local_order_operation_logs (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     empresa_id TEXT NOT NULL,
@@ -318,6 +328,7 @@ class LocalOrderRepository:
             self._add_column_if_missing(connection, "local_orders", "cancel_reason", "TEXT NULL")
             self._add_column_if_missing(connection, "local_order_items", "notes", "TEXT NULL")
             self._add_column_if_missing(connection, "local_order_operators", "password_hash", "TEXT NULL")
+            self._seed_default_settings(connection)
             connection.commit()
 
     def create(self, empresa_id: str, payload: LocalOrderCreate) -> StoredOrder:
@@ -816,6 +827,57 @@ class LocalOrderRepository:
         permissions = defaults.copy()
         permissions.update({str(row["permission"]): bool(row["allowed"]) for row in rows})
         return permissions
+
+    def get_settings(self) -> LocalCommandaSettings:
+        self.initialize()
+        with self._connect() as connection:
+            rows = connection.execute("SELECT key, value FROM local_commanda_settings").fetchall()
+        data = {str(row["key"]): row["value"] for row in rows}
+        return LocalCommandaSettings(**data)
+
+    def save_settings(self, payload: LocalCommandaSettings) -> LocalCommandaSettings:
+        self.initialize()
+        data = payload.model_dump(mode="json")
+        if not data.get("ip_servidor"):
+            raise ValueError("Endereco IP obrigatorio.")
+        if not data.get("porta_servidor"):
+            raise ValueError("Porta obrigatoria.")
+        now = _utc_now_text()
+        with self._connect() as connection:
+            connection.executemany(
+                """
+                INSERT INTO local_commanda_settings (key, value, updated_at)
+                VALUES (?, ?, ?)
+                ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at
+                """,
+                [(key, "" if value is None else str(value), now) for key, value in data.items()],
+            )
+            connection.commit()
+        return self.get_settings()
+
+    def _seed_default_settings(self, connection: sqlite3.Connection) -> None:
+        now = _utc_now_text()
+        defaults = {
+            "ip_servidor": "127.0.0.1",
+            "porta_servidor": "8765",
+            "licenca": "",
+            "ssid_wifi": "",
+            "impressora_bluetooth": "",
+            "dpi_impressora": "203",
+            "largura_impressora": "58",
+            "caracteres_por_linha": "32",
+            "tema_interface": "padrao",
+            "usuario_logado": "",
+            "versao_app": "1.0.0",
+            "codigo_versao": "100",
+        }
+        connection.executemany(
+            """
+            INSERT OR IGNORE INTO local_commanda_settings (key, value, updated_at)
+            VALUES (?, ?, ?)
+            """,
+            [(key, value, now) for key, value in defaults.items()],
+        )
 
     def require_permission(self, operator_code: str, permission: str) -> None:
         if not self.list_permissions(operator_code).get(permission, False):

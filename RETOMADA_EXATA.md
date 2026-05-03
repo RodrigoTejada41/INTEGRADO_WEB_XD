@@ -2,6 +2,78 @@
 
 Data de atualizacao: 2026-05-03
 
+## Checkpoint Menu Inicial Movi_commanda - 2026-05-03
+
+### Implementado
+- Identidade visual da UI/API local de comandas trocada para `Movi_commanda`.
+- Removidas referencias visuais antigas na UI/API local:
+  - `XD`
+  - `XD Orders`
+  - `XDOrders`
+  - `Comandas Locais`
+  - `MoviSync`
+- Menu inicial mobile criado:
+  - marca `Movi_commanda`;
+  - visual institucional azul/azul esverdeado;
+  - versao do sistema;
+  - botoes grandes `USUARIOS`, `DEFINICOES`, `INICIAR`.
+- Tela `DEFINICOES` criada com secoes:
+  - Servidor;
+  - Impressora Bluetooth;
+  - Outras configuracoes;
+  - Ajuda;
+  - Sobre.
+- Configuracoes persistidas no SQLite local:
+  - `ip_servidor`;
+  - `porta_servidor`;
+  - `licenca`;
+  - `ssid_wifi`;
+  - `impressora_bluetooth`;
+  - `dpi_impressora`;
+  - `largura_impressora`;
+  - `caracteres_por_linha`;
+  - `tema_interface`;
+  - `usuario_logado`;
+  - `versao_app`;
+  - `codigo_versao`.
+
+### API local adicionada
+- `GET /orders/app-info`
+- `GET /orders/settings`
+- `PUT /orders/settings`
+- `POST /orders/settings/test-connection`
+- `POST /orders/settings/load-server-data`
+- `GET /orders/license`
+- `POST /orders/license/validate`
+
+### Banco/configuracao local
+- Tabela nova:
+  - `local_commanda_settings`
+- Versao padrao:
+  - `1.0.0`
+- Codigo de versao padrao:
+  - `100`
+
+### Referencias de tabelas do banco encontradas no projeto
+- Fonte principal:
+  - `agent_local/db/mariadb_client.py`
+  - `agent_local/db/xd_sales_mapper.py`
+- Tabelas externas ja mapeadas para catalogo/relatorios:
+  - `items`
+  - `itemsgroups`
+  - `operators`
+  - `xconfigoperators`
+  - `Documentsbodys`
+  - `Documentsheaders`
+  - `salesdocumentsreportview`
+- Nao foi encontrado contrato externo consolidado para tabelas reais de comanda/pedido. Por isso a operacao de comandas permanece em SQLite local, usando o banco externo para catalogo de usuarios/produtos quando disponivel.
+
+### Validacao no workspace
+- `py -3 -m pytest tests\test_agent_local_orders.py -q` -> `9 passed`
+- `py -3 -m compileall agent_local -q` -> sem erro
+- `py -3 -m pytest -q` -> `78 passed, 1 skipped`
+- Busca direcionada em `agent_local/orders/ui.py` e `agent_local/local_api.py` nao encontrou nomes antigos.
+
 ## Checkpoint tela principal operacional de comandas - 2026-05-03
 
 ### Implementado

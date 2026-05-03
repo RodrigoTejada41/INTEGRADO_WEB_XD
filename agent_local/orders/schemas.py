@@ -149,6 +149,38 @@ class LocalOrderDiscountRequest(BaseModel):
         return cleaned or None
 
 
+class LocalCommandaSettings(BaseModel):
+    ip_servidor: str | None = Field(default=None, max_length=120)
+    porta_servidor: int | None = Field(default=None, ge=1, le=65535)
+    licenca: str | None = Field(default=None, max_length=160)
+    ssid_wifi: str | None = Field(default=None, max_length=255)
+    impressora_bluetooth: str | None = Field(default=None, max_length=160)
+    dpi_impressora: int | None = Field(default=203, ge=72, le=600)
+    largura_impressora: int | None = Field(default=58, ge=20, le=120)
+    caracteres_por_linha: int | None = Field(default=32, ge=16, le=80)
+    tema_interface: str | None = Field(default="padrao", max_length=80)
+    usuario_logado: str | None = Field(default=None, max_length=80)
+    versao_app: str | None = Field(default=None, max_length=40)
+    codigo_versao: str | None = Field(default=None, max_length=80)
+
+    @field_validator(
+        "ip_servidor",
+        "licenca",
+        "ssid_wifi",
+        "impressora_bluetooth",
+        "tema_interface",
+        "usuario_logado",
+        "versao_app",
+        "codigo_versao",
+    )
+    @classmethod
+    def strip_settings_text(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        cleaned = value.strip()
+        return cleaned or None
+
+
 class LocalOrderCreate(BaseModel):
     command_number: str | None = Field(default=None, max_length=40)
     people_count: int | None = Field(default=None, ge=1, le=999)
@@ -262,6 +294,16 @@ class LocalOrderActionResponse(BaseModel):
     message: str
     order: LocalOrderView | None = None
     payload: dict[str, object] | None = None
+
+
+class LocalCommandaAppInfoResponse(BaseModel):
+    app_name: str
+    version_name: str
+    version_code: str
+
+
+class LocalCommandaSettingsResponse(BaseModel):
+    settings: LocalCommandaSettings
 
 
 class LocalProductFamilyListResponse(BaseModel):

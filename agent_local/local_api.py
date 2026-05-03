@@ -11,6 +11,9 @@ from agent_local.db.mariadb_client import MariaDBClient
 from agent_local.orders.printer import render_thermal_receipt
 from agent_local.orders.repository import LocalOrderRepository
 from agent_local.orders.schemas import (
+    LocalCommandaAppInfoResponse,
+    LocalCommandaSettings,
+    LocalCommandaSettingsResponse,
     LocalOperatorListResponse,
     LocalOperatorContextResponse,
     LocalOperatorView,
@@ -43,7 +46,11 @@ DEFAULT_ORDER_DB = Path("agent_local/data/local_orders.db")
 DEFAULT_PRINT_JOBS_DIR = Path("agent_local/data/print_jobs")
 ENV_FILE = Path(".env")
 
-app = FastAPI(title="MoviSync Local Sync API")
+APP_NAME = "Movi_commanda"
+DEFAULT_APP_VERSION = "1.0.0"
+DEFAULT_VERSION_CODE = "100"
+
+app = FastAPI(title="Movi_commanda Local API")
 
 
 def _env_file_value(name: str) -> str | None:
@@ -66,6 +73,19 @@ def _config_value(name: str, default: str | None = None) -> str | None:
     if value is not None and value.strip():
         return value.strip()
     return default
+
+
+def _package_version() -> str:
+    for candidate in (Path("package-version.txt"), Path("VERSAO_INSTALADA.txt")):
+        if candidate.exists():
+            value = candidate.read_text(encoding="utf-8").strip()
+            if value:
+                return value
+    return _config_value("LOCAL_COMMAND_APP_VERSION", DEFAULT_APP_VERSION) or DEFAULT_APP_VERSION
+
+
+def _version_code() -> str:
+    return _config_value("LOCAL_COMMAND_VERSION_CODE", DEFAULT_VERSION_CODE) or DEFAULT_VERSION_CODE
 
 
 def _token_file() -> Path:
@@ -138,7 +158,7 @@ def _receipt_width() -> int:
         raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="LOCAL_ORDER_RECEIPT_WIDTH invalido.") from None
 
 
-def _refresh_order_catalog_from_xd() -> None:
+def _refresh_order_catalog_from_server() -> None:
     enabled = (_config_value("LOCAL_ORDER_AUTO_REFRESH_CATALOG", "true") or "true").lower()
     if enabled in {"0", "false", "no", "nao"}:
         return
@@ -159,6 +179,76 @@ def _refresh_order_catalog_from_xd() -> None:
 @app.get("/health")
 def health() -> dict[str, str]:
     return {"status": "ok"}
+
+
+@app.get("/orders/app-info", response_model=LocalCommandaAppInfoResponse)
+def order_app_info(_: None = Depends(_require_token)) -> LocalCommandaAppInfoResponse:
+    return LocalCommandaAppInfoResponse(
+        app_name=APP_NAME,
+        version_name=_package_version(),
+        version_code=_version_code(),
+    )
+
+
+@app.get("/orders/settings", response_model=LocalCommandaSettingsResponse)
+def get_order_settings(_: None = Depends(_require_token)) -> LocalCommandaSettingsResponse:
+    settings = _order_service().get_settings().model_copy(
+        update={"versao_app": _package_version(), "codigo_versao": _version_code()}
+    )
+    return LocalCommandaSettingsResponse(settings=settings)
+
+
+@app.put("/orders/settings", response_model=LocalCommandaSettingsResponse)
+def save_order_settings(
+    payload: LocalCommandaSettings,
+    _: None = Depends(_require_token),
+) -> LocalCommandaSettingsResponse:
+    try:
+        settings = _order_service().save_settings(payload)
+    except Exception as exc:
+        _order_repository().log_operation(
+            empresa_id=_empresa_id(),
+            session=type("Session", (), {"operator_code": "system", "operator_name": "system"})(),
+            operation_type="settings.error",
+            reason=str(exc),
+        )
+        raise _handle_order_error(exc) from exc
+    return LocalCommandaSettingsResponse(settings=settings)
+
+
+@app.post("/orders/settings/test-connection")
+def test_order_server_connection(_: None = Depends(_require_token)) -> dict[str, object]:
+    settings = _order_service().get_settings()
+    return {
+        "status": "ok",
+        "message": "Configuracao local carregada.",
+        "host": settings.ip_servidor,
+        "port": settings.porta_servidor,
+    }
+
+
+@app.post("/orders/settings/load-server-data")
+def load_order_server_data(_: None = Depends(_require_token)) -> dict[str, object]:
+    try:
+        _refresh_order_catalog_from_server()
+    except Exception as exc:
+        raise _handle_order_error(exc) from exc
+    return {"status": "ok", "message": "Carga de dados solicitada."}
+
+
+@app.get("/orders/license")
+def get_order_license(_: None = Depends(_require_token)) -> dict[str, object]:
+    settings = _order_service().get_settings()
+    return {"license": settings.licenca or "", "status": "configured" if settings.licenca else "missing"}
+
+
+@app.post("/orders/license/validate")
+def validate_order_license(_: None = Depends(_require_token)) -> dict[str, object]:
+    settings = _order_service().get_settings()
+    return {
+        "status": "valid" if settings.licenca else "missing",
+        "message": "Licenca informada." if settings.licenca else "Licenca nao configurada.",
+    }
 
 
 @app.get("/status")
@@ -301,13 +391,13 @@ def cancel_order(
 
 @app.get("/orders/operators", response_model=LocalOperatorListResponse)
 def list_order_operators(_: None = Depends(_require_token)) -> LocalOperatorListResponse:
-    _refresh_order_catalog_from_xd()
+    _refresh_order_catalog_from_server()
     return LocalOperatorListResponse(operators=_order_service().list_operators())
 
 
 @app.get("/orders/users", response_model=LocalOperatorListResponse)
 def list_order_users(_: None = Depends(_require_token)) -> LocalOperatorListResponse:
-    _refresh_order_catalog_from_xd()
+    _refresh_order_catalog_from_server()
     return LocalOperatorListResponse(operators=_order_service().list_operators())
 
 
@@ -328,7 +418,7 @@ def login_order_user(
 
 @app.get("/orders/product-families", response_model=LocalProductFamilyListResponse)
 def list_order_product_families(_: None = Depends(_require_token)) -> LocalProductFamilyListResponse:
-    _refresh_order_catalog_from_xd()
+    _refresh_order_catalog_from_server()
     return LocalProductFamilyListResponse(families=_order_service().list_product_families())
 
 
@@ -338,7 +428,7 @@ def list_order_products(
     q: str | None = Query(default=None, max_length=160),
     _: None = Depends(_require_token),
 ) -> LocalProductListResponse:
-    _refresh_order_catalog_from_xd()
+    _refresh_order_catalog_from_server()
     return LocalProductListResponse(products=_order_service().list_products(family=family, query=q))
 
 
@@ -621,541 +711,3 @@ def orders_ui() -> str:
     return render_orders_ui()
 
 
-def _legacy_orders_ui_reference() -> str:
-    return """
-<!doctype html>
-<html lang="pt-BR">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Comandas Locais</title>
-  <style>
-    :root { --blue: #213f78; --blue-dark: #0e4358; --green: #078d3e; --purple: #25106d; --purple-2: #32128a; --paper: #f7f7f7; }
-    * { box-sizing: border-box; }
-    body { font-family: Arial, sans-serif; margin: 0; color: #263238; background: #ffffff; }
-    button, input, select, textarea { font: inherit; }
-    button { border: 0; cursor: pointer; }
-    .app-shell { min-height: 100vh; display: flex; flex-direction: column; background: #fff; }
-    .status-bar { height: 34px; padding: 6px 22px; background: var(--blue-dark); color: white; display: flex; justify-content: space-between; font-weight: 700; letter-spacing: .02em; }
-    .topbar { min-height: 74px; background: var(--blue); color: white; display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 14px; padding: 10px 18px; }
-    .back { font-size: 34px; line-height: 1; }
-    .brand { display: flex; align-items: center; gap: 12px; }
-    .logo { font-size: 44px; font-weight: 900; letter-spacing: -4px; }
-    .title { font-size: 28px; font-weight: 800; line-height: 1.1; }
-    .subtitle { font-size: 20px; font-weight: 400; opacity: .95; }
-    .top-actions { display: flex; gap: 22px; font-size: 38px; }
-    .screen-tabs { display: grid; grid-template-columns: repeat(3, 1fr); background: #102f61; }
-    .screen-tabs button { min-height: 48px; color: white; background: transparent; font-weight: 800; border-bottom: 4px solid transparent; }
-    .screen-tabs button.active { border-bottom-color: #7b1dc2; background: #1a3f7e; }
-    .screen { display: none; }
-    .screen.active { display: block; }
-    .entry-row { display: grid; grid-template-columns: 1fr 1fr auto; gap: 14px; align-items: end; padding: 18px 20px 12px; }
-    .field-line { border: 0; border-bottom: 3px solid #18889e; border-radius: 0; padding: 12px 0 8px; width: 100%; font-size: 26px; color: #555; background: transparent; text-transform: uppercase; }
-    .continue-btn { min-height: 62px; min-width: 162px; background: var(--blue); color: white; font-size: 21px; font-weight: 800; border-radius: 4px; box-shadow: 0 5px 12px #0002; }
-    .area-tabs { display: flex; border-bottom: 1px solid #ddd; padding-left: 0; overflow-x: auto; }
-    .area-tabs button { min-width: 122px; height: 66px; background: white; color: #555; font-weight: 800; border-right: 1px solid #ddd; }
-    .area-tabs button.active { border-bottom: 7px solid #4a0098; color: #333; }
-    .command-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; padding: 5px; }
-    .command-tile { aspect-ratio: 1 / .98; background: var(--green); color: white; font-size: 28px; display: flex; align-items: center; padding: 18px; text-align: left; }
-    .command-tile.selected { outline: 5px solid #f5c542; outline-offset: -5px; }
-    .mesa-panel { padding: 24px 20px; min-height: 70vh; }
-    .mesa-row { display: grid; grid-template-columns: 1fr auto; gap: 14px; align-items: end; }
-    .ops-screen { min-height: calc(100vh - 156px); background: linear-gradient(180deg, #283484 0%, #2b0875 100%); color: white; padding: 18px 22px 28px; }
-    .operator-strip { display: grid; grid-template-columns: 120px 1fr; gap: 14px; align-items: center; border-bottom: 1px solid #ffffff66; padding-bottom: 12px; margin-bottom: 24px; }
-    .avatar { width: 112px; height: 112px; background: #fff; display: grid; place-items: center; color: #111; font-size: 56px; }
-    .operator-name { text-align: center; margin-top: 8px; font-size: 20px; }
-    .operator-actions { display: grid; grid-template-columns: 1fr; gap: 1px; }
-    .operator-actions button { min-height: 56px; background: #243979; color: white; font-size: 20px; text-align: left; padding-left: 26px; border-bottom: 1px solid #ffffff55; }
-    .voice-btn { width: 160px; height: 118px; margin: 32px auto; display: grid; place-items: center; background: #250c69; color: white; border-radius: 18px; font-weight: 700; }
-    .voice-btn span { display: block; font-size: 42px; line-height: 1; }
-    .menu-action-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
-    .menu-action-grid button { min-height: 136px; background: #250c69; color: white; border-radius: 10px; font-size: 19px; font-weight: 700; box-shadow: 0 7px 12px #0002; }
-    .menu-action-grid .icon { display: block; font-size: 38px; margin-bottom: 12px; }
-    .work-area { padding: 0; background: #f4f6f9; color: #263238; }
-    .work-grid { display: grid; grid-template-columns: minmax(280px, 360px) 1fr; gap: 18px; padding: 18px; }
-    .panel { background: white; border: 1px solid #d7dee8; padding: 14px; }
-    .compact-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
-    .compact-grid .wide { grid-column: span 2; }
-    label { display: block; font-size: 12px; font-weight: 700; color: #52616f; margin-bottom: 5px; text-transform: uppercase; }
-    input, textarea, select { width: 100%; padding: 10px; border: 1px solid #aab7c4; background: white; }
-    .product-board { background: #fff; min-height: calc(100vh - 160px); padding: 0 0 96px; }
-    .product-board > label, .product-board .compact-grid { display: none; }
-    .product-family-tabs { display: flex; overflow-x: auto; border-bottom: 1px solid #d7dee8; background: #fff; scrollbar-width: thin; }
-    .product-family-tabs button { min-width: 150px; min-height: 64px; padding: 0 18px; background: #fff; color: #555; border-right: 1px solid #d7dee8; border-bottom: 7px solid transparent; font-size: 22px; font-weight: 800; white-space: nowrap; }
-    .product-family-tabs button.active { border-bottom-color: #4a0098; color: #263238; }
-    .product-list { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 5px; padding: 5px; margin-bottom: 0; }
-    .product-tile { min-height: 156px; aspect-ratio: 1 / .95; background: #3f5f90; color: #fff; border: 0; display: flex; align-items: center; justify-content: center; padding: 12px; text-align: center; font-size: 28px; font-weight: 500; line-height: 1.15; text-transform: uppercase; overflow-wrap: anywhere; }
-    .product-tile:active { background: #314d79; }
-    .product-bottom-bar { position: sticky; bottom: 0; display: grid; grid-template-columns: 2fr 1fr; min-height: 96px; background: #1f4a83ee; color: white; }
-    .product-bottom-bar button { background: transparent; color: white; border-left: 1px solid #ffffff22; font-size: 22px; font-weight: 700; display: grid; place-items: center; }
-    .product-bottom-bar span { display: block; font-size: 34px; line-height: 1; margin-bottom: 4px; }
-    .toolbar { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
-    .toolbar button { min-height: 44px; background: var(--blue); color: white; padding: 8px 12px; font-weight: 700; }
-    .toolbar .secondary { background: white; color: #263238; border: 1px solid #aab7c4; }
-    .toolbar .danger { background: #9f1d1d; }
-    table { width: 100%; border-collapse: collapse; background: white; }
-    th, td { border-bottom: 1px solid #d9e2ec; padding: 8px; text-align: left; }
-    .muted, .status { color: #52616f; font-size: 13px; margin: 8px 0; }
-    .selected { background: #eef6ff; }
-    @media (max-width: 760px) {
-      .title { font-size: 24px; }
-      .subtitle { font-size: 18px; }
-      .entry-row { grid-template-columns: 1fr 1fr; }
-      .continue-btn { grid-column: span 2; width: 100%; }
-      .command-tile { font-size: 24px; }
-      .menu-action-grid { gap: 12px; }
-      .menu-action-grid button { min-height: 116px; font-size: 16px; }
-      .work-grid { grid-template-columns: 1fr; }
-      .product-family-tabs button { min-width: 122px; min-height: 58px; font-size: 19px; }
-      .product-tile { min-height: 118px; font-size: 24px; }
-    }
-  </style>
-</head>
-<body>
-<div class="app-shell">
-  <div class="status-bar"><span>22:20</span><span>4G  Wi-Fi  bateria</span></div>
-  <header class="topbar">
-    <button class="back" type="button" onclick="showScreen('commands')">‹</button>
-    <div class="brand">
-      <div class="logo">XD</div>
-      <div>
-        <div id="screen-title" class="title">COMANDA</div>
-        <div id="screen-subtitle" class="subtitle">Selecione o/a COMANDA.</div>
-      </div>
-    </div>
-    <div class="top-actions"><button type="button" onclick="loadOrders()">⟳</button><button type="button" onclick="showScreen('work')">⌕</button></div>
-  </header>
-  <nav class="screen-tabs">
-    <button id="tab-commands" type="button" class="active" onclick="showScreen('commands')">COMANDA</button>
-    <button id="tab-table" type="button" onclick="showScreen('table')">MESA</button>
-    <button id="tab-work" type="button" onclick="showScreen('work')">PEDIR</button>
-  </nav>
-
-  <section id="screen-commands" class="screen active">
-    <form id="order-form">
-      <div class="entry-row">
-        <input class="field-line" name="command_number" placeholder="COMANDA">
-        <input class="field-line" name="people_count" placeholder="Nº de Pessoas">
-        <button class="continue-btn" type="button" onclick="showScreen('table')">CONTINUAR</button>
-      </div>
-      <div class="area-tabs">
-        <button type="button" class="active">TODAS</button>
-        <button type="button">BAR</button>
-        <button type="button">SALA</button>
-        <button type="button">ESPLANADA</button>
-      </div>
-      <div id="command-grid" class="command-grid">
-        <button class="command-tile" type="button" onclick="pickCommand('1')">COMANDA 1</button>
-        <button class="command-tile" type="button" onclick="pickCommand('2')">COMANDA 2</button>
-        <button class="command-tile" type="button" onclick="pickCommand('3')">COMANDA 3</button>
-        <button class="command-tile" type="button" onclick="pickCommand('4')">COMANDA 4</button>
-        <button class="command-tile" type="button" onclick="pickCommand('5')">COMANDA 5</button>
-        <button class="command-tile" type="button" onclick="pickCommand('6')">COMANDA 6</button>
-        <button class="command-tile" type="button" onclick="pickCommand('7')">COMANDA 7</button>
-        <button class="command-tile" type="button" onclick="pickCommand('8')">COMANDA 8</button>
-        <button class="command-tile" type="button" onclick="pickCommand('9')">COMANDA 9</button>
-      </div>
-    </form>
-  </section>
-
-  <section id="screen-table" class="screen">
-    <div class="mesa-panel">
-      <div class="mesa-row">
-        <input class="field-line" name="table_reference_proxy" placeholder="MESA">
-        <button class="continue-btn" type="button" onclick="copyMesaAndGo()">CONTINUAR</button>
-      </div>
-      <input name="table_reference" hidden form="order-form">
-    </div>
-  </section>
-
-  <section id="screen-work" class="screen">
-    <div class="ops-screen">
-      <div class="operator-strip">
-        <div>
-          <div class="avatar">●</div>
-          <div id="operator-label" class="operator-name">SUPORTE</div>
-        </div>
-        <div class="operator-actions">
-          <button type="button">⬆ CAIXA DE SAÍDA</button>
-          <button type="button">▣ MENSAGENS</button>
-        </div>
-      </div>
-      <button class="voice-btn" type="button"><span>♬</span>CONTROLE POR<br>VOZ</button>
-      <div class="menu-action-grid">
-        <button type="button" onclick="focusProduct()"><span class="icon">☑</span>PEDIR</button>
-        <button type="button" onclick="cancelSelectedOrder()"><span class="icon">☒</span>ANULAR</button>
-        <button type="button" onclick="printSelectedOrder()"><span class="icon">▤</span>SUBTOTAL</button>
-        <button type="button" onclick="printSelectedOrder()"><span class="icon">▣</span>CONTA</button>
-        <button type="button"><span class="icon">↔</span>TRANSFERÊNCIA</button>
-        <button type="button" onclick="closeSelectedOrder()"><span class="icon">▭</span>PAGAMENTO PARCIAL</button>
-        <button type="button" onclick="showScreen('commands')"><span class="icon">▤</span>OUTROS</button>
-        <button type="button"><span class="icon">$</span>DESCONTO</button>
-        <button type="button" onclick="showScreen('commands')"><span class="icon">←</span>MENU INICIAL</button>
-      </div>
-    </div>
-    <div class="work-area">
-      <div class="work-grid">
-        <div class="panel">
-          <div class="compact-grid">
-            <div class="wide">
-              <label>Operador</label>
-              <select name="operator_code" form="order-form"></select>
-            </div>
-            <div class="wide">
-              <label>Cliente</label>
-              <input name="customer_name" autocomplete="off" form="order-form">
-            </div>
-            <div class="wide">
-              <label>Token local</label>
-              <input name="token" type="password" autocomplete="off" form="order-form">
-            </div>
-            <div class="wide">
-              <label>Observação</label>
-              <textarea name="notes" rows="2" form="order-form"></textarea>
-            </div>
-          </div>
-          <div class="toolbar">
-            <button type="submit" form="order-form" id="submit-button">Abrir comanda</button>
-            <button type="button" class="secondary" onclick="newComanda()">Nova comanda</button>
-            <button type="button" onclick="closeSelectedOrder()">Fechar comanda</button>
-            <button type="button" class="danger" onclick="cancelSelectedOrder()">Cancelar comanda</button>
-          </div>
-          <div id="status" class="status"></div>
-          <div id="selected-order" class="muted">Nenhuma comanda selecionada.</div>
-        </div>
-        <div class="panel product-board">
-          <label>Famílias</label>
-          <div id="families-carousel" class="product-family-tabs"></div>
-          <div id="products" class="product-list"></div>
-          <div class="compact-grid">
-            <div><label>Código</label><input name="product_code" required form="order-form"></div>
-            <div><label>Quantidade</label><input name="quantity" type="number" min="0.001" step="0.001" required form="order-form"></div>
-            <div class="wide"><label>Descrição</label><input name="description" required form="order-form"></div>
-            <div><label>Valor unitário</label><input name="unit_price" type="number" min="0" step="0.01" required form="order-form"></div>
-            <div><label>Obs. item</label><input name="item_notes" placeholder="sem cebola, ponto da carne" form="order-form"></div>
-          </div>
-          <div class="product-bottom-bar">
-            <button type="button" onclick="printSelectedOrder()"><span>▣</span>VER CONTEUDO DA MESA</button>
-            <button type="button" onclick="showScreen('commands')"><span>✓</span>CONCLUIR</button>
-          </div>
-        </div>
-      </div>
-      <div class="panel">
-        <table>
-          <thead><tr><th>Item</th><th>Qtd</th><th>Unit.</th><th>Subtotal</th><th>Obs.</th><th>Ações</th></tr></thead>
-          <tbody id="selected-items"></tbody>
-        </table>
-      </div>
-      <div class="panel">
-        <table>
-          <thead><tr><th>Comanda</th><th>Mesa</th><th>Operador</th><th>Status</th><th>Total</th><th>Ações</th></tr></thead>
-          <tbody id="orders"></tbody>
-        </table>
-      </div>
-    </div>
-  </section>
-</div>
-<script>
-const form = document.getElementById('order-form');
-const statusEl = document.getElementById('status');
-const ordersEl = document.getElementById('orders');
-const selectedOrderEl = document.getElementById('selected-order');
-const selectedItemsEl = document.getElementById('selected-items');
-const submitButton = document.getElementById('submit-button');
-const operatorsEl = form.elements.operator_code;
-const familiesEl = document.getElementById('families-carousel');
-const productsEl = document.getElementById('products');
-let selectedOrder = null;
-
-function showScreen(name) {
-  const titleMap = {
-    commands: ['COMANDA', 'Selecione o/a COMANDA.'],
-    table: ['MESA', 'Selecione o/a MESA.'],
-    work: ['MENU', 'Operar comanda local.']
-  };
-  for (const item of ['commands', 'table', 'work']) {
-    document.getElementById(`screen-${item}`).classList.toggle('active', item === name);
-    document.getElementById(`tab-${item}`).classList.toggle('active', item === name);
-  }
-  document.getElementById('screen-title').textContent = titleMap[name][0];
-  document.getElementById('screen-subtitle').textContent = titleMap[name][1];
-}
-
-function pickCommand(value) {
-  form.elements.command_number.value = value;
-  for (const tile of document.querySelectorAll('.command-tile')) {
-    tile.classList.toggle('selected', tile.textContent.trim() === `COMANDA ${value}`);
-  }
-}
-
-function copyMesaAndGo() {
-  const mesa = document.querySelector('[name="table_reference_proxy"]').value;
-  form.elements.table_reference.value = mesa;
-  showScreen('work');
-}
-
-function focusProduct() {
-  showScreen('work');
-  form.elements.product_code.focus();
-}
-
-function printSelectedOrder() {
-  if (!selectedOrder) {
-    statusEl.textContent = 'Selecione uma comanda.';
-    return;
-  }
-  printPrebill(selectedOrder.uuid);
-}
-
-function headers() {
-  const token = form.elements.token.value;
-  return token ? {'Content-Type': 'application/json', 'X-Local-Token': token} : {'Content-Type': 'application/json'};
-}
-
-function escapeHtml(value) {
-  return String(value ?? '').replace(/[&<>"']/g, (char) => ({
-    '&': '&amp;',
-    '<': '&lt;',
-    '>': '&gt;',
-    '"': '&quot;',
-    "'": '&#39;'
-  }[char]));
-}
-
-async function loadOrders() {
-  const response = await fetch('/orders', {headers: headers()});
-  if (!response.ok) return;
-  const data = await response.json();
-  ordersEl.innerHTML = data.orders.map(order => `
-    <tr class="${selectedOrder && selectedOrder.uuid === order.uuid ? 'selected' : ''}">
-      <td>${escapeHtml(order.command_number)}</td>
-      <td>${escapeHtml(order.table_reference)}</td>
-      <td>${escapeHtml(order.operator_name || order.operator_code)}</td>
-      <td>${escapeHtml(order.status)}</td>
-      <td>${escapeHtml(order.total_amount)}</td>
-      <td>
-        <button type="button" onclick="selectOrder('${order.uuid}')">Usar</button>
-        <button type="button" onclick="printPrebill('${order.uuid}')">Imprimir</button>
-      </td>
-    </tr>`).join('');
-}
-
-async function selectOrder(uuid) {
-  const response = await fetch('/orders', {headers: headers()});
-  if (!response.ok) return;
-  const data = await response.json();
-  selectedOrder = data.orders.find(order => order.uuid === uuid) || null;
-  renderSelectedOrder();
-  await loadOrders();
-}
-
-function renderSelectedOrder() {
-  if (!selectedOrder) {
-    selectedOrderEl.textContent = 'Nenhuma comanda selecionada.';
-    selectedItemsEl.innerHTML = '';
-    submitButton.textContent = 'Abrir comanda';
-    return;
-  }
-  selectedOrderEl.textContent = `Comanda ${selectedOrder.command_number} | Mesa ${selectedOrder.table_reference || '-'} | Total ${selectedOrder.total_amount}`;
-  submitButton.textContent = 'Adicionar item na comanda';
-  selectedItemsEl.innerHTML = selectedOrder.items.map(item => `
-    <tr>
-      <td>${escapeHtml(item.description)}</td>
-      <td><input id="qty-${item.id}" type="number" min="0.001" step="0.001" value="${escapeHtml(item.quantity)}"></td>
-      <td>${escapeHtml(item.unit_price)}</td>
-      <td>${escapeHtml(item.line_total)}</td>
-      <td><input id="notes-${item.id}" value="${escapeHtml(item.notes)}"></td>
-      <td>
-        <button type="button" onclick="updateItem(${item.id})">Atualizar</button>
-        <button type="button" class="danger" onclick="removeItem(${item.id})">Remover</button>
-      </td>
-    </tr>`).join('');
-}
-
-function newComanda() {
-  selectedOrder = null;
-  renderSelectedOrder();
-}
-
-async function updateItem(itemId) {
-  if (!selectedOrder) return;
-  const response = await fetch(`/orders/${selectedOrder.uuid}/items/${itemId}`, {
-    method: 'PATCH',
-    headers: headers(),
-    body: JSON.stringify({
-      quantity: document.getElementById(`qty-${itemId}`).value,
-      notes: document.getElementById(`notes-${itemId}`).value
-    })
-  });
-  statusEl.textContent = response.ok ? 'Item atualizado.' : await response.text();
-  if (response.ok) {
-    selectedOrder = await response.json();
-    renderSelectedOrder();
-    await loadOrders();
-  }
-}
-
-async function removeItem(itemId) {
-  if (!selectedOrder) return;
-  const response = await fetch(`/orders/${selectedOrder.uuid}/items/${itemId}`, {
-    method: 'DELETE',
-    headers: headers()
-  });
-  statusEl.textContent = response.ok ? 'Item removido.' : await response.text();
-  if (response.ok) {
-    selectedOrder = await response.json();
-    renderSelectedOrder();
-    await loadOrders();
-  }
-}
-
-async function closeSelectedOrder() {
-  if (!selectedOrder) {
-    statusEl.textContent = 'Selecione uma comanda.';
-    return;
-  }
-  const raw = prompt('Pagamentos. Use: dinheiro=30,pix=40', `dinheiro=${selectedOrder.total_amount}`);
-  if (!raw) return;
-  const payments = raw.split(',').map(part => {
-    const [payment_method, amount] = part.split('=').map(value => value.trim());
-    return {payment_method, amount};
-  }).filter(payment => payment.payment_method && payment.amount);
-  const response = await fetch(`/orders/${selectedOrder.uuid}/close`, {
-    method: 'POST',
-    headers: headers(),
-    body: JSON.stringify({payments})
-  });
-  statusEl.textContent = response.ok ? 'Comanda fechada.' : await response.text();
-  if (response.ok) {
-    selectedOrder = await response.json();
-    renderSelectedOrder();
-    await loadOrders();
-  }
-}
-
-async function cancelSelectedOrder() {
-  if (!selectedOrder) {
-    statusEl.textContent = 'Selecione uma comanda.';
-    return;
-  }
-  const reason = prompt('Motivo do cancelamento') || null;
-  const response = await fetch(`/orders/${selectedOrder.uuid}/cancel`, {
-    method: 'POST',
-    headers: headers(),
-    body: JSON.stringify({reason})
-  });
-  statusEl.textContent = response.ok ? 'Comanda cancelada.' : await response.text();
-  if (response.ok) {
-    selectedOrder = await response.json();
-    renderSelectedOrder();
-    await loadOrders();
-  }
-}
-
-async function printPrebill(uuid) {
-  const response = await fetch(`/orders/${uuid}/prebill`, {headers: headers()});
-  if (!response.ok) {
-    statusEl.textContent = await response.text();
-    return;
-  }
-  const html = await response.text();
-  const printWindow = window.open('', '_blank');
-  printWindow.document.open();
-  printWindow.document.write(html);
-  printWindow.document.close();
-}
-
-async function loadOperators() {
-  const response = await fetch('/orders/operators', {headers: headers()});
-  operatorsEl.innerHTML = '<option value="">Operador manual/nao informado</option>';
-  if (!response.ok) return;
-  const data = await response.json();
-  for (const operator of data.operators) {
-    const option = document.createElement('option');
-    option.value = operator.code;
-    option.textContent = operator.name;
-    operatorsEl.appendChild(option);
-  }
-}
-
-async function loadFamilies() {
-  const response = await fetch('/orders/product-families', {headers: headers()});
-  if (!response.ok) return;
-  const data = await response.json();
-  familiesEl.innerHTML = data.families.map(family => `<button type="button" data-family="${escapeHtml(family)}">${escapeHtml(family)}</button>`).join('');
-  for (const button of familiesEl.querySelectorAll('button')) {
-    button.addEventListener('click', () => loadProducts(button.dataset.family));
-  }
-  if (data.families.length > 0) {
-    await loadProducts(data.families[0]);
-  }
-}
-
-async function loadProducts(family) {
-  const response = await fetch(`/orders/products?family=${encodeURIComponent(family)}`, {headers: headers()});
-  if (!response.ok) return;
-  const data = await response.json();
-  for (const button of familiesEl.querySelectorAll('button')) {
-    button.classList.toggle('active', button.dataset.family === family);
-  }
-  productsEl.innerHTML = data.products.map(product => `
-    <button class="product-tile" type="button" data-code="${escapeHtml(product.product_code)}" data-description="${escapeHtml(product.description)}" data-price="${escapeHtml(product.unit_price)}">
-      ${escapeHtml(product.description)}
-    </button>`).join('');
-  for (const button of productsEl.querySelectorAll('button')) {
-    button.addEventListener('click', () => {
-      form.elements.product_code.value = button.dataset.code;
-      form.elements.description.value = button.dataset.description;
-      form.elements.unit_price.value = button.dataset.price;
-      form.elements.quantity.value = form.elements.quantity.value || '1';
-      if (!selectedOrder) {
-        statusEl.textContent = 'Selecione ou abra uma comanda antes de pedir.';
-        return;
-      }
-      form.requestSubmit();
-    });
-  }
-}
-
-form.addEventListener('submit', async (event) => {
-  event.preventDefault();
-  const payload = {
-    command_number: form.elements.command_number.value || null,
-    table_reference: form.elements.table_reference.value || null,
-    operator_code: form.elements.operator_code.value || null,
-    customer_name: form.elements.customer_name.value || null,
-    notes: form.elements.notes.value || null,
-    items: [{
-      product_code: form.elements.product_code.value,
-      description: form.elements.description.value,
-      quantity: form.elements.quantity.value,
-      unit_price: form.elements.unit_price.value,
-      notes: form.elements.item_notes.value || null
-    }]
-  };
-  const url = selectedOrder ? `/orders/${selectedOrder.uuid}/items` : '/orders';
-  const method = 'POST';
-  const body = selectedOrder ? JSON.stringify(payload.items[0]) : JSON.stringify(payload);
-  const response = await fetch(url, {method, headers: headers(), body});
-  statusEl.textContent = response.ok ? (selectedOrder ? 'Item adicionado.' : 'Comanda salva localmente.') : await response.text();
-  if (response.ok) {
-    if (selectedOrder) {
-      selectedOrder = await response.json();
-      renderSelectedOrder();
-    }
-    form.elements.product_code.value = '';
-    form.elements.description.value = '';
-    form.elements.quantity.value = '';
-    form.elements.unit_price.value = '';
-    form.elements.item_notes.value = '';
-    await loadOrders();
-  }
-});
-
-loadOperators();
-loadFamilies();
-loadOrders();
-</script>
-</body>
-</html>
-"""

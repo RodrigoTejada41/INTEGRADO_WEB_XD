@@ -7,6 +7,7 @@ from agent_local.orders.repository import LocalOrderRepository, StoredOrder, Sto
 from agent_local.orders.schemas import (
     LocalOrderCancelRequest,
     LocalOrderCloseRequest,
+    LocalCommandaSettings,
     LocalOrderCreate,
     LocalOrderDiscountRequest,
     LocalOrderItemCreate,
@@ -39,6 +40,12 @@ class LocalOrderService:
 
     def list_permissions(self, operator_code: str) -> dict[str, bool]:
         return self.repository.list_permissions(operator_code)
+
+    def get_settings(self) -> LocalCommandaSettings:
+        return self.repository.get_settings()
+
+    def save_settings(self, payload: LocalCommandaSettings) -> LocalCommandaSettings:
+        return self.repository.save_settings(payload)
 
     def list_product_families(self) -> list[str]:
         return self.repository.list_product_families()

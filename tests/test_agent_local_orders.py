@@ -180,12 +180,16 @@ def test_local_orders_web_ui_is_available() -> None:
         response = client.get("/orders/ui")
 
     assert response.status_code == 200
-    assert "Comandas Locais" in response.text
-    assert "API local separada do sync de relatorios" in response.text
+    assert "Movi_commanda" in response.text
+    assert "Versao 1.0.0" in response.text
+    assert "USUARIOS" in response.text
+    assert "DEFINICOES" in response.text
+    assert "INICIAR" in response.text
     assert "Entrar" in response.text
-    assert "Pedido" in response.text
-    assert "Consultar comanda" in response.text
-    assert "Imprimir pre-conta" in response.text
+    assert "Definicoes" in response.text
+    assert "Smart Connect" in response.text
+    assert "Impressora Bluetooth" in response.text
+    assert "Sobre a aplicacao" in response.text
     assert "Buscar produto" in response.text
     assert "Revisar pedido" in response.text
     assert "Confirmar pedido" in response.text
@@ -198,6 +202,79 @@ def test_local_orders_web_ui_is_available() -> None:
     assert "TRANSFERENCIA" in response.text
     assert "PAGAMENTO PARCIAL" in response.text
     assert "DESCONTO" in response.text
+    assert "XD" not in response.text
+    assert "XD Orders" not in response.text
+    assert "XDOrders" not in response.text
+
+
+def test_local_commanda_settings_app_info_and_license() -> None:
+    db_path = Path("output/test_agent_local_orders/settings.db")
+    token_file = Path("output/test_agent_local_orders/settings_token.txt")
+    db_path.parent.mkdir(parents=True, exist_ok=True)
+    if db_path.exists():
+        db_path.unlink()
+    token_file.write_text("local-token-test", encoding="ascii")
+
+    os.environ["LOCAL_ORDER_DB_PATH"] = str(db_path)
+    os.environ["LOCAL_API_TOKEN_FILE"] = str(token_file)
+    os.environ["AGENT_EMPRESA_ID"] = "12345678000199"
+    os.environ["LOCAL_ORDER_AUTO_REFRESH_CATALOG"] = "false"
+    os.environ["LOCAL_COMMAND_APP_VERSION"] = "1.0.0"
+    os.environ["LOCAL_COMMAND_VERSION_CODE"] = "100"
+
+    local_api = _reload_local_api()
+
+    with TestClient(local_api.app) as client:
+        headers = {"X-Local-Token": "local-token-test"}
+
+        app_info = client.get("/orders/app-info", headers=headers)
+        assert app_info.status_code == 200, app_info.text
+        assert app_info.json() == {
+            "app_name": "Movi_commanda",
+            "version_name": "1.0.0",
+            "version_code": "100",
+        }
+
+        settings = client.get("/orders/settings", headers=headers)
+        assert settings.status_code == 200, settings.text
+        assert settings.json()["settings"]["ip_servidor"] == "127.0.0.1"
+
+        saved = client.put(
+            "/orders/settings",
+            headers=headers,
+            json={
+                "ip_servidor": "192.168.0.10",
+                "porta_servidor": 8765,
+                "licenca": "LIC-TESTE",
+                "ssid_wifi": "REDE-PDV",
+                "impressora_bluetooth": "Printer BT",
+                "dpi_impressora": 203,
+                "largura_impressora": 58,
+                "caracteres_por_linha": 32,
+                "tema_interface": "padrao",
+                "usuario_logado": "OP01",
+                "versao_app": "1.0.0",
+                "codigo_versao": "100",
+            },
+        )
+        assert saved.status_code == 200, saved.text
+        assert saved.json()["settings"]["licenca"] == "LIC-TESTE"
+
+        connection = client.post("/orders/settings/test-connection", headers=headers)
+        assert connection.status_code == 200, connection.text
+        assert connection.json()["host"] == "192.168.0.10"
+
+        loaded = client.post("/orders/settings/load-server-data", headers=headers)
+        assert loaded.status_code == 200, loaded.text
+        assert loaded.json()["status"] == "ok"
+
+        license_response = client.get("/orders/license", headers=headers)
+        assert license_response.status_code == 200, license_response.text
+        assert license_response.json()["status"] == "configured"
+
+        validated = client.post("/orders/license/validate", headers=headers)
+        assert validated.status_code == 200, validated.text
+        assert validated.json()["status"] == "valid"
 
 
 def test_local_comandas_use_operator_catalog_item_notes_and_prebill() -> None:

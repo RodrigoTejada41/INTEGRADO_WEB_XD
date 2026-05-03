@@ -8,7 +8,7 @@ def render_orders_ui() -> str:
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Comandas Locais</title>
+  <title>Movi_commanda</title>
   <style>
     :root {
       --bg: #f5f7fa;
@@ -84,8 +84,28 @@ def render_orders_ui() -> str:
     .table-list { width: 100%; border-collapse: collapse; background: #fff; }
     .table-list th, .table-list td { padding: 10px; border-bottom: 1px solid var(--line); text-align: left; font-size: 14px; }
     .table-list th:last-child, .table-list td:last-child { text-align: right; }
+    .initial-screen { min-height: calc(100vh - 68px); margin: -14px; padding: 20px 16px 16px; display: grid; grid-template-rows: 1fr auto; color: #fff; background: linear-gradient(160deg, #0f6f8d 0%, #145aa0 48%, #11315e 100%); }
+    .brand-hero { display: grid; align-content: center; gap: 18px; text-align: center; }
+    .brand-name { font-size: 34px; font-weight: 900; letter-spacing: 0; }
+    .brand-visual { width: min(240px, 72vw); aspect-ratio: 1 / .72; margin: 0 auto; border-radius: 22px; background: linear-gradient(145deg, #ffffffee, #d7fbffcc); color: #11456b; display: grid; place-items: center; box-shadow: 0 18px 42px #0000002f; }
+    .brand-visual strong { font-size: 54px; line-height: 1; }
+    .version-pill { justify-self: center; padding: 8px 14px; border: 1px solid #ffffff66; border-radius: 999px; background: #ffffff18; font-weight: 800; }
+    .initial-actions { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+    .initial-actions button { min-height: 82px; background: #082b54dd; color: #fff; border: 1px solid #ffffff33; display: grid; place-items: center; align-content: center; gap: 6px; }
+    .initial-actions .icon { width: 30px; height: 30px; border: 2px solid #fff; border-radius: 50%; display: grid; place-items: center; font-size: 12px; }
+    .settings-header { display: grid; grid-template-columns: auto 1fr; align-items: center; gap: 10px; margin-bottom: 12px; }
+    .settings-list { display: grid; gap: 10px; }
+    .settings-section { background: #fff; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+    .settings-section h2 { margin: 0; padding: 12px; font-size: 13px; color: var(--primary-dark); background: #eef6fb; text-transform: uppercase; }
+    .setting-row { display: grid; grid-template-columns: 1fr minmax(110px, 42%); gap: 10px; align-items: center; padding: 12px; border-top: 1px solid var(--line); }
+    .setting-row strong { display: block; font-size: 15px; }
+    .setting-row small { color: var(--muted); }
     @media (min-width: 700px) {
       .screen { padding: 18px; }
+      .initial-screen { margin: -18px; padding: 28px 24px 20px; }
+      .brand-name { font-size: 44px; }
+      .initial-actions { max-width: 760px; width: 100%; margin: 0 auto; }
+      .initial-actions button { min-height: 110px; font-size: 18px; }
       .menu-screen { margin: -18px; padding: 18px; }
       .actions { grid-template-columns: repeat(3, minmax(0, 1fr)); }
       .menu { grid-template-columns: repeat(4, minmax(0, 1fr)); }
@@ -106,14 +126,29 @@ def render_orders_ui() -> str:
 <div class="app">
   <header class="topbar">
     <div>
-      <div id="title" class="title">Comandas Locais</div>
-      <div id="subtitle" class="subtitle">API local separada do sync de relatorios</div>
+      <div id="title" class="title">Movi_commanda</div>
+      <div id="subtitle" class="subtitle">Sistema local de comandas</div>
     </div>
     <div id="user-badge" class="user-badge">Sem usuario</div>
   </header>
 
   <main>
-    <section id="screen-login" class="screen active">
+    <section id="screen-initial" class="screen active">
+      <div class="initial-screen">
+        <div class="brand-hero">
+          <div class="brand-name">Movi_commanda</div>
+          <div class="brand-visual"><strong>MC</strong></div>
+          <div id="app-version" class="version-pill">Versao 1.0.0</div>
+        </div>
+        <div class="initial-actions">
+          <button type="button" onclick="openUsers()"><span class="icon">U</span>USUARIOS</button>
+          <button type="button" onclick="openSettings()"><span class="icon">D</span>DEFINICOES</button>
+          <button type="button" onclick="startApplication()"><span class="icon">I</span>INICIAR</button>
+        </div>
+      </div>
+    </section>
+
+    <section id="screen-login" class="screen">
       <div class="surface stack">
         <div class="grid">
           <div>
@@ -134,6 +169,55 @@ def render_orders_ui() -> str:
           <button class="secondary" type="button" onclick="loadUsers()">Carregar usuarios</button>
         </div>
         <div id="login-message" class="muted"></div>
+      </div>
+    </section>
+
+    <section id="screen-settings" class="screen">
+      <div class="settings-header">
+        <button class="secondary" type="button" onclick="showScreen('initial')">Voltar</button>
+        <div>
+          <div class="title" style="color:var(--text);">Definicoes</div>
+          <div class="muted">Movi_commanda</div>
+        </div>
+      </div>
+      <div class="settings-list">
+        <div class="settings-section">
+          <h2>Servidor</h2>
+          <div class="setting-row"><div><strong>Smart Connect</strong><small>Conexao local configuravel</small></div><button class="secondary" type="button" onclick="testConnection()">Testar</button></div>
+          <div class="setting-row"><div><strong>Endereco IP</strong><small>Servidor local ou remoto</small></div><input id="set-ip-servidor"></div>
+          <div class="setting-row"><div><strong>Licenca</strong><small>Codigo de licenca</small></div><input id="set-licenca"></div>
+          <div class="setting-row"><div><strong>Porta</strong><small>Porta da API</small></div><input id="set-porta-servidor" type="number" min="1" max="65535"></div>
+          <div class="setting-row"><div><strong>Nome da(s) rede(s) Wi-Fi</strong><small>SSID permitido</small></div><input id="set-ssid-wifi"></div>
+          <div class="setting-row"><div><strong>Carregar dados</strong><small>Atualiza usuarios, familias e produtos</small></div><button class="primary" type="button" onclick="loadServerData()">Carregar dados</button></div>
+        </div>
+        <div class="settings-section">
+          <h2>Impressora Bluetooth</h2>
+          <div class="setting-row"><div><strong>Selecione a impressora</strong><small>Nome da impressora local</small></div><input id="set-impressora-bluetooth"></div>
+          <div class="setting-row"><div><strong>DPI da impressora</strong></div><input id="set-dpi-impressora" type="number" min="72" max="600"></div>
+          <div class="setting-row"><div><strong>Largura da impressora</strong></div><input id="set-largura-impressora" type="number" min="20" max="120"></div>
+          <div class="setting-row"><div><strong>Caracteres por linha</strong></div><input id="set-caracteres-por-linha" type="number" min="16" max="80"></div>
+        </div>
+        <div class="settings-section">
+          <h2>Outras configuracoes</h2>
+          <div class="setting-row"><div><strong>Interface</strong><small>Tema visual</small></div><input id="set-tema-interface"></div>
+          <div class="setting-row"><div><strong>Aplicativo</strong><small>Usuario logado</small></div><input id="set-usuario-logado"></div>
+        </div>
+        <div class="settings-section">
+          <h2>Ajuda</h2>
+          <div class="setting-row"><div><strong>Pagina oficial</strong><small>movisystecnologia.com.br</small></div><button class="secondary" type="button" onclick="window.open('https://movisystecnologia.com.br','_blank')">Abrir</button></div>
+          <div class="setting-row"><div><strong>Fale conosco</strong><small>Suporte MoviSys</small></div><button class="secondary" type="button" onclick="openModal('Fale conosco', '<pre>Entre em contato com o suporte MoviSys.</pre>')">Abrir</button></div>
+        </div>
+        <div class="settings-section">
+          <h2>Sobre</h2>
+          <div class="setting-row"><div><strong>Sobre a aplicacao</strong><small>Sistema mobile de comandas</small></div><span>Movi_commanda</span></div>
+          <div class="setting-row"><div><strong>Nome da versao</strong></div><input id="set-versao-app"></div>
+          <div class="setting-row"><div><strong>Codigo da versao</strong></div><input id="set-codigo-versao"></div>
+        </div>
+        <div class="actions">
+          <button class="primary" type="button" onclick="saveSettings()">Salvar definicoes</button>
+          <button class="secondary" type="button" onclick="validateLicense()">Validar licenca</button>
+        </div>
+        <div id="settings-message" class="muted"></div>
       </div>
     </section>
 
@@ -308,7 +392,9 @@ function showScreen(name) {
   for (const screen of document.querySelectorAll('.screen')) screen.classList.remove('active');
   document.getElementById(`screen-${name}`).classList.add('active');
   document.getElementById('title').textContent = {
-    login: 'Comandas Locais',
+    initial: 'Movi_commanda',
+    login: 'Usuarios',
+    settings: 'Definicoes',
     menu: 'Menu principal',
     start: 'Novo pedido',
     products: 'Selecionar produtos',
@@ -316,6 +402,7 @@ function showScreen(name) {
     consult: 'Consultar comanda',
     print: 'Imprimir pre-conta'
   }[name];
+  document.getElementById('subtitle').textContent = name === 'initial' ? 'Sistema local de comandas' : 'Movi_commanda';
 }
 
 function money(value) {
@@ -342,6 +429,109 @@ async function loadUsers() {
   select.innerHTML = data.operators.map(user => `<option value="${escapeHtml(user.code)}">${escapeHtml(user.name)}</option>`).join('');
   message.className = 'muted';
   message.textContent = data.operators.length ? 'Usuarios carregados.' : 'Nenhum usuario ativo encontrado.';
+}
+
+async function loadAppInfo() {
+  const response = await fetch('/orders/app-info', {headers: localHeaders(false)});
+  if (!response.ok) return;
+  const data = await response.json();
+  document.getElementById('app-version').textContent = `Versao ${data.version_name}`;
+}
+
+function openUsers() {
+  loadUsers();
+  showScreen('login');
+}
+
+function startApplication() {
+  if (state.sessionToken && state.operator) {
+    showScreen('menu');
+    return;
+  }
+  openUsers();
+}
+
+async function openSettings() {
+  await loadSettings();
+  showScreen('settings');
+}
+
+function settingsPayload() {
+  return {
+    ip_servidor: document.getElementById('set-ip-servidor').value,
+    porta_servidor: document.getElementById('set-porta-servidor').value || null,
+    licenca: document.getElementById('set-licenca').value,
+    ssid_wifi: document.getElementById('set-ssid-wifi').value,
+    impressora_bluetooth: document.getElementById('set-impressora-bluetooth').value,
+    dpi_impressora: document.getElementById('set-dpi-impressora').value || null,
+    largura_impressora: document.getElementById('set-largura-impressora').value || null,
+    caracteres_por_linha: document.getElementById('set-caracteres-por-linha').value || null,
+    tema_interface: document.getElementById('set-tema-interface').value,
+    usuario_logado: document.getElementById('set-usuario-logado').value,
+    versao_app: document.getElementById('set-versao-app').value,
+    codigo_versao: document.getElementById('set-codigo-versao').value
+  };
+}
+
+function fillSettings(settings) {
+  document.getElementById('set-ip-servidor').value = settings.ip_servidor || '';
+  document.getElementById('set-porta-servidor').value = settings.porta_servidor || '';
+  document.getElementById('set-licenca').value = settings.licenca || '';
+  document.getElementById('set-ssid-wifi').value = settings.ssid_wifi || '';
+  document.getElementById('set-impressora-bluetooth').value = settings.impressora_bluetooth || '';
+  document.getElementById('set-dpi-impressora').value = settings.dpi_impressora || 203;
+  document.getElementById('set-largura-impressora').value = settings.largura_impressora || 58;
+  document.getElementById('set-caracteres-por-linha').value = settings.caracteres_por_linha || 32;
+  document.getElementById('set-tema-interface').value = settings.tema_interface || 'padrao';
+  document.getElementById('set-usuario-logado').value = settings.usuario_logado || '';
+  document.getElementById('set-versao-app').value = settings.versao_app || '';
+  document.getElementById('set-codigo-versao').value = settings.codigo_versao || '';
+}
+
+async function loadSettings() {
+  const message = document.getElementById('settings-message');
+  const response = await fetch('/orders/settings', {headers: localHeaders(false)});
+  if (!response.ok) {
+    if (message) message.textContent = 'Nao foi possivel carregar definicoes. Verifique token local.';
+    return;
+  }
+  const data = await response.json();
+  fillSettings(data.settings);
+}
+
+async function saveSettings() {
+  const message = document.getElementById('settings-message');
+  const payload = settingsPayload();
+  if (!payload.ip_servidor || !payload.porta_servidor) {
+    message.className = 'error';
+    message.textContent = 'Endereco IP e porta sao obrigatorios.';
+    return;
+  }
+  const response = await fetch('/orders/settings', {
+    method: 'PUT',
+    headers: localHeaders(),
+    body: JSON.stringify(payload)
+  });
+  message.className = response.ok ? 'success' : 'error';
+  message.textContent = response.ok ? 'Definicoes salvas.' : await response.text();
+}
+
+async function testConnection() {
+  const response = await fetch('/orders/settings/test-connection', {method: 'POST', headers: localHeaders(false)});
+  const data = response.ok ? await response.json() : {message: await response.text()};
+  openModal('Smart Connect', `<pre>${escapeHtml(data.message)}</pre>`);
+}
+
+async function loadServerData() {
+  const response = await fetch('/orders/settings/load-server-data', {method: 'POST', headers: localHeaders(false)});
+  const data = response.ok ? await response.json() : {message: await response.text()};
+  openModal('Carregar dados', `<pre>${escapeHtml(data.message)}</pre>`);
+}
+
+async function validateLicense() {
+  const response = await fetch('/orders/license/validate', {method: 'POST', headers: localHeaders(false)});
+  const data = response.ok ? await response.json() : {message: await response.text()};
+  openModal('Licenca', `<pre>${escapeHtml(data.message)}</pre>`);
 }
 
 async function login() {
@@ -753,7 +943,7 @@ function openOtherMenu() {
 
 function goInitialMenu() {
   if (state.cart.length && !confirm('Existe pedido nao enviado. Deseja sair mesmo assim?')) return;
-  logout();
+  showScreen('initial');
 }
 
 function printPrebill() {
@@ -765,6 +955,7 @@ function printPrebill() {
   window.open(`/orders/${uuid}/prebill`, '_blank');
 }
 
+loadAppInfo();
 loadUsers();
 </script>
 </body>
