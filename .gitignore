@@ -19,6 +19,7 @@ env/
 .env
 .env.prod
 agent_local/data/agent_api_key.txt
+licensa lic/
 
 # Generated databases and runtime artifacts
 output/

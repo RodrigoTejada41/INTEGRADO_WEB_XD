@@ -15,7 +15,7 @@ def _ensure_sync_admin_path() -> None:
         sys.path.insert(0, str(sync_admin_root))
 
 
-def test_sync_admin_role_based_access() -> None:
+def test_sync_admin_role_based_access(monkeypatch) -> None:
     db_path = Path("output/test_sync_admin_rbac.db")
     if db_path.exists():
         db_path.unlink()
@@ -25,12 +25,63 @@ def test_sync_admin_role_based_access() -> None:
     os.environ["INITIAL_ADMIN_USERNAME"] = "admin"
     os.environ["INITIAL_ADMIN_PASSWORD"] = "admin123"
     os.environ["INTEGRATION_API_KEY"] = "sync-key-change-me"
+    os.environ["REMOTE_COMMAND_PULL_ENABLED"] = "false"
 
     _ensure_sync_admin_path()
 
     from fastapi.testclient import TestClient
 
     from app.main import app
+    from app.services.control_service import ControlService, ControlSummary
+    from app.web.routes import pages
+
+    monkeypatch.setattr(
+        ControlService,
+        "fetch_summary",
+        lambda self: ControlSummary(
+            api_health="offline",
+            sync_batches_total=0.0,
+            sync_records_inserted_total=0.0,
+            sync_records_updated_total=0.0,
+            sync_application_failures_total=0.0,
+            preflight_connection_errors_total=0.0,
+            retention_processed_total=0.0,
+            tenant_destination_delivery_total=0.0,
+            tenant_destination_delivery_failed_total=0.0,
+        ),
+    )
+    monkeypatch.setattr(ControlService, "fetch_source_configs", lambda self: [])
+    monkeypatch.setattr(ControlService, "fetch_sync_jobs", lambda self, limit=50: [])
+    monkeypatch.setattr(ControlService, "fetch_destination_configs", lambda self: [])
+    monkeypatch.setattr(ControlService, "fetch_audit_summary", lambda self: {})
+    monkeypatch.setattr(ControlService, "fetch_audit_events", lambda self, limit=10: [])
+    monkeypatch.setattr(ControlService, "fetch_produto_de_para", lambda self, **kwargs: [])
+    monkeypatch.setattr(ControlService, "fetch_produtos_sem_de_para", lambda self, **kwargs: [])
+    monkeypatch.setattr(
+        ControlService,
+        "get_server_settings",
+        lambda self: {
+            "ingestion_enabled": True,
+            "max_batch_size": 1000,
+            "retention_mode": "archive",
+            "retention_months": 14,
+            "connection_secrets_file": "output/tenant_connection_secrets.json",
+        },
+    )
+    monkeypatch.setattr(
+        pages,
+        "_build_report_payload",
+        lambda **_: {
+            "overview": {
+                "total_records": 0,
+                "total_sales_value": 0.0,
+                "distinct_products": 0,
+            },
+            "top_items": [],
+            "comparison": None,
+            "highlight_cards": [],
+        },
+    )
 
     with TestClient(app) as client:
         login_resp = client.post(

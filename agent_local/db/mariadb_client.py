@@ -71,6 +71,15 @@ class MariaDBClient:
             }
             return {key: value for key, value in metadata.items() if value}
 
+    def fetch_order_catalog(self) -> dict[str, list[dict[str, str]]]:
+        with self.session_factory() as session:
+            tables = self._list_tables(session)
+            table_columns = self._list_columns_for_reference_tables(session, tables)
+            return {
+                "operators": self._discover_order_operators(session, tables),
+                "products": self._discover_order_products(session, tables, table_columns),
+            }
+
     def _resolve_source_query(self) -> str:
         if not self.source_query:
             raise RuntimeError("source_query nao configurada.")
@@ -150,6 +159,10 @@ class MariaDBClient:
             "xconfigpaymenttypes",
             "itemsgroups",
             "items",
+            "operators",
+            "employees",
+            "users",
+            "xconfigoperators",
             "xconfigitemsunits",
             "entities",
         }
@@ -203,6 +216,184 @@ class MariaDBClient:
             )
         ).scalars()
         return [str(item).strip() for item in rows if item and str(item).strip()]
+
+    def _discover_order_operators(self, session: Session, tables: set[str]) -> list[dict[str, str]]:
+        for expected_table in ("xconfigoperators", "operators", "employees", "users"):
+            table_name = self._find_table(tables, expected_table)
+            if not table_name:
+                continue
+            columns = self._list_columns(session, table_name)
+            code_column = self._first_available_column(columns, ("Code", "KeyId", "Id", "UserName", "Login", "Name"))
+            name_column = self._first_available_column(columns, ("Name", "Description", "FullName", "UserName", "Login"))
+            if not code_column or not name_column:
+                continue
+            inactive_filter = "WHERE COALESCE(Inactive, 0) = 0" if "Inactive" in columns else ""
+            rows = session.execute(
+                text(
+                    f"""
+                    SELECT DISTINCT `{code_column}` AS code, `{name_column}` AS name
+                    FROM `{table_name}`
+                    {inactive_filter}
+                    ORDER BY `{name_column}` ASC
+                    LIMIT 100
+                    """
+                )
+            ).mappings()
+            discovered = self._normalize_operator_rows(rows)
+            if discovered:
+                return discovered
+
+        header_table = self._find_table(tables, "documentsheaders")
+        if not header_table:
+            return []
+        header_columns = self._list_columns(session, header_table)
+        name_column = self._first_available_column(header_columns, ("OperatorName", "SalesmanName", "EmployeeName"))
+        if not name_column:
+            return []
+        rows = session.execute(
+            text(
+                f"""
+                SELECT DISTINCT `{name_column}` AS code, `{name_column}` AS name
+                FROM `{header_table}`
+                WHERE `{name_column}` IS NOT NULL AND TRIM(`{name_column}`) <> ''
+                ORDER BY `{name_column}` ASC
+                LIMIT 100
+                """
+            )
+        ).mappings()
+        return self._normalize_operator_rows(rows)
+
+    def _discover_order_products(
+        self,
+        session: Session,
+        tables: set[str],
+        table_columns: dict[str, set[str]],
+    ) -> list[dict[str, str]]:
+        items_table = self._find_table(tables, "items")
+        if items_table:
+            items_columns = self._list_columns(session, items_table)
+            code_column = self._first_available_column(items_columns, ("KeyId", "ItemKeyId", "Code", "Id"))
+            description_column = self._first_available_column(items_columns, ("Description", "Name"))
+            price_column = self._first_available_column(
+                items_columns,
+                (
+                    "RetailPrice1",
+                    "RetailPrice",
+                    "SalePrice",
+                    "UnitPrice",
+                    "Price",
+                    "Pvp",
+                    "NetPrice1",
+                    "AskingPrice",
+                ),
+            )
+            group_column = self._first_available_column(items_columns, ("GroupId", "ItemGroupId"))
+            groups_table = self._find_table(tables, "itemsgroups")
+            if code_column and description_column:
+                family_expr = "'Geral'"
+                join_sql = ""
+                if groups_table and group_column:
+                    groups_columns = table_columns.get(groups_table) or self._list_columns(session, groups_table)
+                    group_key = self._first_available_column(groups_columns, ("Id", "KeyId", "GroupId"))
+                    group_name = self._first_available_column(groups_columns, ("Description", "Name"))
+                    if group_key and group_name:
+                        join_sql = f"LEFT JOIN `{groups_table}` g ON g.`{group_key}` = i.`{group_column}`"
+                        family_expr = f"COALESCE(g.`{group_name}`, 'Geral')"
+                price_expr = f"COALESCE(i.`{price_column}`, 0)" if price_column else "0"
+                inactive_filter = "WHERE COALESCE(i.Inactive, 0) = 0" if "Inactive" in items_columns else ""
+                rows = session.execute(
+                    text(
+                        f"""
+                        SELECT DISTINCT
+                            i.`{code_column}` AS product_code,
+                            i.`{description_column}` AS description,
+                            {family_expr} AS family,
+                            {price_expr} AS unit_price
+                        FROM `{items_table}` i
+                        {join_sql}
+                        {inactive_filter}
+                        ORDER BY family, description
+                        LIMIT 500
+                        """
+                    )
+                ).mappings()
+                products = self._normalize_product_rows(rows)
+                if products:
+                    return products
+
+        sales_view = self._find_table(tables, "salesdocumentsreportview")
+        if not sales_view:
+            return []
+        columns = self._list_columns(session, sales_view)
+        if not {"ItemKeyId", "ItemDescription"} <= columns:
+            return []
+        family_expr = "COALESCE(ItemGroupId, 'Geral')" if "ItemGroupId" in columns else "'Geral'"
+        price_column = self._first_available_column(
+            columns,
+            ("RetailPrice", "UnitPrice", "Price", "TotalAmount", "TotalNetAmount"),
+        )
+        price_expr = f"COALESCE({price_column}, 0)" if price_column else "0"
+        rows = session.execute(
+            text(
+                f"""
+                SELECT DISTINCT
+                    ItemKeyId AS product_code,
+                    ItemDescription AS description,
+                    {family_expr} AS family,
+                    {price_expr} AS unit_price
+                FROM `{sales_view}`
+                WHERE ItemKeyId IS NOT NULL
+                  AND ItemDescription IS NOT NULL
+                ORDER BY family, description
+                LIMIT 500
+                """
+            )
+        ).mappings()
+        return self._normalize_product_rows(rows)
+
+    @staticmethod
+    def _first_available_column(columns: set[str], candidates: tuple[str, ...]) -> str | None:
+        lowered = {column.lower(): column for column in columns}
+        for candidate in candidates:
+            found = lowered.get(candidate.lower())
+            if found:
+                return found
+        return None
+
+    @staticmethod
+    def _normalize_operator_rows(rows) -> list[dict[str, str]]:
+        operators = []
+        seen = set()
+        for row in rows:
+            code = str(row["code"]).strip() if row["code"] is not None else ""
+            name = str(row["name"]).strip() if row["name"] is not None else ""
+            if not code or not name or code in seen:
+                continue
+            seen.add(code)
+            operators.append({"code": code, "name": name})
+        return operators
+
+    @staticmethod
+    def _normalize_product_rows(rows) -> list[dict[str, str]]:
+        products = []
+        seen = set()
+        for row in rows:
+            product_code = str(row["product_code"]).strip() if row["product_code"] is not None else ""
+            description = str(row["description"]).strip() if row["description"] is not None else ""
+            family = str(row["family"]).strip() if row["family"] is not None else "Geral"
+            unit_price = str(row["unit_price"]).strip() if row["unit_price"] is not None else "0"
+            if not product_code or not description or product_code in seen:
+                continue
+            seen.add(product_code)
+            products.append(
+                {
+                    "product_code": product_code,
+                    "description": description,
+                    "family": family or "Geral",
+                    "unit_price": unit_price or "0",
+                }
+            )
+        return products
 
     @staticmethod
     def _extract_company_name_from_config_json(raw_value: object) -> str | None:

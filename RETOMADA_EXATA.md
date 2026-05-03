@@ -2,6 +2,493 @@
 
 Data de atualizacao: 2026-05-02
 
+## Checkpoint UI produtos por familia - 2026-05-03
+
+### Implementado
+- Tela local de produtos ajustada para operar como a referencia XD:
+  - abas horizontais por familia no topo;
+  - primeira familia carrega automaticamente;
+  - produtos em grade de 3 colunas;
+  - botoes grandes com nome do produto em caixa alta;
+  - barra inferior com `VER CONTEUDO DA MESA` e `CONCLUIR`.
+- Clique no produto:
+  - preenche codigo, descricao, preco e quantidade;
+  - adiciona direto na comanda selecionada;
+  - se nao houver comanda selecionada, bloqueia e mostra aviso.
+
+### Aplicado no cliente instalado
+- Backup:
+  - `C:\MoviSyncAgent\backup_product_family_ui_20260503_003902`
+- Arquivo atualizado:
+  - `C:\MoviSyncAgent\agent_local\local_api.py`
+- API local reiniciada:
+  - `http://127.0.0.1:8765`
+
+### Validacao real no instalado
+- `GET /health` -> `{"status":"ok"}`
+- `GET /orders/ui` -> HTTP 200
+- Tela instalada contem:
+  - `product-family-tabs`
+  - `product-tile`
+  - `VER CONTEUDO DA MESA`
+  - `CONCLUIR`
+- Familias reais carregadas:
+  - `ALCOOLICOS`
+  - `BEBIDAS`
+  - `BIFUM`
+  - `CARE`
+  - `DIVERSOS`
+  - `ENTRADAS`
+  - `FRIOS`
+  - `Geral`
+  - `LAMEN`
+  - `SOBA`
+  - `SOBREMESA`
+  - `SUSHI`
+  - `TEISHOKU`
+  - `UDON`
+  - `YAKISOBA`
+
+### Validacao no workspace
+- `py -3 -m pytest tests\test_agent_local_orders.py tests\test_agent_local_sales_mapping.py tests\test_source_connectors.py -q` -> `15 passed`
+- `py -3 -m compileall agent_local -q` -> sem erro
+
+### Proximo passo recomendado
+1. Validar visualmente no celular/tablet a tela `http://127.0.0.1:8765/orders/ui`.
+2. Selecionar uma comanda aberta e tocar em produtos de familias diferentes.
+3. Se necessario, ajustar altura das celulas para o tamanho real da tela usada no restaurante.
+
+## Checkpoint impressao termica local - 2026-05-02
+
+### Implementado
+- Renderizacao de cupom termico local para comandas:
+  - `GET /orders/{uuid}/thermal-receipt`
+  - texto 32 colunas por default
+  - inclui comanda, mesa, operador, status, itens, observacoes, total e pagamentos.
+- Geracao de job local de impressao:
+  - `POST /orders/{uuid}/print`
+  - grava arquivo `.txt` em `LOCAL_ORDER_PRINT_JOBS_DIR`
+  - retorna `queued` quando impressora fisica nao esta configurada
+  - retorna `sent` quando `LOCAL_ORDER_PRINTER_NAME` esta configurado e o Windows aceita o envio via spool.
+- Configuracoes adicionadas:
+  - `LOCAL_ORDER_PRINT_JOBS_DIR=agent_local/data/print_jobs`
+  - `LOCAL_ORDER_RECEIPT_WIDTH=32`
+  - `LOCAL_ORDER_PRINTER_NAME=`
+- UI local ajustada:
+  - texto do botao `PAGAMENTO PARCIAL` corrigido para manter contrato validado por teste.
+
+### Decisao tecnica
+- A API nao recebe nome de impressora por requisicao.
+- Nome da impressora fica somente em configuracao local.
+- Isso reduz risco de execucao indevida e evita acoplamento entre UI e spool do Windows.
+- Se a impressora nao estiver definida, o sistema nao perde a impressao: o job fica persistido em arquivo.
+
+### Arquivos alterados
+- `agent_local/orders/printer.py`
+- `agent_local/orders/service.py`
+- `agent_local/orders/schemas.py`
+- `agent_local/local_api.py`
+- `agent_local/.env.example`
+- `tests/test_agent_local_orders.py`
+
+### Validacao no workspace
+- `py -3 -m pytest tests\test_agent_local_orders.py tests\test_agent_local_sales_mapping.py tests\test_source_connectors.py -q` -> `15 passed`
+- `py -3 -m compileall agent_local -q` -> sem erro
+
+### Proximo passo recomendado
+1. Configurar `LOCAL_ORDER_PRINTER_NAME` no cliente instalado com o nome exato da impressora termica do Windows.
+2. Aplicar os arquivos no `C:\MoviSyncAgent`.
+3. Reiniciar API local.
+4. Criar comanda teste e validar `POST /orders/{uuid}/print`.
+5. Se houver cozinha/bar, evoluir para impressao de producao por familia/impressora.
+
+## Checkpoint pagamento dividido local - 2026-05-02
+
+### Implementado
+- Fechamento de comanda com pagamento dividido.
+- Compatibilidade mantida com pagamento unico antigo:
+  - `payment_method`
+  - `amount_paid`
+- Novo formato aceito em `POST /orders/{uuid}/close`:
+  - `payments: [{ payment_method, amount }]`
+- Persistencia local:
+  - tabela `local_order_payments`
+  - cada pagamento fica vinculado ao `order_uuid`
+- Regras:
+  - soma dos pagamentos precisa ser maior ou igual ao total da comanda;
+  - pagamento com valor zero nao e aceito;
+  - comanda fechada nao pode receber novos itens;
+  - `payment_method` consolidado fica como `dinheiro + pix`, por exemplo.
+- Pre-conta:
+  - passa a listar as formas de pagamento quando a comanda ja estiver fechada.
+- UI local:
+  - fechamento aceita entrada no formato:
+    - `dinheiro=30,pix=40`
+
+### Aplicado no cliente instalado
+- Backup:
+  - `C:\MoviSyncAgent\backup_split_payments_20260502_222529`
+- Arquivos atualizados:
+  - `C:\MoviSyncAgent\agent_local\local_api.py`
+  - `C:\MoviSyncAgent\agent_local\orders\*.py`
+- API local reiniciada:
+  - `http://127.0.0.1:8765`
+
+### Validacao real no instalado
+- Criada e fechada comanda teste:
+  - `command_number=TESTE-PAG-DIV`
+  - `uuid=4f419aff-e111-4cc0-8249-e33b4dacd967`
+  - total `16.00`
+  - pagamentos:
+    - `dinheiro=6.00`
+    - `pix=10.00`
+  - status final `closed`
+  - `payment_method=dinheiro + pix`
+  - `amount_paid=16.00`
+  - pre-conta validada com dinheiro + pix
+- Status final:
+  - `GET /status` -> `sync_running=true`
+
+### Validacao no workspace
+- `py -3 -m pytest tests\test_agent_local_orders.py tests\test_agent_local_sales_mapping.py tests\test_source_connectors.py -q` -> `14 passed`
+- `py -3 -m compileall agent_local -q` -> sem erro
+
+### Proximo passo recomendado
+1. Implementar impressao termica local.
+2. Se houver cozinha/bar, separar impressao de producao por familia/impressora.
+3. Depois avaliar se comanda fechada precisa virar pre-venda/orcamento no XD.
+
+## Checkpoint preco automatico de produtos nas comandas - 2026-05-02
+
+### Problema
+- Produtos do catalogo local estavam vindo do XD com `unit_price=0`.
+- Causa:
+  - detector procurava campos genericos como `SalePrice`, `UnitPrice`, `Price`, `Pvp`;
+  - tabela real `items` usa `RetailPrice1`;
+  - `salesdocumentsreportview` usa `RetailPrice`.
+
+### Correcao aplicada
+- `agent_local/db/mariadb_client.py` agora prioriza:
+  - `RetailPrice1`
+  - `RetailPrice`
+  - `SalePrice`
+  - `UnitPrice`
+  - `Price`
+  - `Pvp`
+  - `NetPrice1`
+  - `AskingPrice`
+- Fallback por historico de venda tambem usa `RetailPrice` quando disponivel.
+
+### Aplicado no cliente instalado
+- Backup:
+  - `C:\MoviSyncAgent\backup_price_catalog_20260502_220714`
+- Arquivo atualizado:
+  - `C:\MoviSyncAgent\agent_local\db\mariadb_client.py`
+- API local reiniciada:
+  - `http://127.0.0.1:8765`
+
+### Validacao real no instalado
+- `GET /health` -> `{"status":"ok"}`
+- `GET /orders/products?family=BEBIDAS` retornou precos reais:
+  - `AGUA = 8.000000`
+  - `COCA COLA 350ml = 8.000000`
+  - `SUCO LARANJA = 14.000000`
+- Criada e cancelada comanda teste:
+  - `command_number=TESTE-PRECO-CODEX`
+  - `uuid=f5378239-0fd0-4ec4-9d9b-644c66d4f95c`
+  - item `AGUA`
+  - quantidade `2`
+  - preco unitario `8.000000`
+  - total `16.00`
+  - status final `cancelled`
+
+### Validacao no workspace
+- `py -3 -m pytest tests\test_agent_local_orders.py tests\test_agent_local_sales_mapping.py tests\test_source_connectors.py -q` -> `13 passed`
+- `py -3 -m compileall agent_local -q` -> sem erro
+
+### Proximo passo recomendado
+1. Validar manualmente na tela se todos os grupos principais trazem preco.
+2. Implementar pagamento dividido.
+3. Implementar impressao termica local, se houver impressora definida.
+
+## Checkpoint operacao de comanda aberta - 2026-05-02
+
+### Implementado
+- Edicao de comanda aberta:
+  - `POST /orders/{uuid}/items`
+  - `PATCH /orders/{uuid}/items/{item_id}`
+  - `DELETE /orders/{uuid}/items/{item_id}`
+- Fechamento local:
+  - `POST /orders/{uuid}/close`
+  - salva `payment_method`, `amount_paid`, `closed_at`
+  - bloqueia fechamento com valor pago menor que o total.
+- Cancelamento local:
+  - `POST /orders/{uuid}/cancel`
+  - salva `cancel_reason`.
+- Bloqueio operacional:
+  - comanda `closed` ou `cancelled` nao aceita novo item, alteracao ou remocao.
+- Recalculo de total:
+  - total recalculado no servidor local apos adicionar, alterar ou remover item.
+- UI local atualizada:
+  - seleciona comanda aberta;
+  - adiciona item na comanda selecionada;
+  - altera quantidade/observacao por item;
+  - remove item;
+  - fecha comanda;
+  - cancela comanda;
+  - imprime pre-conta.
+
+### Aplicado no cliente instalado
+- Backup:
+  - `C:\MoviSyncAgent\backup_comanda_ops_20260502_203914`
+- Arquivos atualizados:
+  - `C:\MoviSyncAgent\agent_local\local_api.py`
+  - `C:\MoviSyncAgent\agent_local\db\mariadb_client.py`
+  - `C:\MoviSyncAgent\agent_local\orders\*.py`
+- API local reiniciada em:
+  - `http://127.0.0.1:8765`
+
+### Validacao real no instalado
+- Criada comanda teste:
+  - `command_number=TESTE-CODEX`
+  - `table_reference=999`
+  - `uuid=4ba4bd73-ed6f-49c1-b0cd-7489ae4b4bc6`
+- Fluxo validado:
+  - criar comanda -> `status=draft`
+  - adicionar item -> total `5.00`
+  - alterar quantidade/observacao -> total `7.00`
+  - pre-conta -> `prebill=ok`
+  - cancelar comanda -> `status=cancelled`
+- Status final:
+  - `GET /status` -> `sync_running=true`
+
+### Validacao no workspace
+- `py -3 -m pytest tests\test_agent_local_orders.py tests\test_agent_local_sales_mapping.py tests\test_source_connectors.py -q` -> `12 passed`
+- `py -3 -m compileall agent_local -q` -> sem erro
+
+### Proximo passo recomendado
+1. Testar manualmente a tela com uma comanda real curta.
+2. Melhorar preco automatico dos produtos, pois alguns itens do XD ainda retornam `unit_price=0`.
+3. Adicionar fluxo de pagamento com multiplas formas se o restaurante usar pagamento dividido.
+4. Adicionar impressao em impressora termica local se necessario.
+
+## Checkpoint comandas locais para restaurante - 2026-05-02
+
+### Decisao tecnica
+- A API de comandas continua somente local.
+- Nao depende de licenca.
+- Nao cria endpoint online.
+- Nao mistura com relatorios centrais.
+- Mesa e apenas referencia.
+- Comanda e a entidade operacional principal.
+
+### Implementado
+- Abertura de comanda com:
+  - `command_number`
+  - `table_reference`
+  - `operator_code`
+  - `operator_name`
+  - `status`
+  - itens proprios
+  - total proprio
+- Permite mais de uma comanda na mesma mesa:
+  - exemplo: mesa `10` pode ter comandas `001`, `002`, `003`.
+- Operadores:
+  - `GET /orders/operators`
+  - busca automatica no banco XD quando `AGENT_MARIADB_URL` estiver configurado;
+  - cache local em `local_order_operators`;
+  - fallback local se XD estiver indisponivel.
+- Familias/produtos:
+  - `GET /orders/product-families`
+  - `GET /orders/products?family=...`
+  - busca automatica no banco XD quando possivel;
+  - cache local em `local_order_products`;
+  - tela exibe familias em carrossel e produtos por familia.
+- Observacao por item:
+  - campo `notes` em `local_order_items`.
+- Pre-conta:
+  - `GET /orders/{uuid}/prebill`
+  - HTML imprimivel com botao de impressao.
+  - inclui comanda, mesa, operador, itens, quantidades, valores, subtotal, total e observacoes.
+- Tela local:
+  - `http://127.0.0.1:8765/orders/ui`
+  - titulo `Comandas Locais`
+  - fluxo touch/balcao com seletor de operador, comanda, mesa, carrossel de familias e lista de produtos.
+
+### Aplicado no cliente instalado
+- Backup:
+  - `C:\MoviSyncAgent\backup_comandas_20260502_193835`
+- Arquivos atualizados:
+  - `C:\MoviSyncAgent\agent_local\local_api.py`
+  - `C:\MoviSyncAgent\agent_local\db\mariadb_client.py`
+  - `C:\MoviSyncAgent\agent_local\orders\*.py`
+- API local reiniciada em:
+  - `http://127.0.0.1:8765`
+
+### Validacao no instalado
+- `GET /health` -> `{"status":"ok"}`
+- `GET /orders/ui` -> `orders-ui=ok`
+- `GET /orders/operators` retornou operadores reais:
+  - `ADM`
+  - `LAY`
+  - `LUCIANO`
+  - `MARIA`
+  - `SUPORTE`
+  - `TAINARA`
+- `GET /orders/product-families` retornou familias reais:
+  - `ALCOOLICOS`
+  - `BEBIDAS`
+  - `BIFUM`
+  - `CARE`
+  - `DIVERSOS`
+  - `ENTRADAS`
+  - `FRIOS`
+  - `LAMEN`
+  - `SOBA`
+  - `SOBREMESA`
+  - `SUSHI`
+  - `TEISHOKU`
+  - `UDON`
+  - `YAKISOBA`
+- `GET /orders/products?family=BEBIDAS` retornou produtos reais.
+- `GET /status` -> `sync_running=true`
+- Banco local de comandas:
+  - `C:\MoviSyncAgent\agent_local\data\local_orders.db`
+
+### Validacao no workspace
+- `py -3 -m pytest tests\test_agent_local_orders.py tests\test_agent_local_sales_mapping.py tests\test_source_connectors.py -q` -> `11 passed`
+- `py -3 -m compileall agent_local -q` -> sem erro
+
+### Limites atuais
+- Ainda nao grava comanda no banco XD.
+- Ainda nao baixa estoque.
+- Ainda nao tem fechamento/pagamento.
+- Alguns produtos podem vir com `unit_price=0` quando a tabela XD de produtos nao expuser preco direto; a tela permite editar o valor antes de salvar.
+
+### Proximo passo recomendado
+1. Validar criacao real de uma comanda teste na tela local.
+2. Implementar edicao de comanda aberta:
+   - adicionar item;
+   - remover item;
+   - alterar quantidade;
+   - cancelar comanda.
+3. Implementar fechamento/pagamento local.
+4. Definir se a comanda sera apenas local ou se futuramente entra como pre-venda/orcamento no XD.
+
+## Checkpoint pedidos locais offline iniciados - 2026-05-02
+
+### Decisao tecnica
+- Pedidos ficam somente locais nesta etapa.
+- Nao foi criada API online de pedidos.
+- Relatorios web centrais continuam separados.
+- A nova frente usa a API local do agente em `http://127.0.0.1:8765`.
+
+### Implementado
+- Novo modulo local:
+  - `agent_local/orders/`
+- Storage local:
+  - SQLite em `agent_local/data/local_orders.db`
+  - configuravel por `LOCAL_ORDER_DB_PATH`
+- Rotas locais:
+  - `POST /orders`
+  - `GET /orders`
+  - `GET /orders/ui`
+- Tela web local:
+  - `http://127.0.0.1:8765/orders/ui`
+- Seguranca local:
+  - usa `X-Local-Token` quando existir token em `LOCAL_API_TOKEN_FILE`
+  - default: `agent_local/data/local_api_token.txt`
+- Pedido criado com:
+  - `uuid`
+  - `empresa_id`
+  - `status=draft`
+  - `sync_status=pending`
+  - total calculado no servidor local
+  - itens separados
+  - registro em `local_order_outbox`
+- Atalho operacional:
+  - `scripts/open-local-orders.ps1`
+
+### Validacao executada
+- `py -3 -m pytest tests\test_agent_local_orders.py -q` -> `2 passed`
+- `py -3 -m compileall agent_local -q` -> sem erro
+- Aplicado tambem no agente instalado:
+  - backup: `C:\MoviSyncAgent\backup_local_orders_20260502_190924`
+  - arquivos copiados para `C:\MoviSyncAgent\agent_local\orders`
+  - `C:\MoviSyncAgent\agent_local\local_api.py` atualizado
+  - atalho criado: `C:\MoviSyncAgent\Abrir_Pedidos_Locais.cmd`
+- Validacao no instalado:
+  - `GET http://127.0.0.1:8765/health` -> `{"status":"ok"}`
+  - `GET http://127.0.0.1:8765/orders/ui` -> tela carregada
+  - `GET http://127.0.0.1:8765/orders` com `X-Local-Token` -> `{"total":0,"orders":[]}`
+  - banco local criado: `C:\MoviSyncAgent\agent_local\data\local_orders.db`
+  - `GET http://127.0.0.1:8765/status` -> `sync_running=true`
+
+### Limite atual
+- Ainda nao grava pedido no XD.
+- Ainda nao sincroniza pedido para o servidor.
+- Ainda nao tem login local por usuario.
+- Ainda nao tem edicao/cancelamento/status do pedido.
+
+### Proximo passo recomendado
+1. Abrir `C:\MoviSyncAgent\Abrir_Pedidos_Locais.cmd` ou `http://127.0.0.1:8765/orders/ui`.
+2. Informar o token local no campo da tela se a API exigir autenticacao.
+3. Criar pedido teste local.
+4. Depois evoluir status, usuario local e impressao/retirada.
+
+## Checkpoint reprocessamento historico concluido - 2026-05-02
+
+### Estado atual validado
+- Branch local atual:
+  - `main`
+- Git local:
+  - limpo antes da atualizacao deste checkpoint.
+- Producao:
+  - `https://movisystecnologia.com.br/healthz` -> `ok`
+  - `https://movisystecnologia.com.br/admin/api/health/ready` -> `ready`
+- Agente instalado:
+  - caminho real: `C:\MoviSyncAgent`
+  - API local ativa em `http://127.0.0.1:8765/status`
+  - `sync_running=true`
+  - checkpoint instalado final:
+    - `12345678000199:vendas = 2026-03-28T15:36:02+00:00`
+
+### Reprocessamento executado
+- Ambiente usado:
+  - `C:\MoviSyncAgent`
+  - `C:\MoviSyncAgent\.venv\Scripts\python.exe`
+- Backup criado antes do reset:
+  - `C:\MoviSyncAgent\backup_reprocess_20260502_113800\checkpoints.before_reprocess.json`
+- Checkpoint instalado resetado para:
+  - `12345678000199:vendas = 1970-01-01T00:00:00+00:00`
+- Lotes executados ate zerar:
+  - total aproximado processado: `48901` vendas
+  - ultimo lote util: `processed_count=63`
+  - lote final: `processed_count=0`
+- Sync normal religado depois do reprocessamento.
+- Status final local:
+  - `curl.exe -sS http://127.0.0.1:8765/status`
+  - retorno validado:
+    - `status=running`
+    - `sync_running=true`
+
+### Observacao tecnica
+- O `start_agent()`/runtime instalado sobe mais de um PID `agent_local.main`.
+- O criterio operacional validado foi o status oficial da API local:
+  - `sync_running=true`
+- Nao foi feita alteracao de codigo nesta etapa.
+
+### Proximo ponto exato
+1. Validar visualmente os relatorios em producao:
+   - `Hoje`
+   - `Mes`
+   - `Semestre`
+   - `Ano`
+   - detalhe por forma de pagamento
+   - faturamento total
+   - exportacoes PDF/Excel/CSV no mesmo periodo.
+2. Se os totais ainda parecerem incorretos, investigar dado fonte no servidor por `empresa_id`, `uuid`, `data`, `data_atualizacao` e `forma_pagamento`, sem alterar novamente o mapper antes dessa prova.
+
 ## Checkpoint relatorios por periodo e reprocessamento pendente - 2026-05-02
 
 ### Estado atual validado
@@ -1780,3 +2267,167 @@ Este arquivo e o ponto de entrada para retomar o projeto sem redescobrir context
 - Suite completa:
   - `py -3 -m pytest -q`
   - `40 passed, 1 skipped`
+
+## Checkpoint: diagnostico de travamento da suite local - 2026-05-03
+
+### Problema
+- A retomada travou durante reexecucao de testes.
+- Processo `pytest` ficou ativo apos interrupcao manual:
+  - `py.exe -3 -m pytest tests\test_sync_admin_rbac.py::test_sync_admin_role_based_access -q`
+  - `python.exe -m pytest tests\test_sync_admin_rbac.py::test_sync_admin_role_based_access -q`
+- O processo preso manteve arquivo SQLite de teste em uso:
+  - `output/test_sync_admin_rbac.db`
+
+### Causa raiz
+- `test_sync_admin_rbac.py` acessava `/settings` e `/dashboard` sem mockar chamadas externas do `ControlService`.
+- `/settings` aguardava timeouts em:
+  - fontes de sync;
+  - destinos;
+  - auditoria remota;
+  - server settings;
+  - produto DE/PARA.
+- `test_sync_admin_sync_cockpit.py` nao mockava `fetch_report_filter_options`; o dashboard tentava API real, caia no fallback zerado e falhava em `commercial_snapshot.total_records`.
+- O teste de cockpit dependia implicitamente do mes atual; em maio/2026 a comparacao esperada de abril deixou de ser deterministica.
+- O `RemoteAgentService.background_loop` podia atrasar shutdown do `TestClient` quando havia ciclo remoto em andamento.
+
+### Correcao aplicada
+- Encerrados apenas processos `pytest` presos.
+- `sync-admin/app/main.py` agora cancela `remote_task` no shutdown apos setar o stop event.
+- `tests/test_sync_admin_sync_cockpit.py` agora mocka:
+  - `fetch_report_filter_options`;
+  - `_current_month_range` fixo em `2026-04-01` ate `2026-04-26`.
+- `tests/test_sync_admin_rbac.py` agora isola chamadas externas no teste de RBAC:
+  - `REMOTE_COMMAND_PULL_ENABLED=false`;
+  - mocks de `ControlService` para summary, fontes, jobs, destinos, auditoria, server settings e produto DE/PARA.
+- `agent_local/orders/printer.py` sanitiza `command_number` antes de usar em nome de arquivo de job.
+- `agent_local/orders/schemas.py` usa `Field(default_factory=list)` em `payments`.
+
+### Validacao
+- `py -3 -m pytest tests\test_agent_local_orders.py -q`
+  - `7 passed`
+- `py -3 -m pytest tests\test_sync_admin_sync_cockpit.py::test_sync_admin_dashboard_exposes_source_cycle_cockpit -q`
+  - `1 passed`
+- `py -3 -m pytest tests\test_sync_admin_rbac.py::test_sync_admin_role_based_access -q`
+  - `1 passed`
+- `py -3 -m pytest -q`
+  - `76 passed, 1 skipped`
+
+### Proximo passo seguro
+- Revisar diff final da frente de comandas locais.
+- Se aprovado, commitar entrega local.
+- Depois gerar release/instalador versionado do agente com tela de comandas.
+
+## Checkpoint de retomada exata: comandas locais + suite estabilizada - 2026-05-03
+
+### Estado do workspace
+- Branch atual:
+  - `main`
+  - tracking: `origin/main`
+- Existem alteracoes locais ainda nao commitadas.
+- Nao ha teste `pytest` preso ativo apos a correcao.
+- Suite completa validada antes deste checkpoint:
+  - `py -3 -m pytest -q`
+  - resultado: `76 passed, 1 skipped`
+
+### Arquivos modificados rastreados
+- `RETOMADA_EXATA.md`
+- `agent_local/.env.example`
+- `agent_local/db/mariadb_client.py`
+- `agent_local/local_api.py`
+- `cerebro_vivo/estado_atual.md`
+- `sync-admin/app/main.py`
+- `tests/test_sync_admin_rbac.py`
+- `tests/test_sync_admin_sync_cockpit.py`
+
+### Arquivos novos ainda nao rastreados
+- `agent_local/orders/__init__.py`
+- `agent_local/orders/printer.py`
+- `agent_local/orders/repository.py`
+- `agent_local/orders/schemas.py`
+- `agent_local/orders/service.py`
+- `scripts/open-local-orders.cmd`
+- `scripts/open-local-orders.ps1`
+- `tests/test_agent_local_orders.py`
+- pasta `licensa lic/`
+
+### Entrega funcional em andamento
+- Frente principal:
+  - comandas locais no agente.
+- Separacao arquitetural obrigatoria:
+  - esta API de comandas locais e uma API operacional separada.
+  - nao e a mesma API do sync de relatorios.
+  - nao deve reaproveitar contrato `/sync` nem tabelas centrais de relatorio para comandas.
+  - sync de relatorios continua com responsabilidade exclusiva de envio de vendas/dados canonicos para BI.
+  - comandas locais devem ficar isoladas em modulo proprio, banco local proprio e endpoints `/orders`.
+  - se no futuro houver integracao entre comandas e relatorios, deve ser por contrato explicito de eventos/exportacao, nao por mistura direta das responsabilidades.
+- API local adicionada:
+  - `POST /orders`
+  - `GET /orders`
+  - `POST /orders/{order_uuid}/items`
+  - `PATCH /orders/{order_uuid}/items/{item_id}`
+  - `DELETE /orders/{order_uuid}/items/{item_id}`
+  - `POST /orders/{order_uuid}/close`
+  - `POST /orders/{order_uuid}/cancel`
+  - `GET /orders/operators`
+  - `GET /orders/product-families`
+  - `GET /orders/products`
+  - `GET /orders/{order_uuid}/prebill`
+  - `GET /orders/{order_uuid}/thermal-receipt`
+  - `POST /orders/{order_uuid}/print`
+  - `GET /orders/ui`
+- Persistencia local:
+  - SQLite em `LOCAL_ORDER_DB_PATH`
+  - tabelas de comandas, itens, pagamentos, operadores, produtos e outbox.
+- Catalogo:
+  - descoberta automatica no MariaDB XD quando `LOCAL_ORDER_AUTO_REFRESH_CATALOG=true`.
+  - produtos a partir de `items` ou fallback `salesdocumentsreportview`.
+  - operadores a partir de `xconfigoperators`, `operators`, `employees`, `users` ou fallback em `documentsheaders`.
+- Impressao:
+  - recibo termico texto.
+  - job local em `LOCAL_ORDER_PRINT_JOBS_DIR`.
+  - envio ao spool Windows somente quando `LOCAL_ORDER_PRINTER_NAME` estiver configurado.
+
+### Correcoes de estabilidade ja aplicadas
+- `sync-admin/app/main.py`
+  - cancela `remote_task` no shutdown do lifespan.
+- `tests/test_sync_admin_rbac.py`
+  - isola chamadas externas de `/settings` e `/dashboard`.
+  - define `REMOTE_COMMAND_PULL_ENABLED=false`.
+- `tests/test_sync_admin_sync_cockpit.py`
+  - mocka `fetch_report_filter_options`.
+  - fixa `_current_month_range` em abril/2026 para teste deterministico.
+- `agent_local/orders/printer.py`
+  - sanitiza `command_number` usado em filename.
+- `agent_local/orders/schemas.py`
+  - evita lista mutavel default em `payments`.
+
+### Comandos ja validados
+- `py -3 -m pytest tests\test_agent_local_orders.py -q`
+  - `7 passed`
+- `py -3 -m pytest tests\test_sync_admin_sync_cockpit.py::test_sync_admin_dashboard_exposes_source_cycle_cockpit -q`
+  - `1 passed`
+- `py -3 -m pytest tests\test_sync_admin_rbac.py::test_sync_admin_role_based_access -q`
+  - `1 passed`
+- `py -3 -m compileall agent_local -q`
+  - OK
+- `py -3 -m pytest -q`
+  - `76 passed, 1 skipped`
+
+### Riscos pendentes antes de commit
+- Revisar se a UI embutida em `agent_local/local_api.py` deve continuar inline ou ser separada futuramente.
+- Garantir que a API de comandas locais nao seja documentada nem tratada como API de sync de relatorios.
+- Conferir se `licensa lic/` faz parte desta entrega antes de incluir no commit.
+- Validar manualmente `/orders/ui` no agente instalado se a proxima etapa for gerar release.
+- Nao commitar arquivos runtime:
+  - bancos SQLite em `output/`;
+  - tokens locais;
+  - jobs de impressao gerados.
+
+### Proximo passo operacional
+1. Rodar `git diff --stat`.
+2. Revisar arquivos novos em `agent_local/orders/`.
+3. Decidir se `licensa lic/` entra no commit ou fica fora.
+4. Se o diff estiver coerente:
+   - commitar a entrega de comandas locais;
+   - gerar release/instalador versionado do agente;
+   - validar `http://127.0.0.1:8765/orders/ui` no ambiente instalado.

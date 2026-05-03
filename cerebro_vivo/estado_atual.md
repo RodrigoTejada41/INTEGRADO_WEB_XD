@@ -4,7 +4,11 @@
 
 O projeto e uma plataforma de sincronizacao de dados multi-tenant com memoria local-first em `.cerebro-vivo/` e uma camada executiva visivel em `cerebro_vivo/` para coordenacao multi-agentes.
 
-Checkpoint mais recente em 2026-05-01: a correcao estrutural do `Status da sincronizacao` foi mergeada, deployada e validada. O backend ganhou `POST /sync/status`, autenticado por `X-Empresa-Id` + `X-API-Key`, e o agente local passou a enviar heartbeat de sync em todo ciclo, inclusive quando nao ha registros novos. Producao esta em `ba4d98e`, deploy GitHub Actions `25198198983` com sucesso. O agente instalado em `C:\MoviSyncAgent` foi atualizado, executou ciclo unico com `POST /sync/status` -> `200 OK` e ficou rodando em background com intervalo de 15 minutos.
+Checkpoint mais recente em 2026-05-03: a UI local de comandas agora exibe produtos por familia no padrao visual operacional do XD: abas horizontais, primeira familia carregada automaticamente, grade de 3 colunas, botoes grandes por produto e barra inferior com `VER CONTEUDO DA MESA` e `CONCLUIR`. O clique em produto adiciona diretamente na comanda selecionada. Aplicado no instalado `C:\MoviSyncAgent`, com backup em `C:\MoviSyncAgent\backup_product_family_ui_20260503_003902`. Validacao real: `/health` OK, `/orders/ui` HTTP 200, tela instalada contem `product-family-tabs`, `product-tile`, `VER CONTEUDO DA MESA` e `CONCLUIR`; familias reais carregadas de `ALCOOLICOS` a `YAKISOBA`. Validacao no workspace: `py -3 -m pytest tests\test_agent_local_orders.py tests\test_agent_local_sales_mapping.py tests\test_source_connectors.py -q` com `15 passed`; `py -3 -m compileall agent_local -q` sem erro.
+
+Checkpoint anterior em 2026-05-02: a frente local de comandas agora gera cupom termico e job local de impressao. Foram adicionados `GET /orders/{uuid}/thermal-receipt` e `POST /orders/{uuid}/print`, com renderizacao 32 colunas, persistencia em `LOCAL_ORDER_PRINT_JOBS_DIR` e envio opcional para impressora Windows configurada por `LOCAL_ORDER_PRINTER_NAME`. Se a impressora nao estiver configurada, o job fica `queued` em arquivo, sem perda operacional.
+
+Checkpoint anterior em 2026-05-02: a frente local de comandas fecha com pagamento dividido. `POST /orders/{uuid}/close` aceita `payments: [{payment_method, amount}]`, persiste em `local_order_payments`, consolida `payment_method` como `dinheiro + pix`, valida que a soma paga cobre o total e mostra pagamentos na pre-conta. Aplicado no instalado `C:\MoviSyncAgent`, com backup em `C:\MoviSyncAgent\backup_split_payments_20260502_222529`. Validacao real: comanda `TESTE-PAG-DIV`, total `16.00`, pagamentos `dinheiro=6.00` e `pix=10.00`, status `closed`, pre-conta validada e `sync_running=true`.
 
 Na governanca oficial atual, `backend/`, `agent_local/`, `sync-admin/` e `infra/` sao as fontes canonicas operacionais. `backend/src`, `frontend`, `database`, `devops` e `docker-compose.yml` na raiz permanecem como camadas de compatibilidade e onboarding.
 
@@ -69,9 +73,15 @@ Na retomada canonica mais recente, o backlog funcional estava concluido ate `P18
 
 ## Proximos passos mapeados
 
-1. Validar visualmente se o relatorio troca `Sem sync` por data real.
-2. Conferir uma amostra do unico registro ainda sem `familia_produto`.
-3. Validar exportacoes PDF, Excel e CSV em producao com filtros combinados.
+1. Validar visualmente os relatorios em producao para `Hoje`, `Mes`, `Semestre` e `Ano`.
+2. Validar detalhe por forma de pagamento e faturamento total apos o reprocessamento.
+3. Validar exportacoes PDF, Excel e CSV em producao com o mesmo periodo selecionado.
+4. Se ainda houver divergencia, auditar dados fonte no servidor por `empresa_id`, `uuid`, `data`, `data_atualizacao` e `forma_pagamento` antes de alterar o mapper novamente.
+5. Validar criacao real de uma comanda teste na tela local `http://127.0.0.1:8765/orders/ui`.
+6. Validar manualmente na tela se todos os grupos principais trazem preco.
+7. Configurar `LOCAL_ORDER_PRINTER_NAME` no cliente instalado e validar impressao real em impressora termica.
+8. Se houver cozinha/bar, separar impressao de producao por familia/impressora.
+9. Avaliar se comanda fechada precisa virar pre-venda/orcamento no XD.
 
 ## Atualizacao desta continuidade
 
@@ -512,3 +522,58 @@ Na retomada canonica mais recente, o backlog funcional estava concluido ate `P18
   - migration sem pendencias em `current_version=6`;
   - containers saudaveis;
   - health publico `200`.
+
+## Travamento de testes diagnosticado - 2026-05-03
+
+- Causa imediata:
+  - processo `pytest` ficou preso apos interrupcao e segurou SQLite em `output/test_sync_admin_rbac.db`.
+- Causas tecnicas:
+  - RBAC chamava `/settings` e `/dashboard` com dependencias externas nao mockadas;
+  - cockpit comercial nao mockava `fetch_report_filter_options`;
+  - cockpit dependia do mes atual;
+  - shutdown do loop remoto podia aguardar ciclo HTTP.
+- Correcoes:
+  - `sync-admin/app/main.py` cancela `remote_task` no shutdown;
+  - testes de cockpit e RBAC isolam chamadas externas;
+  - cockpit fixa periodo em abril/2026;
+  - jobs de impressao de comandas sanitizam nome de arquivo;
+  - schema de comandas usa lista default segura.
+- Validacao:
+  - `py -3 -m pytest -q`
+  - `76 passed, 1 skipped`
+
+## Estado de retomada exata - 2026-05-03
+
+- Branch:
+  - `main`
+  - tracking `origin/main`
+- Suite completa:
+  - `py -3 -m pytest -q`
+  - `76 passed, 1 skipped`
+- Entrega local em andamento:
+  - comandas locais no agente;
+  - API operacional separada em `/orders`;
+  - UI `/orders/ui`;
+  - SQLite local;
+  - catalogo automatico do XD;
+  - pre-conta HTML;
+  - recibo termico;
+  - job de impressao local/Windows.
+- Separacao arquitetural obrigatoria:
+  - API de comandas locais nao e a API de sync de relatorios;
+  - `/orders` deve permanecer isolado do contrato `/sync`;
+  - banco local de comandas nao deve ser misturado com tabelas centrais de BI;
+  - qualquer integracao futura precisa de contrato explicito, nao acoplamento direto.
+- Arquivos principais alterados:
+  - `agent_local/local_api.py`
+  - `agent_local/db/mariadb_client.py`
+  - `agent_local/orders/*`
+  - `tests/test_agent_local_orders.py`
+  - `sync-admin/app/main.py`
+  - `tests/test_sync_admin_rbac.py`
+  - `tests/test_sync_admin_sync_cockpit.py`
+- Ponto critico para proxima sessao:
+  - revisar `licensa lic/` antes de commitar;
+  - revisar diff final;
+  - commitar somente arquivos da funcionalidade;
+  - depois gerar release/instalador versionado.

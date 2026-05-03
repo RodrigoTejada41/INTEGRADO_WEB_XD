@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 from contextlib import asynccontextmanager
+from contextlib import suppress
 from datetime import UTC, datetime
 from pathlib import Path
 
@@ -63,7 +64,9 @@ async def lifespan(_: FastAPI):
     if remote_stop_event is not None:
         remote_stop_event.set()
     if remote_task is not None:
-        await remote_task
+        remote_task.cancel()
+        with suppress(asyncio.CancelledError):
+            await remote_task
 
 
 app = FastAPI(title=settings.app_name, lifespan=lifespan)
