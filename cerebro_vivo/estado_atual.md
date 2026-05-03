@@ -577,3 +577,26 @@ Na retomada canonica mais recente, o backlog funcional estava concluido ate `P18
   - revisar diff final;
   - commitar somente arquivos da funcionalidade;
   - depois gerar release/instalador versionado.
+
+## Release oficial comandas locais - 2026-05-03
+
+- Commit local criado:
+  - `0b1fd1d` - `feat: adicionar comandas locais no agente`
+- Release gerada:
+  - `infra/client-agent/releases/v2026-05-03_comandas`
+- ZIP gerado:
+  - `release-artifacts/MoviSyncAgent_Installer_v2026-05-03_comandas.zip`
+- Tamanho:
+  - `150527` bytes
+- Instalador agora cria:
+  - `Abrir_Comandas_Locais.cmd`;
+  - `Abrir_Comandas_Locais.vbs`;
+  - `MoviSync Comandas Locais.lnk`.
+- Validacao:
+  - suite completa `76 passed, 1 skipped`;
+  - release compila sem erro;
+  - ZIP sem `__pycache__` e sem `.pyc`;
+  - ZIP contem `agent_local/orders/*.py`.
+- Proximo passo:
+  - commitar alteracoes do instalador e `RELEASES.md`;
+  - usar o ZIP `v2026-05-03_comandas` para instalacao/validacao real.

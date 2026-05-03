@@ -115,12 +115,25 @@ cd /d %~dp0
 ".\.venv\Scripts\python.exe" -m agent_local.pairing_ui
 '@ | Set-Content -Path "Abrir_Painel_Local.cmd" -Encoding ascii
 
+@'
+@echo off
+cd /d %~dp0
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$base='http://127.0.0.1:8765'; try { $health=Invoke-RestMethod -Uri ($base + '/health') -TimeoutSec 5; if ($health.status -ne 'ok') { throw 'API local respondeu sem status ok.' }; Start-Process ($base + '/orders/ui') } catch { Write-Host 'API local nao esta acessivel em http://127.0.0.1:8765. Inicie o MoviSync local antes de abrir comandas.'; pause; exit 1 }"
+'@ | Set-Content -Path "Abrir_Comandas_Locais.cmd" -Encoding ascii
+
 $panelVbsContent = @"
 Set shell = CreateObject("WScript.Shell")
 shell.CurrentDirectory = "$InstallDir"
 shell.Run """" & "$InstallDir\.venv\Scripts\pythonw.exe" & """ -m agent_local.pairing_ui", 0, False
 "@
 $panelVbsContent | Set-Content -Path "Abrir_Painel_Local.vbs" -Encoding ascii
+
+$ordersVbsContent = @"
+Set shell = CreateObject("WScript.Shell")
+shell.CurrentDirectory = "$InstallDir"
+shell.Run """" & "$InstallDir\Abrir_Comandas_Locais.cmd" & """", 1, False
+"@
+$ordersVbsContent | Set-Content -Path "Abrir_Comandas_Locais.vbs" -Encoding ascii
 
 @'
 @echo off
@@ -186,6 +199,7 @@ New-DesktopShortcut -Name "MoviSync Painel Local.lnk" -TargetPath (Join-Path $In
 New-DesktopShortcut -Name "MoviSync Status do Sync.lnk" -TargetPath (Join-Path $InstallDir "Abrir_Status_Sync.vbs") -WorkingDirectory $InstallDir
 New-DesktopShortcut -Name "MoviSync Iniciar Agente.lnk" -TargetPath (Join-Path $InstallDir "Iniciar_MoviSync_Windows.vbs") -WorkingDirectory $InstallDir
 New-DesktopShortcut -Name "MoviSync API Local.lnk" -TargetPath (Join-Path $InstallDir "Abrir_API_Local.vbs") -WorkingDirectory $InstallDir
+New-DesktopShortcut -Name "MoviSync Comandas Locais.lnk" -TargetPath (Join-Path $InstallDir "Abrir_Comandas_Locais.vbs") -WorkingDirectory $InstallDir
 
 Write-Step "Configurando inicializacao com Windows"
 New-StartupShortcut -Name "MoviSync AutoStart.lnk" -TargetPath (Join-Path $InstallDir "Iniciar_MoviSync_Windows.vbs") -WorkingDirectory $InstallDir

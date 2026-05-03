@@ -1,5 +1,28 @@
 # Releases - Cliente Agent
 
+## v2026-05-03_comandas
+
+- Pacote oficial com comandas locais separadas da API de sync de relatorios.
+- Inclui API operacional local:
+  - `/orders`
+  - `/orders/ui`
+  - `/orders/{uuid}/prebill`
+  - `/orders/{uuid}/thermal-receipt`
+  - `/orders/{uuid}/print`
+- Inclui persistencia SQLite local para comandas, itens, pagamentos, operadores, produtos e outbox.
+- Inclui descoberta de catalogo do XD para produtos, familias e operadores.
+- Instalador cria atalho:
+  - `MoviSync Comandas Locais.lnk`
+- ZIP de entrega:
+  - `release-artifacts/MoviSyncAgent_Installer_v2026-05-03_comandas.zip`
+- Tamanho validado:
+  - `150527` bytes
+- Validacao:
+  - `py -3 -m pytest -q` com `76 passed, 1 skipped`;
+  - `py -3 -m compileall infra\client-agent\releases\v2026-05-03_comandas\agent_local infra\client-agent\releases\v2026-05-03_comandas\backend -q` sem erro;
+  - ZIP sem `__pycache__` e sem `.pyc`;
+  - ZIP contem `agent_local\orders\*.py`.
+
 ## v2026-05-01_facil
 
 - Pacote para instalacao por usuario leigo.

@@ -2431,3 +2431,63 @@ Este arquivo e o ponto de entrada para retomar o projeto sem redescobrir context
    - commitar a entrega de comandas locais;
    - gerar release/instalador versionado do agente;
    - validar `http://127.0.0.1:8765/orders/ui` no ambiente instalado.
+
+## Checkpoint: release oficial do agente com comandas locais - 2026-05-03
+
+### Commits locais
+- `0b1fd1d` - `feat: adicionar comandas locais no agente`
+- Branch `main` esta `ahead 1` antes do commit do instalador/release.
+
+### Separacao arquitetural reforcada
+- API de comandas locais e operacional.
+- Nao e a API de sync de relatorios.
+- Contrato `/orders` permanece separado de `/sync`.
+- Banco local de comandas permanece separado do BI/relatorios.
+
+### Instalador ajustado
+- Arquivo:
+  - `infra/client-agent/install-agent-client.ps1`
+- Agora cria no cliente instalado:
+  - `Abrir_Comandas_Locais.cmd`
+  - `Abrir_Comandas_Locais.vbs`
+  - atalho Desktop `MoviSync Comandas Locais.lnk`
+- O atalho valida `http://127.0.0.1:8765/health` antes de abrir:
+  - `http://127.0.0.1:8765/orders/ui`
+
+### Release gerada
+- Pasta:
+  - `infra/client-agent/releases/v2026-05-03_comandas`
+- ZIP:
+  - `release-artifacts/MoviSyncAgent_Installer_v2026-05-03_comandas.zip`
+- Tamanho:
+  - `150527` bytes
+- Conteudo validado:
+  - `agent_local/orders/*.py`
+  - `install-agent-client.ps1`
+  - `requirements.txt`
+  - sem `__pycache__`
+  - sem `.pyc`
+
+### Validacao executada
+- `py -3 -m pytest -q`
+  - `76 passed, 1 skipped`
+- `py -3 -m pytest tests\test_agent_local_orders.py tests\test_sync_admin_rbac.py::test_sync_admin_role_based_access tests\test_sync_admin_sync_cockpit.py::test_sync_admin_dashboard_exposes_source_cycle_cockpit -q`
+  - `9 passed`
+- `py -3 -m compileall agent_local sync-admin\app -q`
+  - OK
+- `py -3 -m compileall infra\client-agent\releases\v2026-05-03_comandas\agent_local infra\client-agent\releases\v2026-05-03_comandas\backend -q`
+  - OK
+- Parser PowerShell:
+  - `infra/client-agent/install-agent-client.ps1`
+  - `parse-ok`
+
+### Proximo passo seguro
+- Commitar alteracoes do instalador e `RELEASES.md`.
+- Depois, se for distribuir:
+  - usar `release-artifacts/MoviSyncAgent_Installer_v2026-05-03_comandas.zip`.
+- Para validacao real instalada:
+  - instalar/atualizar em `C:\MoviSyncAgent`;
+  - abrir `MoviSync Comandas Locais.lnk`;
+  - confirmar `/orders/ui`;
+  - criar comanda teste;
+  - validar pre-conta e job de impressao.
