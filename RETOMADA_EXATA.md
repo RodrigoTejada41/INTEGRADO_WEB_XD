@@ -2,6 +2,59 @@
 
 Data de atualizacao: 2026-05-03
 
+## Checkpoint tela principal operacional de comandas - 2026-05-03
+
+### Implementado
+- Tela principal `/orders/ui` ajustada no estilo do print:
+  - fundo em degrade azul/roxo;
+  - avatar do operador logado;
+  - nome/perfil do usuario;
+  - botoes `CAIXA DE SAIDA` e `MENSAGENS`;
+  - botao central `CONTROLE POR VOZ`;
+  - grade 3x3 com botoes grandes: `PEDIR`, `ANULAR`, `SUBTOTAL`, `CONTA`, `TRANSFERENCIA`, `PAGAMENTO PARCIAL`, `OUTROS`, `DESCONTO`, `MENU INICIAL`.
+- Botoes ligados a fluxos reais:
+  - `PEDIR` abre o fluxo comanda/pessoas/mesa/produtos/revisao;
+  - `ANULAR` registra anulacao e log;
+  - `SUBTOTAL` consulta itens e total parcial;
+  - `CONTA` consulta subtotal, descontos, pagamentos parciais, total e saldo;
+  - `TRANSFERENCIA` registra transferencia e atualiza mesa/comanda quando aplicavel;
+  - `PAGAMENTO PARCIAL` registra pagamento sem fechar a comanda;
+  - `DESCONTO` registra desconto fixo ou percentual;
+  - `MENSAGENS` e `CAIXA DE SAIDA` consultam tabelas locais;
+  - `CONTROLE POR VOZ` tem endpoint preparado com status `planned`.
+
+### API local adicionada
+- `GET /orders/me`
+- `GET /orders/current`
+- `GET /orders/subtotal`
+- `GET /orders/account`
+- `POST /orders/void`
+- `POST /orders/transfer`
+- `POST /orders/partial-payment`
+- `POST /orders/discount`
+- `GET /orders/messages`
+- `GET /orders/outbox`
+- `POST /orders/voice-command`
+
+### Banco local
+- `local_order_operator_permissions`
+- `local_order_operation_logs`
+- `local_order_messages`
+- `local_order_partial_payments`
+- `local_order_discounts`
+- `local_order_voids`
+- `local_order_transfers`
+
+### Validacao no workspace
+- `py -3 -m pytest tests\test_agent_local_orders.py -q` -> `8 passed`
+- `py -3 -m compileall agent_local -q` -> sem erro
+- `py -3 -m pytest -q` -> `77 passed, 1 skipped`
+
+### Proximo passo recomendado
+1. Instalar release r4 no cliente.
+2. Validar visualmente em tablet/celular.
+3. Popular permissoes reais dos operadores em `local_order_operator_permissions` quando houver perfis definidos.
+
 ## Checkpoint fluxo completo mobile de comandas - 2026-05-03
 
 ### Implementado

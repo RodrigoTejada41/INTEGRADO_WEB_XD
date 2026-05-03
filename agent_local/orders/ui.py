@@ -42,6 +42,23 @@ def render_orders_ui() -> str:
     .actions { display: grid; grid-template-columns: 1fr; gap: 10px; }
     .menu { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
     .menu button { min-height: 104px; background: var(--surface); color: var(--text); border: 1px solid var(--line); font-size: 18px; }
+    .menu-screen { min-height: calc(100vh - 68px); margin: -14px; padding: 16px; color: #fff; background: linear-gradient(160deg, #243b86 0%, #29106f 54%, #1c0b4f 100%); }
+    .operator-panel { display: grid; grid-template-columns: 108px 1fr; gap: 12px; align-items: center; padding-bottom: 14px; border-bottom: 1px solid #ffffff44; }
+    .avatar { width: 92px; height: 92px; border-radius: 6px; background: #fff; color: #1d276d; display: grid; place-items: center; font-size: 34px; font-weight: 900; }
+    .operator-name { margin-top: 8px; text-align: center; font-size: 14px; font-weight: 800; }
+    .quick-top { display: grid; gap: 8px; }
+    .quick-top button { min-height: 48px; background: #243979; color: #fff; border: 1px solid #ffffff33; text-align: left; padding: 0 16px; }
+    .voice-wrap { display: grid; place-items: center; padding: 20px 0; }
+    .voice-button { width: 164px; min-height: 108px; border-radius: 18px; background: #22095f; color: #fff; border: 1px solid #ffffff22; }
+    .voice-button .icon { display: block; font-size: 30px; margin-bottom: 6px; }
+    .command-menu { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+    .menu-card { min-height: 106px; padding: 10px 8px; color: #fff; background: #260b68; border: 1px solid #ffffff22; box-shadow: 0 8px 18px #00000024; display: grid; place-items: center; text-align: center; align-content: center; }
+    .menu-card .icon { width: 38px; height: 38px; border-radius: 50%; border: 2px solid #fff; display: grid; place-items: center; margin-bottom: 9px; font-size: 13px; }
+    .modal-backdrop { position: fixed; inset: 0; z-index: 30; display: none; place-items: end center; padding: 14px; background: #0008; }
+    .modal-backdrop.active { display: grid; }
+    .modal { width: min(100%, 520px); max-height: 82vh; overflow: auto; background: #fff; color: var(--text); border-radius: 10px; padding: 14px; box-shadow: 0 24px 48px #0007; }
+    .modal h2 { margin: 0 0 10px; font-size: 20px; }
+    .modal pre { white-space: pre-wrap; overflow-wrap: anywhere; background: #f3f5f8; padding: 10px; border-radius: 6px; font-size: 13px; }
     .primary { background: var(--primary); color: #fff; }
     .secondary { background: #fff; color: var(--text); border: 1px solid var(--line); }
     .danger { background: var(--danger); color: #fff; }
@@ -69,8 +86,12 @@ def render_orders_ui() -> str:
     .table-list th:last-child, .table-list td:last-child { text-align: right; }
     @media (min-width: 700px) {
       .screen { padding: 18px; }
+      .menu-screen { margin: -18px; padding: 18px; }
       .actions { grid-template-columns: repeat(3, minmax(0, 1fr)); }
       .menu { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+      .operator-panel { grid-template-columns: 140px 1fr; max-width: 760px; margin: 0 auto; }
+      .command-menu { max-width: 760px; margin: 0 auto; gap: 16px; }
+      .menu-card { min-height: 128px; }
       .products { grid-template-columns: repeat(3, minmax(0, 1fr)); }
       .product-card { min-height: 128px; }
       .bottom-bar { grid-template-columns: 1fr auto; align-items: center; }
@@ -117,11 +138,34 @@ def render_orders_ui() -> str:
     </section>
 
     <section id="screen-menu" class="screen">
-      <div class="menu">
-        <button type="button" onclick="startOrder()">Pedido</button>
-        <button type="button" onclick="openConsult()">Consultar comanda</button>
-        <button type="button" onclick="openPrint()">Imprimir pre-conta</button>
-        <button type="button" onclick="logout()">Sair</button>
+      <div class="menu-screen">
+        <div class="operator-panel">
+          <div>
+            <div class="avatar" id="operator-avatar">OP</div>
+            <div class="operator-name" id="operator-name">SUPORTE</div>
+          </div>
+          <div class="quick-top">
+            <button type="button" onclick="openOutbox()">CAIXA DE SAIDA</button>
+            <button type="button" onclick="openMessages()">MENSAGENS</button>
+          </div>
+        </div>
+        <div class="voice-wrap">
+          <button class="voice-button" type="button" onclick="startVoiceCommand()">
+            <span class="icon">MIC</span>
+            CONTROLE POR VOZ
+          </button>
+        </div>
+        <div class="command-menu">
+          <button class="menu-card" type="button" onclick="startOrder()"><span class="icon">P</span>PEDIR</button>
+          <button class="menu-card" type="button" onclick="openVoidFlow()"><span class="icon">X</span>ANULAR</button>
+          <button class="menu-card" type="button" onclick="openSubtotalFlow()"><span class="icon">S</span>SUBTOTAL</button>
+          <button class="menu-card" type="button" onclick="openAccountFlow()"><span class="icon">C</span>CONTA</button>
+          <button class="menu-card" type="button" onclick="openTransferFlow()"><span class="icon">TR</span>TRANSFERENCIA</button>
+          <button class="menu-card" type="button" onclick="openPartialPaymentFlow()"><span class="icon">PP</span>PAGAMENTO PARCIAL</button>
+          <button class="menu-card" type="button" onclick="openOtherMenu()"><span class="icon">...</span>OUTROS</button>
+          <button class="menu-card" type="button" onclick="openDiscountFlow()"><span class="icon">%</span>DESCONTO</button>
+          <button class="menu-card" type="button" onclick="goInitialMenu()"><span class="icon">IN</span>MENU INICIAL</button>
+        </div>
       </div>
     </section>
 
@@ -228,6 +272,15 @@ def render_orders_ui() -> str:
     </section>
   </main>
 </div>
+<div id="modal-backdrop" class="modal-backdrop">
+  <div class="modal">
+    <h2 id="modal-title">Operacao</h2>
+    <div id="modal-body" class="stack"></div>
+    <div class="actions" style="margin-top:12px;">
+      <button class="secondary" type="button" onclick="closeModal()">Fechar</button>
+    </div>
+  </div>
+</div>
 
 <script>
 const state = {
@@ -237,6 +290,8 @@ const state = {
   products: [],
   selectedFamily: '',
   cart: [],
+  activeOrderUuid: '',
+  activeCommandNumber: '',
   searchTimer: null
 };
 
@@ -309,6 +364,8 @@ async function login() {
   state.sessionToken = data.session_token;
   state.operator = data.operator;
   document.getElementById('user-badge').textContent = data.operator.name;
+  document.getElementById('operator-name').textContent = data.operator.name || 'SUPORTE';
+  document.getElementById('operator-avatar').textContent = (data.operator.name || data.operator.code || 'OP').slice(0, 2).toUpperCase();
   message.className = 'success';
   message.textContent = 'Login autorizado.';
   await loadFamilies();
@@ -319,6 +376,8 @@ function logout() {
   state.sessionToken = '';
   state.operator = null;
   state.cart = [];
+  state.activeOrderUuid = '';
+  state.activeCommandNumber = '';
   document.getElementById('operator-password').value = '';
   document.getElementById('user-badge').textContent = 'Sem usuario';
   renderCart();
@@ -503,6 +562,9 @@ async function confirmOrder() {
     alert(await response.text());
     return;
   }
+  const saved = await response.json();
+  state.activeOrderUuid = saved.uuid;
+  state.activeCommandNumber = saved.command_number;
   state.cart = [];
   renderCart();
   await loadOrders();
@@ -539,6 +601,159 @@ async function loadOrders() {
   document.getElementById('print-order').innerHTML = orders.map(order => `
     <option value="${escapeHtml(order.uuid)}">Comanda ${escapeHtml(order.command_number)} - Mesa ${escapeHtml(order.table_reference || '')}</option>
   `).join('');
+}
+
+function openModal(title, html) {
+  document.getElementById('modal-title').textContent = title;
+  document.getElementById('modal-body').innerHTML = html;
+  document.getElementById('modal-backdrop').classList.add('active');
+}
+
+function closeModal() {
+  document.getElementById('modal-backdrop').classList.remove('active');
+}
+
+function activeCommand() {
+  return state.activeCommandNumber || document.getElementById('command-number').value.trim() || prompt('Numero da comanda') || '';
+}
+
+function renderSummary(payload) {
+  if (!payload || !payload.order) return '<div class="muted">Sem dados.</div>';
+  const order = payload.order;
+  const items = (order.items || []).map(item => `
+    <tr>
+      <td>${escapeHtml(item.description)}</td>
+      <td>${escapeHtml(item.quantity)}</td>
+      <td>${money(item.unit_price)}</td>
+      <td>${money(item.line_total)}</td>
+    </tr>
+  `).join('');
+  return `
+    <div class="muted">Comanda ${escapeHtml(order.command_number)} | Mesa ${escapeHtml(order.table_reference || '')} | Pessoas ${escapeHtml(order.people_count || '-')}</div>
+    <table class="table-list">
+      <thead><tr><th>Item</th><th>Qtd</th><th>Unit.</th><th>Total</th></tr></thead>
+      <tbody>${items}</tbody>
+    </table>
+    <div class="totals"><span>Subtotal</span><span>${money(payload.subtotal)}</span></div>
+    <div class="totals"><span>Descontos</span><span>${money(payload.discounts)}</span></div>
+    <div class="totals"><span>Pagamentos parciais</span><span>${money(payload.partial_payments)}</span></div>
+    <div class="totals"><span>Total final</span><span>${money(payload.total)}</span></div>
+    <div class="totals"><span>Saldo restante</span><span>${money(payload.remaining)}</span></div>
+    <button class="primary" type="button" onclick="window.open('/orders/${order.uuid}/prebill','_blank')">Imprimir pre-conta</button>
+  `;
+}
+
+async function openSubtotalFlow() {
+  const command = activeCommand();
+  if (!command) return;
+  const response = await fetch(`/orders/subtotal?command_number=${encodeURIComponent(command)}`, {headers: localHeaders(false)});
+  const data = response.ok ? await response.json() : {message: await response.text()};
+  openModal('Subtotal', response.ok ? renderSummary(data.payload) : `<pre>${escapeHtml(data.message)}</pre>`);
+}
+
+async function openAccountFlow() {
+  const command = activeCommand();
+  if (!command) return;
+  const response = await fetch(`/orders/account?command_number=${encodeURIComponent(command)}`, {headers: localHeaders(false)});
+  const data = response.ok ? await response.json() : {message: await response.text()};
+  openModal('Conta', response.ok ? renderSummary(data.payload) : `<pre>${escapeHtml(data.message)}</pre>`);
+}
+
+async function openVoidFlow() {
+  const command = activeCommand();
+  const reason = prompt('Motivo da anulacao');
+  if (!command || !reason) return;
+  const response = await fetch('/orders/void', {
+    method: 'POST',
+    headers: localHeaders(),
+    body: JSON.stringify({command_number: command, reason})
+  });
+  const text = response.ok ? 'Anulacao registrada.' : await response.text();
+  openModal('Anular', `<pre>${escapeHtml(text)}</pre>`);
+  await loadOrders();
+}
+
+async function openTransferFlow() {
+  const source = activeCommand();
+  const destinationTable = prompt('Mesa destino');
+  const reason = prompt('Motivo da transferencia');
+  if (!source || !destinationTable || !reason) return;
+  const response = await fetch('/orders/transfer', {
+    method: 'POST',
+    headers: localHeaders(),
+    body: JSON.stringify({
+      transfer_type: 'table',
+      source_command_number: source,
+      destination_table_reference: destinationTable,
+      reason
+    })
+  });
+  const text = response.ok ? 'Transferencia registrada.' : await response.text();
+  openModal('Transferencia', `<pre>${escapeHtml(text)}</pre>`);
+  await loadOrders();
+}
+
+async function openPartialPaymentFlow() {
+  const command = activeCommand();
+  const amount = prompt('Valor do pagamento parcial');
+  const paymentMethod = prompt('Forma de pagamento');
+  if (!command || !amount || !paymentMethod) return;
+  const response = await fetch('/orders/partial-payment', {
+    method: 'POST',
+    headers: localHeaders(),
+    body: JSON.stringify({command_number: command, amount, payment_method: paymentMethod})
+  });
+  const data = response.ok ? await response.json() : {message: await response.text()};
+  openModal('Pagamento parcial', response.ok ? renderSummary(data.payload) : `<pre>${escapeHtml(data.message)}</pre>`);
+}
+
+async function openDiscountFlow() {
+  const command = activeCommand();
+  const type = prompt('Tipo: fixed ou percent', 'fixed');
+  const value = prompt('Valor do desconto');
+  const reason = prompt('Motivo do desconto');
+  if (!command || !type || !value || !reason) return;
+  const response = await fetch('/orders/discount', {
+    method: 'POST',
+    headers: localHeaders(),
+    body: JSON.stringify({command_number: command, discount_type: type, value, reason})
+  });
+  const data = response.ok ? await response.json() : {message: await response.text()};
+  openModal('Desconto', response.ok ? renderSummary(data.payload) : `<pre>${escapeHtml(data.message)}</pre>`);
+}
+
+async function openMessages() {
+  const response = await fetch('/orders/messages', {headers: localHeaders(false)});
+  const data = response.ok ? await response.json() : {messages: []};
+  const rows = data.messages.map(msg => `<div class="surface"><strong>${escapeHtml(msg.title)}</strong><div class="muted">${escapeHtml(msg.body)}</div></div>`).join('');
+  openModal('Mensagens', rows || '<div class="muted">Nenhuma mensagem.</div>');
+}
+
+async function openOutbox() {
+  const response = await fetch('/orders/outbox', {headers: localHeaders(false)});
+  const data = response.ok ? await response.json() : {events: []};
+  const rows = data.events.map(event => `<div class="surface"><strong>${escapeHtml(event.event_type)}</strong><div class="muted">${escapeHtml(event.sync_status)} | ${escapeHtml(event.created_at)}</div></div>`).join('');
+  openModal('Caixa de saida', rows || '<div class="muted">Nenhum evento pendente.</div>');
+}
+
+async function startVoiceCommand() {
+  const response = await fetch('/orders/voice-command', {method: 'POST', headers: localHeaders(false)});
+  const data = response.ok ? await response.json() : {message: await response.text()};
+  openModal('Controle por voz', `<pre>${escapeHtml(data.message)}</pre>`);
+}
+
+function openOtherMenu() {
+  openModal('Outros', `
+    <button class="secondary" type="button" onclick="closeModal(); document.getElementById('product-search').value=''; showScreen('products')">Consultar produto</button>
+    <button class="secondary" type="button" onclick="closeModal(); openPrint()">Reimprimir pedido</button>
+    <button class="secondary" type="button" onclick="closeModal(); openConsult()">Consultar mesa</button>
+    <button class="secondary" type="button" onclick="openModal('Abrir gaveta', '<pre>Integracao com gaveta ainda nao configurada neste pacote local.</pre>')">Abrir gaveta</button>
+  `);
+}
+
+function goInitialMenu() {
+  if (state.cart.length && !confirm('Existe pedido nao enviado. Deseja sair mesmo assim?')) return;
+  logout();
 }
 
 function printPrebill() {

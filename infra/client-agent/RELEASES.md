@@ -1,5 +1,30 @@
 # Releases - Cliente Agent
 
+## v2026-05-03_comandas_r4
+
+- Release com tela principal operacional no estilo do print.
+- Mantem separacao:
+  - API de comandas locais: `/orders/*`;
+  - API de sync de relatorios: sem mistura.
+- Inclui:
+  - cabecalho com avatar/perfil do operador;
+  - botoes `CAIXA DE SAIDA` e `MENSAGENS`;
+  - botao central `CONTROLE POR VOZ`;
+  - grade 3x3 com `PEDIR`, `ANULAR`, `SUBTOTAL`, `CONTA`, `TRANSFERENCIA`, `PAGAMENTO PARCIAL`, `OUTROS`, `DESCONTO`, `MENU INICIAL`;
+  - endpoints de permissoes, subtotal, conta, anulacao, transferencia, pagamento parcial, desconto, mensagens, outbox e voz planejada;
+  - tabelas locais de permissoes, logs de operacao, mensagens, pagamentos parciais, descontos, anulacoes e transferencias.
+- ZIP de entrega:
+  - `release-artifacts/MoviSyncAgent_Installer_v2026-05-03_comandas_r4.zip`
+- Tamanho validado:
+  - `164114` bytes
+- Validacao:
+  - `py -3 -m pytest tests\test_agent_local_orders.py -q` com `8 passed`;
+  - `py -3 -m compileall agent_local -q` sem erro;
+  - `py -3 -m pytest -q` com `77 passed, 1 skipped`;
+  - ZIP sem `__pycache__` e sem `.pyc`;
+  - ZIP contem `agent_local\orders\ui.py`;
+  - `package-version.txt` contem `v2026-05-03_comandas_r4`.
+
 ## v2026-05-03_comandas_r3
 
 - Release com fluxo mobile completo de comandas locais.

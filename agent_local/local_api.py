@@ -12,16 +12,22 @@ from agent_local.orders.printer import render_thermal_receipt
 from agent_local.orders.repository import LocalOrderRepository
 from agent_local.orders.schemas import (
     LocalOperatorListResponse,
+    LocalOperatorContextResponse,
     LocalOperatorView,
+    LocalOrderActionResponse,
     LocalOrderCancelRequest,
     LocalOrderCloseRequest,
     LocalOrderCreate,
+    LocalOrderDiscountRequest,
     LocalOrderItemCreate,
     LocalOrderItemUpdate,
     LocalOrderListResponse,
     LocalOrderLoginRequest,
     LocalOrderLoginResponse,
+    LocalOrderOperationRequest,
+    LocalOrderPartialPaymentRequest,
     LocalOrderPrintResponse,
+    LocalOrderTransferRequest,
     LocalOrderView,
     LocalProductFamilyListResponse,
     LocalProductListResponse,
@@ -206,6 +212,8 @@ def confirm_order(
 def _handle_order_error(exc: Exception) -> HTTPException:
     if isinstance(exc, KeyError):
         return HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Comanda ou item nao encontrado.")
+    if isinstance(exc, PermissionError):
+        return HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(exc))
     if isinstance(exc, RuntimeError):
         return HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc))
     if isinstance(exc, ValueError):
@@ -334,6 +342,17 @@ def list_order_products(
     return LocalProductListResponse(products=_order_service().list_products(family=family, query=q))
 
 
+@app.get("/orders/me", response_model=LocalOperatorContextResponse)
+def current_order_user(
+    _: None = Depends(_require_token),
+    session=Depends(_require_order_session),
+) -> LocalOperatorContextResponse:
+    return LocalOperatorContextResponse(
+        operator=LocalOperatorView(code=session.operator_code, name=session.operator_name),
+        permissions=_order_service().list_permissions(session.operator_code),
+    )
+
+
 @app.get("/orders", response_model=LocalOrderListResponse)
 def list_orders(
     table_reference: str | None = Query(default=None, max_length=40),
@@ -344,6 +363,147 @@ def list_orders(
         for order in _order_service().list_orders(table_reference=table_reference)
     ]
     return LocalOrderListResponse(total=len(orders), orders=orders)
+
+
+def _summary_payload(summary: dict[str, object]) -> dict[str, object]:
+    order = summary["order"]
+    return {
+        "order": LocalOrderView.model_validate(order).model_dump(mode="json"),
+        "subtotal": str(summary["subtotal"]),
+        "discounts": str(summary["discounts"]),
+        "partial_payments": str(summary["partial_payments"]),
+        "total": str(summary["total"]),
+        "remaining": str(summary["remaining"]),
+    }
+
+
+@app.get("/orders/current", response_model=LocalOrderActionResponse)
+def current_order(
+    order_uuid: str | None = Query(default=None, max_length=80),
+    command_number: str | None = Query(default=None, max_length=40),
+    _: None = Depends(_require_token),
+    session=Depends(_require_order_session),
+) -> LocalOrderActionResponse:
+    try:
+        summary = _order_service().order_summary(order_uuid=order_uuid, command_number=command_number)
+    except Exception as exc:
+        raise _handle_order_error(exc) from exc
+    return LocalOrderActionResponse(status="ok", message="Comanda localizada.", payload=_summary_payload(summary))
+
+
+@app.get("/orders/subtotal", response_model=LocalOrderActionResponse)
+def order_subtotal(
+    order_uuid: str | None = Query(default=None, max_length=80),
+    command_number: str | None = Query(default=None, max_length=40),
+    _: None = Depends(_require_token),
+    session=Depends(_require_order_session),
+) -> LocalOrderActionResponse:
+    try:
+        summary = _order_service().order_summary(order_uuid=order_uuid, command_number=command_number)
+    except Exception as exc:
+        raise _handle_order_error(exc) from exc
+    return LocalOrderActionResponse(status="ok", message="Subtotal consultado.", payload=_summary_payload(summary))
+
+
+@app.get("/orders/account", response_model=LocalOrderActionResponse)
+def order_account(
+    order_uuid: str | None = Query(default=None, max_length=80),
+    command_number: str | None = Query(default=None, max_length=40),
+    _: None = Depends(_require_token),
+    session=Depends(_require_order_session),
+) -> LocalOrderActionResponse:
+    try:
+        summary = _order_service().order_summary(order_uuid=order_uuid, command_number=command_number)
+    except Exception as exc:
+        raise _handle_order_error(exc) from exc
+    return LocalOrderActionResponse(status="ok", message="Conta consultada.", payload=_summary_payload(summary))
+
+
+@app.post("/orders/void", response_model=LocalOrderActionResponse)
+def void_order_or_item(
+    payload: LocalOrderOperationRequest,
+    _: None = Depends(_require_token),
+    session=Depends(_require_order_session),
+) -> LocalOrderActionResponse:
+    try:
+        order = _order_service().void_order_or_item(payload, session)
+    except Exception as exc:
+        raise _handle_order_error(exc) from exc
+    return LocalOrderActionResponse(
+        status="ok",
+        message="Anulacao registrada.",
+        order=LocalOrderView.model_validate(order),
+    )
+
+
+@app.post("/orders/transfer", response_model=LocalOrderActionResponse)
+def transfer_order(
+    payload: LocalOrderTransferRequest,
+    _: None = Depends(_require_token),
+    session=Depends(_require_order_session),
+) -> LocalOrderActionResponse:
+    try:
+        order = _order_service().transfer_order(payload, session)
+    except Exception as exc:
+        raise _handle_order_error(exc) from exc
+    return LocalOrderActionResponse(
+        status="ok",
+        message="Transferencia registrada.",
+        order=LocalOrderView.model_validate(order),
+    )
+
+
+@app.post("/orders/partial-payment", response_model=LocalOrderActionResponse)
+def partial_payment(
+    payload: LocalOrderPartialPaymentRequest,
+    _: None = Depends(_require_token),
+    session=Depends(_require_order_session),
+) -> LocalOrderActionResponse:
+    try:
+        summary = _order_service().record_partial_payment(payload, session)
+    except Exception as exc:
+        raise _handle_order_error(exc) from exc
+    return LocalOrderActionResponse(status="ok", message="Pagamento parcial registrado.", payload=_summary_payload(summary))
+
+
+@app.post("/orders/discount", response_model=LocalOrderActionResponse)
+def discount_order(
+    payload: LocalOrderDiscountRequest,
+    _: None = Depends(_require_token),
+    session=Depends(_require_order_session),
+) -> LocalOrderActionResponse:
+    try:
+        summary = _order_service().apply_discount(payload, session)
+    except Exception as exc:
+        raise _handle_order_error(exc) from exc
+    return LocalOrderActionResponse(status="ok", message="Desconto registrado.", payload=_summary_payload(summary))
+
+
+@app.get("/orders/messages")
+def list_messages(
+    _: None = Depends(_require_token),
+    session=Depends(_require_order_session),
+) -> dict[str, object]:
+    return {"messages": _order_service().list_messages(session.operator_code)}
+
+
+@app.get("/orders/outbox")
+def list_outbox(
+    _: None = Depends(_require_token),
+    session=Depends(_require_order_session),
+) -> dict[str, object]:
+    return {"events": _order_service().list_outbox()}
+
+
+@app.post("/orders/voice-command")
+def voice_command_stub(
+    _: None = Depends(_require_token),
+    session=Depends(_require_order_session),
+) -> dict[str, object]:
+    return {
+        "status": "planned",
+        "message": "Estrutura preparada. Reconhecimento de voz ainda nao esta habilitado neste pacote local.",
+    }
 
 
 @app.get("/orders/{order_uuid}/prebill", response_class=HTMLResponse)

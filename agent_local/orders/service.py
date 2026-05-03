@@ -4,7 +4,17 @@ from pathlib import Path
 
 from agent_local.orders.printer import LocalOrderPrinter
 from agent_local.orders.repository import LocalOrderRepository, StoredOrder, StoredOrderSession
-from agent_local.orders.schemas import LocalOrderCancelRequest, LocalOrderCloseRequest, LocalOrderCreate, LocalOrderItemCreate, LocalOrderItemUpdate
+from agent_local.orders.schemas import (
+    LocalOrderCancelRequest,
+    LocalOrderCloseRequest,
+    LocalOrderCreate,
+    LocalOrderDiscountRequest,
+    LocalOrderItemCreate,
+    LocalOrderItemUpdate,
+    LocalOrderOperationRequest,
+    LocalOrderPartialPaymentRequest,
+    LocalOrderTransferRequest,
+)
 
 
 class LocalOrderService:
@@ -26,6 +36,9 @@ class LocalOrderService:
 
     def get_session(self, token: str) -> StoredOrderSession | None:
         return self.repository.get_session(token)
+
+    def list_permissions(self, operator_code: str) -> dict[str, bool]:
+        return self.repository.list_permissions(operator_code)
 
     def list_product_families(self) -> list[str]:
         return self.repository.list_product_families()
@@ -55,6 +68,31 @@ class LocalOrderService:
 
     def cancel_order(self, order_uuid: str, payload: LocalOrderCancelRequest) -> StoredOrder:
         return self.repository.cancel_order(empresa_id=self.empresa_id, order_uuid=order_uuid, reason=payload.reason)
+
+    def order_summary(self, *, order_uuid: str | None = None, command_number: str | None = None) -> dict[str, object]:
+        return self.repository.order_financial_summary(
+            empresa_id=self.empresa_id,
+            order_uuid=order_uuid,
+            command_number=command_number,
+        )
+
+    def void_order_or_item(self, payload: LocalOrderOperationRequest, session: StoredOrderSession) -> StoredOrder:
+        return self.repository.void_order_or_item(empresa_id=self.empresa_id, session=session, payload=payload)
+
+    def transfer_order(self, payload: LocalOrderTransferRequest, session: StoredOrderSession) -> StoredOrder:
+        return self.repository.transfer_order(empresa_id=self.empresa_id, session=session, payload=payload)
+
+    def record_partial_payment(self, payload: LocalOrderPartialPaymentRequest, session: StoredOrderSession) -> dict[str, object]:
+        return self.repository.record_partial_payment(empresa_id=self.empresa_id, session=session, payload=payload)
+
+    def apply_discount(self, payload: LocalOrderDiscountRequest, session: StoredOrderSession) -> dict[str, object]:
+        return self.repository.apply_discount(empresa_id=self.empresa_id, session=session, payload=payload)
+
+    def list_messages(self, operator_code: str) -> list[dict[str, object]]:
+        return self.repository.list_messages(operator_code)
+
+    def list_outbox(self) -> list[dict[str, object]]:
+        return self.repository.list_outbox()
 
     def print_order(self, order_uuid: str, *, jobs_dir: str | Path, printer_name: str | None, width: int):
         order = self.repository.get_by_uuid(empresa_id=self.empresa_id, order_uuid=order_uuid)

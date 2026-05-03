@@ -77,6 +77,78 @@ class LocalOrderCancelRequest(BaseModel):
         return cleaned or None
 
 
+class LocalOrderOperationRequest(BaseModel):
+    order_uuid: str | None = Field(default=None, max_length=80)
+    command_number: str | None = Field(default=None, max_length=40)
+    item_id: int | None = Field(default=None, gt=0)
+    reason: str | None = Field(default=None, min_length=1, max_length=300)
+    details: dict[str, str | int | Decimal | None] | None = None
+
+    @field_validator("order_uuid", "command_number", "reason")
+    @classmethod
+    def strip_operation_text(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        cleaned = value.strip()
+        return cleaned or None
+
+
+class LocalOrderTransferRequest(BaseModel):
+    transfer_type: str = Field(pattern="^(item|command|table)$")
+    source_order_uuid: str | None = Field(default=None, max_length=80)
+    source_command_number: str | None = Field(default=None, max_length=40)
+    item_id: int | None = Field(default=None, gt=0)
+    destination_command_number: str | None = Field(default=None, max_length=40)
+    destination_table_reference: str | None = Field(default=None, max_length=40)
+    reason: str = Field(min_length=1, max_length=300)
+
+    @field_validator(
+        "source_order_uuid",
+        "source_command_number",
+        "destination_command_number",
+        "destination_table_reference",
+        "reason",
+    )
+    @classmethod
+    def strip_transfer_text(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        cleaned = value.strip()
+        return cleaned or None
+
+
+class LocalOrderPartialPaymentRequest(BaseModel):
+    order_uuid: str | None = Field(default=None, max_length=80)
+    command_number: str | None = Field(default=None, max_length=40)
+    payment_method: str = Field(min_length=1, max_length=80)
+    amount: Decimal = Field(gt=Decimal("0"), max_digits=14, decimal_places=2)
+    selected_item_ids: list[int] | None = Field(default=None, max_length=100)
+
+    @field_validator("order_uuid", "command_number", "payment_method")
+    @classmethod
+    def strip_partial_payment_text(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        cleaned = value.strip()
+        return cleaned or None
+
+
+class LocalOrderDiscountRequest(BaseModel):
+    order_uuid: str | None = Field(default=None, max_length=80)
+    command_number: str | None = Field(default=None, max_length=40)
+    discount_type: str = Field(pattern="^(fixed|percent)$")
+    value: Decimal = Field(gt=Decimal("0"), max_digits=14, decimal_places=2)
+    reason: str = Field(min_length=1, max_length=300)
+
+    @field_validator("order_uuid", "command_number", "reason")
+    @classmethod
+    def strip_discount_text(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        cleaned = value.strip()
+        return cleaned or None
+
+
 class LocalOrderCreate(BaseModel):
     command_number: str | None = Field(default=None, max_length=40)
     people_count: int | None = Field(default=None, ge=1, le=999)
@@ -178,6 +250,18 @@ class LocalOrderLoginRequest(BaseModel):
 class LocalOrderLoginResponse(BaseModel):
     session_token: str
     operator: LocalOperatorView
+
+
+class LocalOperatorContextResponse(BaseModel):
+    operator: LocalOperatorView
+    permissions: dict[str, bool]
+
+
+class LocalOrderActionResponse(BaseModel):
+    status: str
+    message: str
+    order: LocalOrderView | None = None
+    payload: dict[str, object] | None = None
 
 
 class LocalProductFamilyListResponse(BaseModel):

@@ -190,6 +190,14 @@ def test_local_orders_web_ui_is_available() -> None:
     assert "Revisar pedido" in response.text
     assert "Confirmar pedido" in response.text
     assert "Lixeira" in response.text
+    assert "CONTROLE POR VOZ" in response.text
+    assert "CAIXA DE SAIDA" in response.text
+    assert "MENSAGENS" in response.text
+    assert "ANULAR" in response.text
+    assert "SUBTOTAL" in response.text
+    assert "TRANSFERENCIA" in response.text
+    assert "PAGAMENTO PARCIAL" in response.text
+    assert "DESCONTO" in response.text
 
 
 def test_local_comandas_use_operator_catalog_item_notes_and_prebill() -> None:
@@ -438,6 +446,98 @@ def test_local_comanda_can_be_edited_cancelled_and_closed() -> None:
         canceled = client.post(f"/orders/{cancel_uuid}/cancel", headers=headers, json={"reason": "cliente desistiu"})
         assert canceled.status_code == 200, canceled.text
         assert canceled.json()["status"] == "cancelled"
+
+
+def test_local_comanda_main_menu_operations_log_critical_actions() -> None:
+    db_path = Path("output/test_agent_local_orders/menu_operations.db")
+    token_file = Path("output/test_agent_local_orders/menu_operations_token.txt")
+    db_path.parent.mkdir(parents=True, exist_ok=True)
+    if db_path.exists():
+        db_path.unlink()
+    token_file.write_text("local-token-test", encoding="ascii")
+
+    os.environ["LOCAL_ORDER_DB_PATH"] = str(db_path)
+    os.environ["LOCAL_API_TOKEN_FILE"] = str(token_file)
+    os.environ["AGENT_EMPRESA_ID"] = "12345678000199"
+    os.environ["LOCAL_ORDER_AUTO_REFRESH_CATALOG"] = "false"
+
+    local_api = _reload_local_api()
+
+    with TestClient(local_api.app) as client:
+        headers = _order_headers(client, db_path)
+        created = client.post(
+            "/orders",
+            headers=headers,
+            json={
+                "command_number": "050",
+                "people_count": 3,
+                "table_reference": "15",
+                "items": [
+                    {"product_code": "AGUA", "description": "Agua", "quantity": "2", "unit_price": "8.00"},
+                    {"product_code": "LAN01", "description": "Lanche", "quantity": "1", "unit_price": "20.00"},
+                ],
+            },
+        )
+        assert created.status_code == 201, created.text
+        order_uuid = created.json()["uuid"]
+
+        me = client.get("/orders/me", headers=headers)
+        assert me.status_code == 200, me.text
+        assert me.json()["operator"]["code"] == "OP01"
+        assert me.json()["permissions"]["order.discount"] is True
+
+        subtotal = client.get("/orders/subtotal?command_number=050", headers=headers)
+        assert subtotal.status_code == 200, subtotal.text
+        assert subtotal.json()["payload"]["subtotal"] == "36.00"
+
+        discount = client.post(
+            "/orders/discount",
+            headers=headers,
+            json={"command_number": "050", "discount_type": "fixed", "value": "6.00", "reason": "cortesia"},
+        )
+        assert discount.status_code == 200, discount.text
+        assert discount.json()["payload"]["discounts"] == "6.00"
+        assert discount.json()["payload"]["remaining"] == "30.00"
+
+        partial = client.post(
+            "/orders/partial-payment",
+            headers=headers,
+            json={"command_number": "050", "payment_method": "pix", "amount": "10.00"},
+        )
+        assert partial.status_code == 200, partial.text
+        assert partial.json()["payload"]["partial_payments"] == "10.00"
+        assert partial.json()["payload"]["remaining"] == "20.00"
+
+        transfer = client.post(
+            "/orders/transfer",
+            headers=headers,
+            json={
+                "transfer_type": "table",
+                "source_order_uuid": order_uuid,
+                "destination_table_reference": "16",
+                "reason": "cliente mudou de mesa",
+            },
+        )
+        assert transfer.status_code == 200, transfer.text
+        assert transfer.json()["order"]["table_reference"] == "16"
+
+        voice = client.post("/orders/voice-command", headers=headers)
+        assert voice.status_code == 200, voice.text
+        assert voice.json()["status"] == "planned"
+
+        messages = client.get("/orders/messages", headers=headers)
+        assert messages.status_code == 200, messages.text
+        assert messages.json()["messages"] == []
+
+        outbox = client.get("/orders/outbox", headers=headers)
+        assert outbox.status_code == 200, outbox.text
+        assert any(event["event_type"] == "order.created" for event in outbox.json()["events"])
+
+        with sqlite3.connect(db_path) as connection:
+            logs = connection.execute(
+                "SELECT operation_type FROM local_order_operation_logs ORDER BY id"
+            ).fetchall()
+        assert [row[0] for row in logs] == ["discount", "partial_payment", "transfer"]
 
 
 def test_local_comanda_supports_split_payments_in_prebill() -> None:

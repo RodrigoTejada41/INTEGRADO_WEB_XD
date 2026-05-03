@@ -3,6 +3,7 @@ from __future__ import annotations
 import sqlite3
 import hashlib
 import hmac
+import json
 import secrets
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
@@ -10,7 +11,16 @@ from decimal import Decimal
 from pathlib import Path
 from uuid import uuid4
 
-from agent_local.orders.schemas import LocalOrderCloseRequest, LocalOrderCreate, LocalOrderItemCreate, LocalOrderItemUpdate
+from agent_local.orders.schemas import (
+    LocalOrderCloseRequest,
+    LocalOrderCreate,
+    LocalOrderDiscountRequest,
+    LocalOrderItemCreate,
+    LocalOrderItemUpdate,
+    LocalOrderOperationRequest,
+    LocalOrderPartialPaymentRequest,
+    LocalOrderTransferRequest,
+)
 
 
 @dataclass(frozen=True)
@@ -187,6 +197,101 @@ class LocalOrderRepository:
                     operator_code TEXT NOT NULL,
                     created_at TEXT NOT NULL,
                     expires_at TEXT NOT NULL
+                )
+                """
+            )
+            connection.execute(
+                """
+                CREATE TABLE IF NOT EXISTS local_order_operator_permissions (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    operator_code TEXT NOT NULL,
+                    permission TEXT NOT NULL,
+                    allowed INTEGER NOT NULL DEFAULT 1,
+                    UNIQUE(operator_code, permission)
+                )
+                """
+            )
+            connection.execute(
+                """
+                CREATE TABLE IF NOT EXISTS local_order_operation_logs (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    empresa_id TEXT NOT NULL,
+                    operator_code TEXT NOT NULL,
+                    operator_name TEXT NOT NULL,
+                    operation_type TEXT NOT NULL,
+                    order_uuid TEXT NULL,
+                    command_number TEXT NULL,
+                    item_id INTEGER NULL,
+                    reason TEXT NULL,
+                    details TEXT NULL,
+                    created_at TEXT NOT NULL
+                )
+                """
+            )
+            connection.execute(
+                """
+                CREATE TABLE IF NOT EXISTS local_order_messages (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    operator_code TEXT NULL,
+                    title TEXT NOT NULL,
+                    body TEXT NOT NULL,
+                    read_at TEXT NULL,
+                    created_at TEXT NOT NULL
+                )
+                """
+            )
+            connection.execute(
+                """
+                CREATE TABLE IF NOT EXISTS local_order_partial_payments (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    order_uuid TEXT NOT NULL REFERENCES local_orders(uuid) ON DELETE CASCADE,
+                    operator_code TEXT NOT NULL,
+                    payment_method TEXT NOT NULL,
+                    amount TEXT NOT NULL,
+                    selected_item_ids TEXT NULL,
+                    created_at TEXT NOT NULL
+                )
+                """
+            )
+            connection.execute(
+                """
+                CREATE TABLE IF NOT EXISTS local_order_discounts (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    order_uuid TEXT NOT NULL REFERENCES local_orders(uuid) ON DELETE CASCADE,
+                    operator_code TEXT NOT NULL,
+                    discount_type TEXT NOT NULL,
+                    value TEXT NOT NULL,
+                    amount TEXT NOT NULL,
+                    reason TEXT NOT NULL,
+                    created_at TEXT NOT NULL
+                )
+                """
+            )
+            connection.execute(
+                """
+                CREATE TABLE IF NOT EXISTS local_order_voids (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    order_uuid TEXT NOT NULL,
+                    item_id INTEGER NULL,
+                    operator_code TEXT NOT NULL,
+                    reason TEXT NOT NULL,
+                    created_at TEXT NOT NULL
+                )
+                """
+            )
+            connection.execute(
+                """
+                CREATE TABLE IF NOT EXISTS local_order_transfers (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    source_order_uuid TEXT NULL,
+                    source_command_number TEXT NULL,
+                    item_id INTEGER NULL,
+                    destination_command_number TEXT NULL,
+                    destination_table_reference TEXT NULL,
+                    transfer_type TEXT NOT NULL,
+                    operator_code TEXT NOT NULL,
+                    reason TEXT NOT NULL,
+                    created_at TEXT NOT NULL
                 )
                 """
             )
@@ -687,6 +792,380 @@ class LocalOrderRepository:
             if cursor.rowcount == 0:
                 raise KeyError(code)
             connection.commit()
+
+    def list_permissions(self, operator_code: str) -> dict[str, bool]:
+        self.initialize()
+        defaults = {
+            "order.create": True,
+            "order.void": True,
+            "order.transfer": True,
+            "order.partial_payment": True,
+            "order.discount": True,
+            "order.print": True,
+            "order.messages": True,
+        }
+        with self._connect() as connection:
+            rows = connection.execute(
+                """
+                SELECT permission, allowed
+                FROM local_order_operator_permissions
+                WHERE operator_code = ?
+                """,
+                (operator_code,),
+            ).fetchall()
+        permissions = defaults.copy()
+        permissions.update({str(row["permission"]): bool(row["allowed"]) for row in rows})
+        return permissions
+
+    def require_permission(self, operator_code: str, permission: str) -> None:
+        if not self.list_permissions(operator_code).get(permission, False):
+            raise PermissionError(f"Permissao negada: {permission}")
+
+    def get_by_command_number(self, *, empresa_id: str, command_number: str) -> StoredOrder:
+        self.initialize()
+        with self._connect() as connection:
+            row = connection.execute(
+                """
+                SELECT uuid
+                FROM local_orders
+                WHERE empresa_id = ? AND command_number = ?
+                ORDER BY created_at DESC, id DESC
+                LIMIT 1
+                """,
+                (empresa_id, command_number),
+            ).fetchone()
+        if row is None:
+            raise KeyError(command_number)
+        return self.get_by_uuid(empresa_id=empresa_id, order_uuid=str(row["uuid"]))
+
+    def resolve_order(self, *, empresa_id: str, order_uuid: str | None, command_number: str | None) -> StoredOrder:
+        if order_uuid:
+            return self.get_by_uuid(empresa_id=empresa_id, order_uuid=order_uuid)
+        if command_number:
+            return self.get_by_command_number(empresa_id=empresa_id, command_number=command_number)
+        raise ValueError("Informe comanda.")
+
+    def log_operation(
+        self,
+        *,
+        empresa_id: str,
+        session: StoredOrderSession,
+        operation_type: str,
+        order_uuid: str | None = None,
+        command_number: str | None = None,
+        item_id: int | None = None,
+        reason: str | None = None,
+        details: dict[str, object] | None = None,
+    ) -> None:
+        self.initialize()
+        with self._connect() as connection:
+            connection.execute(
+                """
+                INSERT INTO local_order_operation_logs (
+                    empresa_id, operator_code, operator_name, operation_type,
+                    order_uuid, command_number, item_id, reason, details, created_at
+                )
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    empresa_id,
+                    session.operator_code,
+                    session.operator_name,
+                    operation_type,
+                    order_uuid,
+                    command_number,
+                    item_id,
+                    reason,
+                    json.dumps(details or {}, ensure_ascii=True, default=str),
+                    _utc_now_text(),
+                ),
+            )
+            connection.commit()
+
+    def order_financial_summary(
+        self,
+        *,
+        empresa_id: str,
+        order_uuid: str | None,
+        command_number: str | None,
+    ) -> dict[str, object]:
+        order = self.resolve_order(empresa_id=empresa_id, order_uuid=order_uuid, command_number=command_number)
+        with self._connect() as connection:
+            discount_row = connection.execute(
+                """
+                SELECT COALESCE(SUM(CAST(amount AS NUMERIC)), 0) AS total
+                FROM local_order_discounts
+                WHERE order_uuid = ?
+                """,
+                (order.uuid,),
+            ).fetchone()
+            partial_row = connection.execute(
+                """
+                SELECT COALESCE(SUM(CAST(amount AS NUMERIC)), 0) AS total
+                FROM local_order_partial_payments
+                WHERE order_uuid = ?
+                """,
+                (order.uuid,),
+            ).fetchone()
+        discounts = _to_money(Decimal(str(discount_row["total"] or "0")))
+        partial_payments = _to_money(Decimal(str(partial_row["total"] or "0")))
+        final_total = max(_to_money(order.total_amount - discounts), Decimal("0.00"))
+        remaining = max(_to_money(final_total - partial_payments), Decimal("0.00"))
+        return {
+            "order": order,
+            "subtotal": order.total_amount,
+            "discounts": discounts,
+            "partial_payments": partial_payments,
+            "total": final_total,
+            "remaining": remaining,
+        }
+
+    def record_partial_payment(
+        self,
+        *,
+        empresa_id: str,
+        session: StoredOrderSession,
+        payload: LocalOrderPartialPaymentRequest,
+    ) -> dict[str, object]:
+        self.require_permission(session.operator_code, "order.partial_payment")
+        order = self.resolve_order(
+            empresa_id=empresa_id,
+            order_uuid=payload.order_uuid,
+            command_number=payload.command_number,
+        )
+        now = _utc_now_text()
+        with self._connect() as connection:
+            connection.execute(
+                """
+                INSERT INTO local_order_partial_payments (
+                    order_uuid, operator_code, payment_method, amount, selected_item_ids, created_at
+                )
+                VALUES (?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    order.uuid,
+                    session.operator_code,
+                    payload.payment_method,
+                    str(_to_money(payload.amount)),
+                    json.dumps(payload.selected_item_ids or [], ensure_ascii=True),
+                    now,
+                ),
+            )
+            connection.commit()
+        self.log_operation(
+            empresa_id=empresa_id,
+            session=session,
+            operation_type="partial_payment",
+            order_uuid=order.uuid,
+            command_number=order.command_number,
+            details={"payment_method": payload.payment_method, "amount": str(_to_money(payload.amount))},
+        )
+        return self.order_financial_summary(empresa_id=empresa_id, order_uuid=order.uuid, command_number=None)
+
+    def apply_discount(
+        self,
+        *,
+        empresa_id: str,
+        session: StoredOrderSession,
+        payload: LocalOrderDiscountRequest,
+    ) -> dict[str, object]:
+        self.require_permission(session.operator_code, "order.discount")
+        order = self.resolve_order(
+            empresa_id=empresa_id,
+            order_uuid=payload.order_uuid,
+            command_number=payload.command_number,
+        )
+        if payload.discount_type == "percent":
+            amount = _to_money(order.total_amount * (payload.value / Decimal("100")))
+        else:
+            amount = _to_money(payload.value)
+        if amount > order.total_amount:
+            raise ValueError("Desconto maior que o subtotal da comanda.")
+        now = _utc_now_text()
+        with self._connect() as connection:
+            connection.execute(
+                """
+                INSERT INTO local_order_discounts (
+                    order_uuid, operator_code, discount_type, value, amount, reason, created_at
+                )
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+                """,
+                (order.uuid, session.operator_code, payload.discount_type, str(payload.value), str(amount), payload.reason, now),
+            )
+            connection.commit()
+        self.log_operation(
+            empresa_id=empresa_id,
+            session=session,
+            operation_type="discount",
+            order_uuid=order.uuid,
+            command_number=order.command_number,
+            reason=payload.reason,
+            details={"discount_type": payload.discount_type, "value": str(payload.value), "amount": str(amount)},
+        )
+        return self.order_financial_summary(empresa_id=empresa_id, order_uuid=order.uuid, command_number=None)
+
+    def void_order_or_item(
+        self,
+        *,
+        empresa_id: str,
+        session: StoredOrderSession,
+        payload: LocalOrderOperationRequest,
+    ) -> StoredOrder:
+        self.require_permission(session.operator_code, "order.void")
+        if not payload.reason:
+            raise ValueError("Motivo da anulacao obrigatorio.")
+        order = self.resolve_order(
+            empresa_id=empresa_id,
+            order_uuid=payload.order_uuid,
+            command_number=payload.command_number,
+        )
+        with self._connect() as connection:
+            connection.execute(
+                """
+                INSERT INTO local_order_voids (order_uuid, item_id, operator_code, reason, created_at)
+                VALUES (?, ?, ?, ?, ?)
+                """,
+                (order.uuid, payload.item_id, session.operator_code, payload.reason, _utc_now_text()),
+            )
+            connection.commit()
+        if payload.item_id:
+            result = self.remove_item(empresa_id=empresa_id, order_uuid=order.uuid, item_id=payload.item_id)
+        else:
+            result = self.cancel_order(empresa_id=empresa_id, order_uuid=order.uuid, reason=payload.reason)
+        self.log_operation(
+            empresa_id=empresa_id,
+            session=session,
+            operation_type="void",
+            order_uuid=order.uuid,
+            command_number=order.command_number,
+            item_id=payload.item_id,
+            reason=payload.reason,
+        )
+        return result
+
+    def transfer_order(
+        self,
+        *,
+        empresa_id: str,
+        session: StoredOrderSession,
+        payload: LocalOrderTransferRequest,
+    ) -> StoredOrder:
+        self.require_permission(session.operator_code, "order.transfer")
+        order = self.resolve_order(
+            empresa_id=empresa_id,
+            order_uuid=payload.source_order_uuid,
+            command_number=payload.source_command_number,
+        )
+        if payload.transfer_type == "item":
+            if not payload.item_id or not payload.destination_command_number:
+                raise ValueError("Transferencia de item exige item e comanda destino.")
+        if payload.transfer_type in {"command", "table"} and not (
+            payload.destination_command_number or payload.destination_table_reference
+        ):
+            raise ValueError("Informe destino da transferencia.")
+        now = _utc_now_text()
+        with self._connect() as connection:
+            connection.execute(
+                """
+                INSERT INTO local_order_transfers (
+                    source_order_uuid, source_command_number, item_id,
+                    destination_command_number, destination_table_reference,
+                    transfer_type, operator_code, reason, created_at
+                )
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    order.uuid,
+                    order.command_number,
+                    payload.item_id,
+                    payload.destination_command_number,
+                    payload.destination_table_reference,
+                    payload.transfer_type,
+                    session.operator_code,
+                    payload.reason,
+                    now,
+                ),
+            )
+            if payload.transfer_type in {"command", "table"}:
+                connection.execute(
+                    """
+                    UPDATE local_orders
+                    SET command_number = COALESCE(?, command_number),
+                        table_reference = COALESCE(?, table_reference),
+                        updated_at = ?
+                    WHERE empresa_id = ? AND uuid = ?
+                    """,
+                    (
+                        payload.destination_command_number,
+                        payload.destination_table_reference,
+                        now,
+                        empresa_id,
+                        order.uuid,
+                    ),
+                )
+            connection.commit()
+        self.log_operation(
+            empresa_id=empresa_id,
+            session=session,
+            operation_type="transfer",
+            order_uuid=order.uuid,
+            command_number=order.command_number,
+            item_id=payload.item_id,
+            reason=payload.reason,
+            details={
+                "transfer_type": payload.transfer_type,
+                "destination_command_number": payload.destination_command_number,
+                "destination_table_reference": payload.destination_table_reference,
+            },
+        )
+        return self.get_by_uuid(empresa_id=empresa_id, order_uuid=order.uuid)
+
+    def list_messages(self, operator_code: str) -> list[dict[str, object]]:
+        self.initialize()
+        with self._connect() as connection:
+            rows = connection.execute(
+                """
+                SELECT id, title, body, read_at, created_at
+                FROM local_order_messages
+                WHERE operator_code IS NULL OR operator_code = ?
+                ORDER BY created_at DESC, id DESC
+                LIMIT 50
+                """,
+                (operator_code,),
+            ).fetchall()
+        return [
+            {
+                "id": int(row["id"]),
+                "title": str(row["title"]),
+                "body": str(row["body"]),
+                "read_at": row["read_at"],
+                "created_at": row["created_at"],
+            }
+            for row in rows
+        ]
+
+    def list_outbox(self) -> list[dict[str, object]]:
+        self.initialize()
+        with self._connect() as connection:
+            rows = connection.execute(
+                """
+                SELECT id, order_uuid, event_type, sync_status, created_at, synced_at
+                FROM local_order_outbox
+                ORDER BY created_at DESC, id DESC
+                LIMIT 50
+                """
+            ).fetchall()
+        return [
+            {
+                "id": int(row["id"]),
+                "order_uuid": row["order_uuid"],
+                "event_type": row["event_type"],
+                "sync_status": row["sync_status"],
+                "created_at": row["created_at"],
+                "synced_at": row["synced_at"],
+            }
+            for row in rows
+        ]
 
     def upsert_catalog(self, *, operators: list[dict[str, str]], products: list[dict[str, str]]) -> None:
         self.initialize()
