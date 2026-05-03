@@ -18,6 +18,34 @@ def _reload_local_api():
     return importlib.import_module("agent_local.local_api")
 
 
+def _order_headers(client: TestClient, db_path: Path, token: str = "local-token-test") -> dict[str, str]:
+    from agent_local.orders.repository import hash_order_password
+
+    headers = {"X-Local-Token": token}
+    assert client.get("/orders/users", headers=headers).status_code == 200
+    with sqlite3.connect(db_path) as connection:
+        connection.execute(
+            """
+            INSERT INTO local_order_operators (code, name, password_hash, active)
+            VALUES (?, ?, ?, 1)
+            ON CONFLICT(code) DO UPDATE SET
+                name = excluded.name,
+                password_hash = excluded.password_hash,
+                active = 1
+            """,
+            ("OP01", "Ana Caixa", hash_order_password("1234")),
+        )
+        connection.commit()
+    login = client.post(
+        "/orders/login",
+        headers=headers,
+        json={"operator_code": "OP01", "password": "1234"},
+    )
+    assert login.status_code == 200, login.text
+    headers["X-Order-Session"] = login.json()["session_token"]
+    return headers
+
+
 def test_order_catalog_prefers_real_retail_price_columns() -> None:
     from agent_local.db.mariadb_client import MariaDBClient
 
@@ -107,6 +135,7 @@ def test_local_order_api_creates_order_offline_and_calculates_total() -> None:
     local_api = _reload_local_api()
 
     with TestClient(local_api.app) as client:
+        headers = _order_headers(client, db_path)
         unauthorized = client.post(
             "/orders",
             json={
@@ -120,7 +149,7 @@ def test_local_order_api_creates_order_offline_and_calculates_total() -> None:
 
         created = client.post(
             "/orders",
-            headers={"X-Local-Token": "local-token-test"},
+            headers=headers,
             json={
                 "customer_name": "Cliente Teste",
                 "notes": "Retirar no balcao",
@@ -138,7 +167,7 @@ def test_local_order_api_creates_order_offline_and_calculates_total() -> None:
         assert body["total_amount"] == "26.00"
         assert len(body["items"]) == 2
 
-        listed = client.get("/orders", headers={"X-Local-Token": "local-token-test"})
+        listed = client.get("/orders", headers=headers)
         assert listed.status_code == 200, listed.text
         assert listed.json()["total"] == 1
         assert listed.json()["orders"][0]["uuid"] == body["uuid"]
@@ -152,17 +181,15 @@ def test_local_orders_web_ui_is_available() -> None:
 
     assert response.status_code == 200
     assert "Comandas Locais" in response.text
-    assert "Abrir comanda" in response.text
-    assert "families-carousel" in response.text
-    assert "product-family-tabs" in response.text
-    assert "product-tile" in response.text
-    assert "VER CONTEUDO DA MESA" in response.text
-    assert "CONCLUIR" in response.text
-    assert "Fechar comanda" in response.text
-    assert "Cancelar comanda" in response.text
-    assert "Selecione o/a COMANDA." in response.text
-    assert "COMANDA 1" in response.text
-    assert "PAGAMENTO PARCIAL" in response.text
+    assert "API local separada do sync de relatorios" in response.text
+    assert "Entrar" in response.text
+    assert "Pedido" in response.text
+    assert "Consultar comanda" in response.text
+    assert "Imprimir pre-conta" in response.text
+    assert "Buscar produto" in response.text
+    assert "Revisar pedido" in response.text
+    assert "Confirmar pedido" in response.text
+    assert "Lixeira" in response.text
 
 
 def test_local_comandas_use_operator_catalog_item_notes_and_prebill() -> None:
@@ -181,14 +208,10 @@ def test_local_comandas_use_operator_catalog_item_notes_and_prebill() -> None:
     local_api = _reload_local_api()
 
     with TestClient(local_api.app) as client:
-        headers = {"X-Local-Token": "local-token-test"}
+        headers = _order_headers(client, db_path)
         assert client.get("/orders/operators", headers=headers).status_code == 200
 
         with sqlite3.connect(db_path) as connection:
-            connection.execute(
-                "INSERT INTO local_order_operators (code, name, active) VALUES (?, ?, ?)",
-                ("OP01", "Ana Caixa", 1),
-            )
             connection.execute(
                 """
                 INSERT INTO local_order_products (
@@ -211,6 +234,10 @@ def test_local_comandas_use_operator_catalog_item_notes_and_prebill() -> None:
         products = client.get("/orders/products?family=Lanches", headers=headers)
         assert products.status_code == 200, products.text
         assert products.json()["products"][0]["product_code"] == "BUR01"
+
+        found = client.get("/orders/products?q=BUR01", headers=headers)
+        assert found.status_code == 200, found.text
+        assert found.json()["products"][0]["description"] == "Burger Classico"
 
         first = client.post(
             "/orders",
@@ -288,7 +315,7 @@ def test_local_comanda_can_be_edited_cancelled_and_closed() -> None:
     local_api = _reload_local_api()
 
     with TestClient(local_api.app) as client:
-        headers = {"X-Local-Token": "local-token-test"}
+        headers = _order_headers(client, db_path)
         created = client.post(
             "/orders",
             headers=headers,
@@ -324,6 +351,21 @@ def test_local_comanda_can_be_edited_cancelled_and_closed() -> None:
         assert added.json()["total_amount"] == "45.00"
         added_item_id = [item["id"] for item in added.json()["items"] if item["product_code"] == "LAN01"][0]
 
+        duplicated = client.post(
+            f"/orders/{order_uuid}/items",
+            headers=headers,
+            json={
+                "product_code": "LAN01",
+                "description": "Lanche",
+                "quantity": "1",
+                "unit_price": "20.00",
+                "notes": "ponto da carne",
+            },
+        )
+        assert duplicated.status_code == 200, duplicated.text
+        assert duplicated.json()["total_amount"] == "65.00"
+        assert len([item for item in duplicated.json()["items"] if item["product_code"] == "LAN01"]) == 1
+
         updated = client.patch(
             f"/orders/{order_uuid}/items/{added_item_id}",
             headers=headers,
@@ -337,6 +379,23 @@ def test_local_comanda_can_be_edited_cancelled_and_closed() -> None:
         assert removed.status_code == 200, removed.text
         assert removed.json()["total_amount"] == "60.00"
         assert len(removed.json()["items"]) == 1
+
+        cleared_order = client.post(
+            "/orders",
+            headers=headers,
+            json={
+                "command_number": "012",
+                "table_reference": "5",
+                "items": [
+                    {"product_code": "AGUA", "description": "Agua", "quantity": "1", "unit_price": "5.00"}
+                ],
+            },
+        )
+        clear_uuid = cleared_order.json()["uuid"]
+        cleared = client.delete(f"/orders/{clear_uuid}/items", headers=headers)
+        assert cleared.status_code == 200, cleared.text
+        assert cleared.json()["items"] == []
+        assert cleared.json()["total_amount"] == "0.00"
 
         closed = client.post(
             f"/orders/{order_uuid}/close",
@@ -397,7 +456,7 @@ def test_local_comanda_supports_split_payments_in_prebill() -> None:
     local_api = _reload_local_api()
 
     with TestClient(local_api.app) as client:
-        headers = {"X-Local-Token": "local-token-test"}
+        headers = _order_headers(client, db_path)
         created = client.post(
             "/orders",
             headers=headers,
@@ -475,7 +534,7 @@ def test_local_comanda_generates_thermal_receipt_and_print_job() -> None:
     local_api = _reload_local_api()
 
     with TestClient(local_api.app) as client:
-        headers = {"X-Local-Token": "local-token-test"}
+        headers = _order_headers(client, db_path)
         created = client.post(
             "/orders",
             headers=headers,

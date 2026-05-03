@@ -1,5 +1,33 @@
 # Releases - Cliente Agent
 
+## v2026-05-03_comandas_r3
+
+- Release com fluxo mobile completo de comandas locais.
+- Separacao explicita:
+  - API de comandas locais: `/orders/*`;
+  - API de sync de relatorios: mantida separada.
+- Inclui:
+  - login por usuario do banco local;
+  - senha com hash PBKDF2 em `local_order_operators.password_hash`;
+  - sessao local por `X-Order-Session`;
+  - carrinho temporario antes de confirmar pedido;
+  - revisao com quantidade, exclusao, observacao, lixeira geral e totais;
+  - busca de produto por nome ou codigo;
+  - layout responsivo para celular/tablet.
+- Atalho principal esperado:
+  - `MoviSync Comandas Locais - v2026-05-03_comandas_r3.lnk`
+- ZIP de entrega:
+  - `release-artifacts/MoviSyncAgent_Installer_v2026-05-03_comandas_r3.zip`
+- Tamanho validado:
+  - `158464` bytes
+- Validacao:
+  - `py -3 -m pytest tests\test_agent_local_orders.py -q` com `7 passed`;
+  - `py -3 -m compileall agent_local -q` sem erro;
+  - `py -3 -m pytest -q` com `76 passed, 1 skipped`;
+  - ZIP sem `__pycache__` e sem `.pyc`;
+  - ZIP contem `agent_local\orders\ui.py`;
+  - `package-version.txt` contem `v2026-05-03_comandas_r3`.
+
 ## v2026-05-03_comandas_r2
 
 - Release correta para teste das comandas locais.

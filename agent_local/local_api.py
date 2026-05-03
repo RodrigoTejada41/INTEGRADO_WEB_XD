@@ -12,18 +12,22 @@ from agent_local.orders.printer import render_thermal_receipt
 from agent_local.orders.repository import LocalOrderRepository
 from agent_local.orders.schemas import (
     LocalOperatorListResponse,
+    LocalOperatorView,
     LocalOrderCancelRequest,
     LocalOrderCloseRequest,
     LocalOrderCreate,
     LocalOrderItemCreate,
     LocalOrderItemUpdate,
     LocalOrderListResponse,
+    LocalOrderLoginRequest,
+    LocalOrderLoginResponse,
     LocalOrderPrintResponse,
     LocalOrderView,
     LocalProductFamilyListResponse,
     LocalProductListResponse,
 )
 from agent_local.orders.service import LocalOrderService
+from agent_local.orders.ui import render_orders_ui
 from agent_local.tray_app import is_agent_running, restart_agent, start_agent, stop_agent
 from agent_local.windows_autostart import find_process_ids
 
@@ -79,6 +83,23 @@ def _require_token(x_local_token: str | None = Header(default=None, alias="X-Loc
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Local token invalid.",
         )
+
+
+def _require_order_session(
+    x_order_session: str | None = Header(default=None, alias="X-Order-Session"),
+):
+    if not x_order_session:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Sessao de usuario obrigatoria.",
+        )
+    session = _order_service().get_session(x_order_session)
+    if session is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Sessao de usuario invalida ou expirada.",
+        )
+    return session
 
 
 def _empresa_id() -> str:
@@ -164,8 +185,22 @@ def restart_sync(_: None = Depends(_require_token)) -> dict[str, str]:
 def create_order(
     payload: LocalOrderCreate,
     _: None = Depends(_require_token),
+    session=Depends(_require_order_session),
 ) -> LocalOrderView:
+    if not payload.operator_code:
+        payload = payload.model_copy(
+            update={"operator_code": session.operator_code, "operator_name": session.operator_name}
+        )
     return LocalOrderView.model_validate(_order_service().create_order(payload))
+
+
+@app.post("/orders/confirm", response_model=LocalOrderView, status_code=status.HTTP_201_CREATED)
+def confirm_order(
+    payload: LocalOrderCreate,
+    _: None = Depends(_require_token),
+    session=Depends(_require_order_session),
+) -> LocalOrderView:
+    return create_order(payload, _, session)
 
 
 def _handle_order_error(exc: Exception) -> HTTPException:
@@ -183,6 +218,7 @@ def add_order_item(
     order_uuid: str,
     payload: LocalOrderItemCreate,
     _: None = Depends(_require_token),
+    session=Depends(_require_order_session),
 ) -> LocalOrderView:
     try:
         return LocalOrderView.model_validate(_order_service().add_item(order_uuid, payload))
@@ -196,6 +232,7 @@ def update_order_item(
     item_id: int,
     payload: LocalOrderItemUpdate,
     _: None = Depends(_require_token),
+    session=Depends(_require_order_session),
 ) -> LocalOrderView:
     try:
         return LocalOrderView.model_validate(_order_service().update_item(order_uuid, item_id, payload))
@@ -208,9 +245,22 @@ def remove_order_item(
     order_uuid: str,
     item_id: int,
     _: None = Depends(_require_token),
+    session=Depends(_require_order_session),
 ) -> LocalOrderView:
     try:
         return LocalOrderView.model_validate(_order_service().remove_item(order_uuid, item_id))
+    except Exception as exc:
+        raise _handle_order_error(exc) from exc
+
+
+@app.delete("/orders/{order_uuid}/items", response_model=LocalOrderView)
+def clear_order_items(
+    order_uuid: str,
+    _: None = Depends(_require_token),
+    session=Depends(_require_order_session),
+) -> LocalOrderView:
+    try:
+        return LocalOrderView.model_validate(_order_service().clear_items(order_uuid))
     except Exception as exc:
         raise _handle_order_error(exc) from exc
 
@@ -220,6 +270,7 @@ def close_order(
     order_uuid: str,
     payload: LocalOrderCloseRequest,
     _: None = Depends(_require_token),
+    session=Depends(_require_order_session),
 ) -> LocalOrderView:
     try:
         return LocalOrderView.model_validate(_order_service().close_order(order_uuid, payload))
@@ -232,6 +283,7 @@ def cancel_order(
     order_uuid: str,
     payload: LocalOrderCancelRequest,
     _: None = Depends(_require_token),
+    session=Depends(_require_order_session),
 ) -> LocalOrderView:
     try:
         return LocalOrderView.model_validate(_order_service().cancel_order(order_uuid, payload))
@@ -245,6 +297,27 @@ def list_order_operators(_: None = Depends(_require_token)) -> LocalOperatorList
     return LocalOperatorListResponse(operators=_order_service().list_operators())
 
 
+@app.get("/orders/users", response_model=LocalOperatorListResponse)
+def list_order_users(_: None = Depends(_require_token)) -> LocalOperatorListResponse:
+    _refresh_order_catalog_from_xd()
+    return LocalOperatorListResponse(operators=_order_service().list_operators())
+
+
+@app.post("/orders/login", response_model=LocalOrderLoginResponse)
+def login_order_user(
+    payload: LocalOrderLoginRequest,
+    _: None = Depends(_require_token),
+) -> LocalOrderLoginResponse:
+    try:
+        session = _order_service().authenticate_operator(payload.operator_code, payload.password)
+    except PermissionError as exc:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=str(exc)) from exc
+    return LocalOrderLoginResponse(
+        session_token=session.token,
+        operator=LocalOperatorView(code=session.operator_code, name=session.operator_name),
+    )
+
+
 @app.get("/orders/product-families", response_model=LocalProductFamilyListResponse)
 def list_order_product_families(_: None = Depends(_require_token)) -> LocalProductFamilyListResponse:
     _refresh_order_catalog_from_xd()
@@ -254,10 +327,11 @@ def list_order_product_families(_: None = Depends(_require_token)) -> LocalProdu
 @app.get("/orders/products", response_model=LocalProductListResponse)
 def list_order_products(
     family: str | None = Query(default=None, max_length=160),
+    q: str | None = Query(default=None, max_length=160),
     _: None = Depends(_require_token),
 ) -> LocalProductListResponse:
     _refresh_order_catalog_from_xd()
-    return LocalProductListResponse(products=_order_service().list_products(family=family))
+    return LocalProductListResponse(products=_order_service().list_products(family=family, query=q))
 
 
 @app.get("/orders", response_model=LocalOrderListResponse)
@@ -359,7 +433,11 @@ def order_thermal_receipt(order_uuid: str, _: None = Depends(_require_token)) ->
 
 
 @app.post("/orders/{order_uuid}/print", response_model=LocalOrderPrintResponse)
-def print_order(order_uuid: str, _: None = Depends(_require_token)) -> LocalOrderPrintResponse:
+def print_order(
+    order_uuid: str,
+    _: None = Depends(_require_token),
+    session=Depends(_require_order_session),
+) -> LocalOrderPrintResponse:
     try:
         job = _order_service().print_order(
             order_uuid,
@@ -380,6 +458,10 @@ def print_order(order_uuid: str, _: None = Depends(_require_token)) -> LocalOrde
 
 @app.get("/orders/ui", response_class=HTMLResponse)
 def orders_ui() -> str:
+    return render_orders_ui()
+
+
+def _legacy_orders_ui_reference() -> str:
     return """
 <!doctype html>
 <html lang="pt-BR">

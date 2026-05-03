@@ -1,6 +1,54 @@
 # RETOMADA EXATA - INTEGRADO_WEB_XD
 
-Data de atualizacao: 2026-05-02
+Data de atualizacao: 2026-05-03
+
+## Checkpoint fluxo completo mobile de comandas - 2026-05-03
+
+### Implementado
+- API local de comandas mantida separada da API de sync de relatorios.
+- Tela `/orders/ui` reescrita para fluxo mobile/tablet:
+  - login por usuario carregado do banco local;
+  - senha validada por hash PBKDF2;
+  - menu principal com `Pedido`, `Consultar comanda`, `Imprimir pre-conta` e `Sair`;
+  - abertura de pedido com comanda, quantidade de pessoas e mesa;
+  - selecao de familias e produtos em layout responsivo;
+  - busca por nome ou codigo;
+  - carrinho temporario na tela antes da confirmacao;
+  - revisao com `+`, `-`, exclusao individual, observacao por item, lixeira geral e totais;
+  - confirmacao envia o pedido para a API local.
+
+### API local adicionada/ajustada
+- `GET /orders/users`
+- `POST /orders/login`
+- `POST /orders/confirm`
+- `DELETE /orders/{order_uuid}/items`
+- `GET /orders/products?q=...`
+- Mutacoes de comanda agora aceitam sessao local por `X-Order-Session`.
+
+### Banco local
+- `local_order_operators.password_hash`
+- `local_order_sessions`
+- `local_orders.people_count`
+- Produtos duplicados no mesmo pedido passam a somar quantidade quando codigo e observacao coincidem.
+
+### Arquivos alterados
+- `agent_local/orders/repository.py`
+- `agent_local/orders/schemas.py`
+- `agent_local/orders/service.py`
+- `agent_local/orders/ui.py`
+- `agent_local/local_api.py`
+- `tests/test_agent_local_orders.py`
+
+### Validacao no workspace
+- `py -3 -m pytest tests\test_agent_local_orders.py -q` -> `7 passed`
+- `py -3 -m compileall agent_local -q` -> sem erro
+- `py -3 -m pytest -q` -> `76 passed, 1 skipped`
+
+### Proximo passo recomendado
+1. Gerar release versionada `v2026-05-03_comandas_r3`.
+2. Instalar no cliente e conferir `C:\MoviSyncAgent\VERSAO_INSTALADA.txt`.
+3. Validar no tablet/celular `http://127.0.0.1:8765/orders/ui`.
+4. Configurar/importar senha hash dos operadores reais antes do uso operacional.
 
 ## Checkpoint UI produtos por familia - 2026-05-03
 

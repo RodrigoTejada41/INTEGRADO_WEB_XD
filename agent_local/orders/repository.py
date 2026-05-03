@@ -1,8 +1,11 @@
 from __future__ import annotations
 
 import sqlite3
+import hashlib
+import hmac
+import secrets
 from dataclasses import dataclass
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from decimal import Decimal
 from pathlib import Path
 from uuid import uuid4
@@ -32,6 +35,7 @@ class StoredOrder:
     uuid: str
     empresa_id: str
     command_number: str
+    people_count: int | None
     table_reference: str | None
     operator_code: str | None
     operator_name: str | None
@@ -50,6 +54,14 @@ class StoredOrder:
     payments: list[StoredOrderPayment]
 
 
+@dataclass(frozen=True)
+class StoredOrderSession:
+    token: str
+    operator_code: str
+    operator_name: str
+    expires_at: datetime
+
+
 def _utc_now_text() -> str:
     return datetime.now(UTC).isoformat()
 
@@ -60,6 +72,31 @@ def _to_money(value: Decimal) -> Decimal:
 
 def _parse_datetime(value: str) -> datetime:
     return datetime.fromisoformat(value)
+
+
+def hash_order_password(password: str, *, iterations: int = 210_000) -> str:
+    salt = secrets.token_bytes(16)
+    digest = hashlib.pbkdf2_hmac("sha256", password.encode("utf-8"), salt, iterations)
+    return f"pbkdf2_sha256${iterations}${salt.hex()}${digest.hex()}"
+
+
+def _verify_password(password: str, stored_hash: str | None) -> bool:
+    if not stored_hash:
+        return False
+    try:
+        algorithm, iterations_raw, salt_hex, digest_hex = stored_hash.split("$", 3)
+        if algorithm != "pbkdf2_sha256":
+            return False
+        expected = bytes.fromhex(digest_hex)
+        actual = hashlib.pbkdf2_hmac(
+            "sha256",
+            password.encode("utf-8"),
+            bytes.fromhex(salt_hex),
+            int(iterations_raw),
+        )
+        return hmac.compare_digest(actual, expected)
+    except (ValueError, TypeError):
+        return False
 
 
 class LocalOrderRepository:
@@ -77,6 +114,7 @@ class LocalOrderRepository:
                     uuid TEXT NOT NULL UNIQUE,
                     empresa_id TEXT NOT NULL,
                     command_number TEXT NULL,
+                    people_count INTEGER NULL,
                     table_reference TEXT NULL,
                     operator_code TEXT NULL,
                     operator_name TEXT NULL,
@@ -137,7 +175,18 @@ class LocalOrderRepository:
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     code TEXT NOT NULL UNIQUE,
                     name TEXT NOT NULL,
+                    password_hash TEXT NULL,
                     active INTEGER NOT NULL DEFAULT 1
+                )
+                """
+            )
+            connection.execute(
+                """
+                CREATE TABLE IF NOT EXISTS local_order_sessions (
+                    token TEXT PRIMARY KEY,
+                    operator_code TEXT NOT NULL,
+                    created_at TEXT NOT NULL,
+                    expires_at TEXT NOT NULL
                 )
                 """
             )
@@ -154,6 +203,7 @@ class LocalOrderRepository:
                 """
             )
             self._add_column_if_missing(connection, "local_orders", "command_number", "TEXT NULL")
+            self._add_column_if_missing(connection, "local_orders", "people_count", "INTEGER NULL")
             self._add_column_if_missing(connection, "local_orders", "table_reference", "TEXT NULL")
             self._add_column_if_missing(connection, "local_orders", "operator_code", "TEXT NULL")
             self._add_column_if_missing(connection, "local_orders", "operator_name", "TEXT NULL")
@@ -162,6 +212,7 @@ class LocalOrderRepository:
             self._add_column_if_missing(connection, "local_orders", "closed_at", "TEXT NULL")
             self._add_column_if_missing(connection, "local_orders", "cancel_reason", "TEXT NULL")
             self._add_column_if_missing(connection, "local_order_items", "notes", "TEXT NULL")
+            self._add_column_if_missing(connection, "local_order_operators", "password_hash", "TEXT NULL")
             connection.commit()
 
     def create(self, empresa_id: str, payload: LocalOrderCreate) -> StoredOrder:
@@ -197,16 +248,17 @@ class LocalOrderRepository:
             connection.execute(
                 """
                 INSERT INTO local_orders (
-                    uuid, empresa_id, command_number, table_reference,
+                    uuid, empresa_id, command_number, people_count, table_reference,
                     operator_code, operator_name, customer_name, status, sync_status,
                     total_amount, notes, created_at, updated_at
                 )
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     order_uuid,
                     empresa_id,
                     command_number,
+                    payload.people_count,
                     payload.table_reference,
                     payload.operator_code,
                     operator_name,
@@ -256,29 +308,70 @@ class LocalOrderRepository:
         line_total = _to_money(payload.quantity * payload.unit_price)
         now = _utc_now_text()
         with self._connect() as connection:
-            connection.execute(
+            existing = connection.execute(
                 """
-                INSERT INTO local_order_items (
-                    order_uuid, product_code, description, quantity, unit_price, line_total, notes
-                )
-                VALUES (?, ?, ?, ?, ?, ?, ?)
+                SELECT id, quantity, unit_price
+                FROM local_order_items
+                WHERE order_uuid = ?
+                  AND product_code = ?
+                  AND COALESCE(notes, '') = COALESCE(?, '')
+                ORDER BY id
+                LIMIT 1
                 """,
-                (
-                    order_uuid,
-                    payload.product_code,
-                    payload.description,
-                    str(payload.quantity),
-                    str(payload.unit_price),
-                    str(line_total),
-                    payload.notes,
-                ),
-            )
+                (order_uuid, payload.product_code, payload.notes),
+            ).fetchone()
+            if existing is not None:
+                quantity = Decimal(str(existing["quantity"])) + payload.quantity
+                unit_price = payload.unit_price
+                line_total = _to_money(quantity * unit_price)
+                connection.execute(
+                    """
+                    UPDATE local_order_items
+                    SET quantity = ?, unit_price = ?, line_total = ?
+                    WHERE id = ? AND order_uuid = ?
+                    """,
+                    (str(quantity), str(unit_price), str(line_total), int(existing["id"]), order_uuid),
+                )
+            else:
+                connection.execute(
+                    """
+                    INSERT INTO local_order_items (
+                        order_uuid, product_code, description, quantity, unit_price, line_total, notes
+                    )
+                    VALUES (?, ?, ?, ?, ?, ?, ?)
+                    """,
+                    (
+                        order_uuid,
+                        payload.product_code,
+                        payload.description,
+                        str(payload.quantity),
+                        str(payload.unit_price),
+                        str(line_total),
+                        payload.notes,
+                    ),
+                )
             connection.execute(
                 """
                 INSERT INTO local_order_outbox (order_uuid, event_type, sync_status, created_at)
                 VALUES (?, ?, ?, ?)
                 """,
                 (order_uuid, "order.item.added", "pending", now),
+            )
+            connection.commit()
+        self._recalculate_total(order_uuid)
+        return self.get_by_uuid(empresa_id=empresa_id, order_uuid=order_uuid)
+
+    def clear_items(self, *, empresa_id: str, order_uuid: str) -> StoredOrder:
+        self.initialize()
+        self._ensure_order_editable(empresa_id=empresa_id, order_uuid=order_uuid)
+        with self._connect() as connection:
+            connection.execute("DELETE FROM local_order_items WHERE order_uuid = ?", (order_uuid,))
+            connection.execute(
+                """
+                INSERT INTO local_order_outbox (order_uuid, event_type, sync_status, created_at)
+                VALUES (?, ?, ?, ?)
+                """,
+                (order_uuid, "order.items.cleared", "pending", _utc_now_text()),
             )
             connection.commit()
         self._recalculate_total(order_uuid)
@@ -442,10 +535,11 @@ class LocalOrderRepository:
         return [self.get_by_uuid(empresa_id=empresa_id, order_uuid=str(row["uuid"])) for row in rows]
 
     def get_by_uuid(self, *, empresa_id: str, order_uuid: str) -> StoredOrder:
+        self.initialize()
         with self._connect() as connection:
             order = connection.execute(
                 """
-                SELECT uuid, empresa_id, command_number, table_reference,
+                SELECT uuid, empresa_id, command_number, people_count, table_reference,
                        operator_code, operator_name, customer_name, status, sync_status,
                        total_amount, payment_method, amount_paid, closed_at, cancel_reason,
                        notes, created_at, updated_at
@@ -480,6 +574,7 @@ class LocalOrderRepository:
             uuid=str(order["uuid"]),
             empresa_id=str(order["empresa_id"]),
             command_number=str(order["command_number"] or ""),
+            people_count=int(order["people_count"]) if order["people_count"] is not None else None,
             table_reference=order["table_reference"],
             operator_code=order["operator_code"],
             operator_name=order["operator_name"],
@@ -527,6 +622,71 @@ class LocalOrderRepository:
                 """
             ).fetchall()
         return [{"code": str(row["code"]), "name": str(row["name"])} for row in rows]
+
+    def authenticate_operator(self, code: str, password: str, *, ttl_hours: int = 12) -> StoredOrderSession:
+        self.initialize()
+        now = datetime.now(UTC)
+        expires_at = now + timedelta(hours=ttl_hours)
+        with self._connect() as connection:
+            operator = connection.execute(
+                """
+                SELECT code, name, password_hash
+                FROM local_order_operators
+                WHERE code = ? AND active = 1
+                """,
+                (code,),
+            ).fetchone()
+            if operator is None or not _verify_password(password, operator["password_hash"]):
+                raise PermissionError("Usuario ou senha invalido.")
+            token = secrets.token_urlsafe(32)
+            connection.execute("DELETE FROM local_order_sessions WHERE expires_at <= ?", (now.isoformat(),))
+            connection.execute(
+                """
+                INSERT INTO local_order_sessions (token, operator_code, created_at, expires_at)
+                VALUES (?, ?, ?, ?)
+                """,
+                (token, str(operator["code"]), now.isoformat(), expires_at.isoformat()),
+            )
+            connection.commit()
+        return StoredOrderSession(
+            token=token,
+            operator_code=str(operator["code"]),
+            operator_name=str(operator["name"]),
+            expires_at=expires_at,
+        )
+
+    def get_session(self, token: str) -> StoredOrderSession | None:
+        self.initialize()
+        now = datetime.now(UTC)
+        with self._connect() as connection:
+            row = connection.execute(
+                """
+                SELECT s.token, s.operator_code, s.expires_at, o.name AS operator_name
+                FROM local_order_sessions s
+                INNER JOIN local_order_operators o ON o.code = s.operator_code
+                WHERE s.token = ? AND s.expires_at > ? AND o.active = 1
+                """,
+                (token, now.isoformat()),
+            ).fetchone()
+        if row is None:
+            return None
+        return StoredOrderSession(
+            token=str(row["token"]),
+            operator_code=str(row["operator_code"]),
+            operator_name=str(row["operator_name"]),
+            expires_at=_parse_datetime(str(row["expires_at"])),
+        )
+
+    def set_operator_password(self, code: str, password: str) -> None:
+        self.initialize()
+        with self._connect() as connection:
+            cursor = connection.execute(
+                "UPDATE local_order_operators SET password_hash = ? WHERE code = ? AND active = 1",
+                (hash_order_password(password), code),
+            )
+            if cursor.rowcount == 0:
+                raise KeyError(code)
+            connection.commit()
 
     def upsert_catalog(self, *, operators: list[dict[str, str]], products: list[dict[str, str]]) -> None:
         self.initialize()
@@ -593,13 +753,16 @@ class LocalOrderRepository:
             ).fetchall()
         return [str(row["family"]) for row in rows]
 
-    def list_products(self, family: str | None = None) -> list[dict[str, str]]:
+    def list_products(self, family: str | None = None, query: str | None = None) -> list[dict[str, str]]:
         self.initialize()
         params: list[str] = []
         where = "WHERE active = 1"
         if family:
             where += " AND family = ?"
             params.append(family)
+        if query:
+            where += " AND (product_code LIKE ? OR description LIKE ?)"
+            params.extend([f"%{query}%", f"%{query}%"])
         with self._connect() as connection:
             rows = connection.execute(
                 f"""
@@ -607,6 +770,7 @@ class LocalOrderRepository:
                 FROM local_order_products
                 {where}
                 ORDER BY family, description
+                LIMIT 300
                 """,
                 params,
             ).fetchall()

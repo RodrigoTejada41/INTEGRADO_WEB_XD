@@ -79,6 +79,7 @@ class LocalOrderCancelRequest(BaseModel):
 
 class LocalOrderCreate(BaseModel):
     command_number: str | None = Field(default=None, max_length=40)
+    people_count: int | None = Field(default=None, ge=1, le=999)
     table_reference: str | None = Field(default=None, max_length=40)
     operator_code: str | None = Field(default=None, max_length=80)
     operator_name: str | None = Field(default=None, max_length=160)
@@ -120,6 +121,7 @@ class LocalOrderView(BaseModel):
     uuid: str
     empresa_id: str
     command_number: str
+    people_count: int | None = None
     table_reference: str | None
     operator_code: str | None
     operator_name: str | None
@@ -158,6 +160,24 @@ class LocalOperatorView(BaseModel):
 
 class LocalOperatorListResponse(BaseModel):
     operators: list[LocalOperatorView]
+
+
+class LocalOrderLoginRequest(BaseModel):
+    operator_code: str = Field(min_length=1, max_length=80)
+    password: str = Field(min_length=1, max_length=200)
+
+    @field_validator("operator_code")
+    @classmethod
+    def strip_operator_code(cls, value: str) -> str:
+        cleaned = value.strip()
+        if not cleaned:
+            raise ValueError("Usuario obrigatorio.")
+        return cleaned
+
+
+class LocalOrderLoginResponse(BaseModel):
+    session_token: str
+    operator: LocalOperatorView
 
 
 class LocalProductFamilyListResponse(BaseModel):
