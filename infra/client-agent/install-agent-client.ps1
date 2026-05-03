@@ -1,6 +1,7 @@
 param(
     [string]$InstallDir = "C:\MoviSyncAgent",
-    [switch]$OpenPanel
+    [switch]$OpenPanel,
+    [switch]$OpenOrders
 )
 
 $ErrorActionPreference = "Stop"
@@ -118,7 +119,7 @@ cd /d %~dp0
 @'
 @echo off
 cd /d %~dp0
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$base='http://127.0.0.1:8765'; try { $health=Invoke-RestMethod -Uri ($base + '/health') -TimeoutSec 5; if ($health.status -ne 'ok') { throw 'API local respondeu sem status ok.' }; Start-Process ($base + '/orders/ui') } catch { Write-Host 'API local nao esta acessivel em http://127.0.0.1:8765. Inicie o MoviSync local antes de abrir comandas.'; pause; exit 1 }"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$base='http://127.0.0.1:8765'; for ($i=0; $i -lt 12; $i++) { try { $health=Invoke-RestMethod -Uri ($base + '/health') -TimeoutSec 5; if ($health.status -eq 'ok') { Start-Process ($base + '/orders/ui'); exit 0 } } catch { Start-Sleep -Seconds 2 } }; Write-Host 'API local nao esta acessivel em http://127.0.0.1:8765. Inicie o MoviSync local antes de abrir comandas.'; pause; exit 1"
 '@ | Set-Content -Path "Abrir_Comandas_Locais.cmd" -Encoding ascii
 
 $panelVbsContent = @"
@@ -220,5 +221,11 @@ if ($OpenPanel) {
     Start-Process -FilePath "wscript.exe" -ArgumentList @("//nologo", (Join-Path $InstallDir "Abrir_Painel_Local.vbs")) -WorkingDirectory $InstallDir -WindowStyle Hidden
     Write-Step "Abrindo icone de status"
     Start-Process -FilePath "wscript.exe" -ArgumentList @("//nologo", (Join-Path $InstallDir "Iniciar_MoviSync_Windows.vbs")) -WorkingDirectory $InstallDir -WindowStyle Hidden
+}
+elseif ($OpenOrders) {
+    Write-Step "Abrindo MoviSync e comandas locais"
+    Start-Process -FilePath "wscript.exe" -ArgumentList @("//nologo", (Join-Path $InstallDir "Iniciar_MoviSync_Windows.vbs")) -WorkingDirectory $InstallDir -WindowStyle Hidden
+    Start-Sleep -Seconds 3
+    Start-Process -FilePath "wscript.exe" -ArgumentList @("//nologo", (Join-Path $InstallDir "Abrir_Comandas_Locais.vbs")) -WorkingDirectory $InstallDir -WindowStyle Hidden
 }
 

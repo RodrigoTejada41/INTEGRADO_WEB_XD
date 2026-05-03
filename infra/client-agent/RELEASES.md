@@ -16,7 +16,7 @@
 - ZIP de entrega:
   - `release-artifacts/MoviSyncAgent_Installer_v2026-05-03_comandas.zip`
 - Tamanho validado:
-  - `150527` bytes
+  - `150580` bytes
 - Validacao:
   - `py -3 -m pytest -q` com `76 passed, 1 skipped`;
   - `py -3 -m compileall infra\client-agent\releases\v2026-05-03_comandas\agent_local infra\client-agent\releases\v2026-05-03_comandas\backend -q` sem erro;

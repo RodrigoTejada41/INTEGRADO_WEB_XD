@@ -18,16 +18,17 @@ echo              MoviSync - Instalador do Cliente
 echo ============================================================
 echo.
 echo O instalador vai preparar o agente local em C:\MoviSyncAgent.
-echo No final, o painel local sera aberto automaticamente.
+echo No final, a tela de Comandas Locais sera aberta automaticamente.
 echo.
-echo No painel, preencha:
-echo  1. Codigo de vinculacao fornecido pelo suporte
-echo  2. Dados do banco MariaDB local
-echo  3. Botao para testar e salvar
+echo Para configurar vinculo/API ou banco MariaDB, use depois:
+echo  - MoviSync Painel Local
+echo.
+echo Para comandas, use:
+echo  - MoviSync Comandas Locais
 echo.
 pause
 
-powershell -NoProfile -ExecutionPolicy Bypass -File ".\install-agent-client.ps1" -OpenPanel
+powershell -NoProfile -ExecutionPolicy Bypass -File ".\install-agent-client.ps1" -OpenOrders
 if errorlevel 1 (
   echo.
   echo A instalacao falhou.
@@ -38,7 +39,7 @@ if errorlevel 1 (
 
 echo.
 echo Instalacao concluida.
-echo Se o painel nao abriu, use o atalho "MoviSync Painel Local" na area de trabalho.
+echo Se a tela de comandas nao abriu, use o atalho "MoviSync Comandas Locais" na area de trabalho.
 echo.
 pause
 exit /b 0
