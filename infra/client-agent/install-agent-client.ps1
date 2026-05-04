@@ -18,6 +18,24 @@ function Write-Step([string]$Message) {
     Write-Host "[instalador] $Message"
 }
 
+function Invoke-CheckedCommand([string]$FilePath, [string[]]$Arguments, [string]$ErrorMessage) {
+    & $FilePath @Arguments
+    if ($LASTEXITCODE -ne 0) {
+        throw "$ErrorMessage Codigo de saida: $LASTEXITCODE"
+    }
+}
+
+function Resolve-PythonLauncher() {
+    $candidates = @("-3.12", "-3.11", "-3")
+    foreach ($candidate in $candidates) {
+        & py $candidate --version | Out-Null
+        if ($LASTEXITCODE -eq 0) {
+            return $candidate
+        }
+    }
+    throw "Python launcher (py) nao encontrou Python 3.11+. Instale Python 3.11 ou 3.12 antes."
+}
+
 function Resolve-FullPath([string]$Path) {
     return [System.IO.Path]::GetFullPath($Path).TrimEnd("\")
 }
@@ -257,14 +275,17 @@ $pythonCmd = Get-Command py -ErrorAction SilentlyContinue
 if ($null -eq $pythonCmd) {
     throw "Python launcher (py) nao encontrado. Instale Python 3.11+ antes."
 }
+$pythonVersionArg = Resolve-PythonLauncher
 
 Write-Step "Criando virtualenv"
 Push-Location $InstallDir
-py -3 -m venv .venv
+Invoke-CheckedCommand "py" @($pythonVersionArg, "-m", "venv", ".venv") "Falha ao criar virtualenv."
 
 Write-Step "Instalando dependencias"
-& "$InstallDir\.venv\Scripts\python.exe" -m pip install --upgrade pip
-& "$InstallDir\.venv\Scripts\python.exe" -m pip install -r requirements.txt
+$venvPython = "$InstallDir\.venv\Scripts\python.exe"
+Invoke-CheckedCommand $venvPython @("-m", "pip", "install", "--upgrade", "pip") "Falha ao atualizar pip."
+Invoke-CheckedCommand $venvPython @("-m", "pip", "install", "-r", "requirements.txt") "Falha ao instalar dependencias."
+Invoke-CheckedCommand $venvPython @("-c", "import fastapi, uvicorn, pydantic, pystray, PIL") "Dependencias obrigatorias nao foram instaladas."
 
 if (!(Test-Path ".env")) {
     Write-Step "Criando .env inicial a partir de agent_local/.env.example"

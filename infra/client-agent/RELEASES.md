@@ -1,5 +1,33 @@
 # Releases - Cliente Agent
 
+## v2026-05-03_comandas_r8
+
+- Release corretiva para falha de tela preta ao abrir comandas.
+- Causa raiz:
+  - instalador continuava mesmo quando `pip install` falhava;
+  - `psycopg2-binary==2.9.9` falhava no Python 3.13 por ausencia de wheel e tentava compilar sem `pg_config`;
+  - a venv ficava sem `uvicorn`, `pydantic` e `pystray`, entao a API local nao subia.
+- Correcoes:
+  - `psycopg2-binary` atualizado para `2.9.10`;
+  - instalador agora usa `Invoke-CheckedCommand` para interromper em erro de comando externo;
+  - instalador prefere Python `3.12`, depois `3.11`, e so entao `3`;
+  - instalador valida importacao de `fastapi`, `uvicorn`, `pydantic`, `pystray` e `PIL` apos instalar dependencias.
+- Reparo aplicado nesta maquina:
+  - `C:\Movi_commanda\requirements.txt` ajustado para `psycopg2-binary==2.9.10`;
+  - dependencias reinstaladas na venv;
+  - API local validada em `http://127.0.0.1:8765/health`;
+  - `/orders/ui` validado com HTTP 200.
+- ZIP de entrega:
+  - `release-artifacts/Movi_commanda_Installer_v2026-05-03_comandas_r8.zip`
+- Tamanho validado:
+  - `163103` bytes
+- Validacao:
+  - parser PowerShell do instalador sem erro;
+  - `py -3 -m pytest tests\test_agent_local_orders.py -q` com `10 passed`;
+  - `py -3 -m compileall agent_local -q` sem erro;
+  - `py -3 -m pytest -q` com `79 passed, 1 skipped`;
+  - ZIP sem `__pycache__` e sem `.pyc`.
+
 ## v2026-05-03_comandas_r7
 
 - Release corretiva para reduzir poluicao na area de trabalho.

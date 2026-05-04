@@ -2,6 +2,52 @@
 
 Data de atualizacao: 2026-05-03
 
+## Checkpoint Tela Preta Corrigida Movi_commanda - 2026-05-03
+
+### Problema
+- Ao abrir a comanda, ficava uma tela preta e a UI nao iniciava.
+
+### Causa raiz
+- A API local nao subia.
+- Logs em `C:\Movi_commanda\logs` mostraram:
+  - `No module named uvicorn`
+  - `No module named 'pystray'`
+  - `No module named 'pydantic'`
+- A venv estava praticamente vazia porque `pip install -r requirements.txt` falhou.
+- A falha veio de `psycopg2-binary==2.9.9` no Python 3.13:
+  - sem wheel compativel;
+  - tentativa de build local;
+  - erro por falta de `pg_config`.
+- PowerShell nao interrompia automaticamente o instalador quando comando externo retornava erro, entao os atalhos eram criados mesmo com instalacao incompleta.
+
+### Implementado
+- `requirements.txt` atualizado:
+  - `psycopg2-binary==2.9.10`
+- Instalador atualizado:
+  - `Invoke-CheckedCommand` valida `$LASTEXITCODE`;
+  - falha imediatamente se venv, pip ou dependencias falharem;
+  - prefere Python `3.12`, depois `3.11`, depois `3`;
+  - valida importacao de `fastapi`, `uvicorn`, `pydantic`, `pystray` e `PIL` apos instalar.
+
+### Reparo aplicado nesta maquina
+- Ajustado `C:\Movi_commanda\requirements.txt`.
+- Executado `pip install -r requirements.txt` na venv instalada.
+- Validado:
+  - `http://127.0.0.1:8765/health` -> `{"status":"ok"}`
+  - `http://127.0.0.1:8765/orders/ui` -> HTTP 200
+
+### Release gerada
+- `release-artifacts/Movi_commanda_Installer_v2026-05-03_comandas_r8.zip`
+- Tamanho:
+  - `163103` bytes
+
+### Validacao no workspace
+- Parser PowerShell do instalador: OK
+- `py -3 -m pytest tests\test_agent_local_orders.py -q` -> `10 passed`
+- `py -3 -m compileall agent_local -q` -> sem erro
+- `py -3 -m pytest -q` -> `79 passed, 1 skipped`
+- ZIP validado sem `__pycache__` e sem `.pyc`
+
 ## Checkpoint Desktop Limpo Movi_commanda - 2026-05-03
 
 ### Implementado

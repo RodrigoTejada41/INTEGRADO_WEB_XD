@@ -211,6 +211,7 @@ def test_client_installer_removes_old_movisync_residue() -> None:
     installer = Path("infra/client-agent/install-agent-client.ps1").read_text(encoding="utf-8")
     quick_start = Path("infra/client-agent/COMECE_AQUI.bat").read_text(encoding="utf-8")
     readme = Path("infra/client-agent/README.md").read_text(encoding="utf-8")
+    requirements = Path("requirements.txt").read_text(encoding="utf-8")
 
     assert '[string]$InstallDir = "C:\\Movi_commanda"' in installer
     assert '$LegacyInstallDirs = @("C:\\MoviSyncAgent")' in installer
@@ -218,12 +219,16 @@ def test_client_installer_removes_old_movisync_residue() -> None:
     assert "Restore-InstallState" in installer
     assert "Remove-InstallTree" in installer
     assert "Remove-DesktopShortcutsByTargetRoots" in installer
+    assert "Invoke-CheckedCommand" in installer
+    assert "import fastapi, uvicorn, pydantic, pystray, PIL" in installer
     assert "Iniciar_Movi_commanda_Windows.vbs" in installer
     assert "Movi_commanda API Local -" not in installer
     assert "Movi_commanda Status -" not in installer
     assert "Movi_commanda Iniciar Servico -" not in installer
     assert "MoviSync" not in quick_start
     assert "C:\\MoviSyncAgent" not in readme
+    assert "psycopg2-binary==2.9.10" in requirements
+    assert "psycopg2-binary==2.9.9" not in requirements
 
 
 def test_local_commanda_settings_app_info_and_license() -> None:
