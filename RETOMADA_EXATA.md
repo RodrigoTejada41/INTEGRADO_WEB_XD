@@ -2,6 +2,43 @@
 
 Data de atualizacao: 2026-05-04
 
+## Checkpoint Impressao por Grupo de Produto - 2026-05-04
+
+### Problema
+- Pedido registrado pela comanda precisava encaminhar itens automaticamente para a impressora do grupo.
+- A regra tinha que valer tambem para pedidos recebidos via API.
+
+### Implementado
+- Criada tabela local `local_order_group_printers`.
+- Criados endpoints tecnicos:
+  - `GET /orders/technical/printers/groups`
+  - `PUT /orders/technical/printers/groups`
+- Registro via `/orders` e `/orders/confirm` agora gera tickets por grupo de produto.
+- Cada ticket contem apenas os itens do grupo correspondente.
+- Se a impressora estiver configurada e o sistema estiver no Windows, o envio usa `Out-Printer`.
+- Se o envio nao for possivel, o ticket fica em arquivo local de job, sem perder o pedido.
+
+### Validacao
+- `py -3 -m compileall agent_local -q` -> sem erro
+- `py -3 -m pytest tests\test_agent_local_orders.py -q` -> `20 passed`
+- `py -3 -m pytest -q` -> `89 passed, 1 skipped`
+
+## Checkpoint Permissao Fechar Conta Comanda - 2026-05-04
+
+### Problema
+- Botao `CONTA` deveria operar como `FECHAR CONTA`.
+- Fechamento/consulta de conta nao tinha permissao especifica.
+
+### Implementado
+- UI renomeada para `FECHAR CONTA`.
+- Nova permissao `order.close`.
+- `/orders/account` e `/orders/{uuid}/close` agora negam acesso sem `order.close`.
+- UI mostra `Nao tem permissao para fechar conta.` quando o usuario logado nao tem permissao.
+
+### Validacao
+- `py -3 -m compileall agent_local -q` -> sem erro
+- `py -3 -m pytest tests\test_agent_local_orders.py -q` -> `19 passed`
+
 ## Checkpoint Botoes Tecnicos API Comanda - 2026-05-04
 
 ### Problema

@@ -264,7 +264,7 @@ def render_orders_ui() -> str:
           <button class="menu-card" type="button" onclick="startOrder()"><span class="icon">P</span>PEDIR</button>
           <button class="menu-card" type="button" onclick="openVoidFlow()"><span class="icon">X</span>ANULAR</button>
           <button class="menu-card" type="button" onclick="openSubtotalFlow()"><span class="icon">S</span>SUBTOTAL</button>
-          <button class="menu-card" type="button" onclick="openAccountFlow()"><span class="icon">C</span>CONTA</button>
+          <button class="menu-card" type="button" onclick="openAccountFlow()"><span class="icon">FC</span>FECHAR CONTA</button>
           <button class="menu-card" type="button" onclick="openTransferFlow()"><span class="icon">TR</span>TRANSFERENCIA</button>
           <button class="menu-card" type="button" onclick="openPartialPaymentFlow()"><span class="icon">PP</span>PAGAMENTO PARCIAL</button>
           <button class="menu-card" type="button" onclick="openOtherMenu()"><span class="icon">...</span>OUTROS</button>
@@ -395,6 +395,7 @@ const state = {
   products: [],
   selectedFamily: '',
   cart: [],
+  permissions: {},
   activeOrderUuid: '',
   activeCommandNumber: '',
   networkInfo: null,
@@ -526,6 +527,10 @@ async function requireTechnicalSession() {
     '<pre>Entre em USUARIOS com operador tecnico para usar esta funcao.</pre><button class="primary" type="button" onclick="closeModal(); openUsers()">Entrar</button>'
   );
   return false;
+}
+
+function hasPermission(permission) {
+  return state.permissions[permission] !== false;
 }
 
 async function openSettings() {
@@ -780,6 +785,8 @@ async function login() {
   const data = await response.json();
   state.sessionToken = data.session_token;
   state.operator = data.operator;
+  const meResponse = await localFetch('/orders/me', {headers: localHeaders(false)});
+  state.permissions = meResponse.ok ? (await meResponse.json()).permissions || {} : {};
   document.getElementById('user-badge').textContent = data.operator.name;
   document.getElementById('operator-name').textContent = data.operator.name || 'SUPORTE';
   document.getElementById('operator-avatar').textContent = (data.operator.name || data.operator.code || 'OP').slice(0, 2).toUpperCase();
@@ -792,6 +799,7 @@ async function login() {
 function logout() {
   state.sessionToken = '';
   state.operator = null;
+  state.permissions = {};
   state.cart = [];
   state.activeOrderUuid = '';
   state.activeCommandNumber = '';
@@ -1069,11 +1077,15 @@ async function openSubtotalFlow() {
 }
 
 async function openAccountFlow() {
+  if (!hasPermission('order.close')) {
+    openModal('Fechar conta', '<pre>Nao tem permissao para fechar conta.</pre>');
+    return;
+  }
   const command = activeCommand();
   if (!command) return;
   const response = await localFetch(`/orders/account?command_number=${encodeURIComponent(command)}`, {headers: localHeaders(false)});
-  const data = response.ok ? await response.json() : {message: await response.text()};
-  openModal('Conta', response.ok ? renderSummary(data.payload) : `<pre>${escapeHtml(data.message)}</pre>`);
+  const data = response.ok ? await response.json() : {message: await responseMessage(response)};
+  openModal('Fechar conta', response.ok ? renderSummary(data.payload) : `<pre>${escapeHtml(data.message)}</pre>`);
 }
 
 async function openVoidFlow() {

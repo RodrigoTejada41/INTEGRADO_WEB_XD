@@ -34,6 +34,7 @@ from agent_local.orders.schemas import (
     LocalConnectionCheckResponse,
     LocalDatabaseConfigPayload,
     LocalDatabaseConfigResponse,
+    LocalGroupPrinterConfigList,
     LocalNetworkAddressView,
     LocalNetworkInfoResponse,
     LocalOperatorListResponse,
@@ -394,6 +395,13 @@ def _sync_order_to_xd_or_raise(order) -> None:
         ) from exc
 
 
+def _print_order_items_by_group(order) -> None:
+    try:
+        _order_service().print_order_by_group(order, jobs_dir=_print_jobs_dir(), width=_receipt_width())
+    except Exception:
+        return
+
+
 @app.get("/health")
 def health() -> dict[str, str]:
     return {"status": "ok"}
@@ -615,6 +623,26 @@ def technical_save_database_config(
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Erro ao salvar banco: {exc.__class__.__name__}") from exc
 
 
+@app.get("/orders/technical/printers/groups", response_model=LocalGroupPrinterConfigList)
+def technical_list_group_printers(
+    _: None = Depends(_require_token),
+    session=Depends(_require_order_session),
+) -> LocalGroupPrinterConfigList:
+    _require_technical_admin(session)
+    return LocalGroupPrinterConfigList(printers=_order_service().list_group_printers())
+
+
+@app.put("/orders/technical/printers/groups", response_model=LocalGroupPrinterConfigList)
+def technical_save_group_printers(
+    payload: LocalGroupPrinterConfigList,
+    _: None = Depends(_require_token),
+    session=Depends(_require_order_session),
+) -> LocalGroupPrinterConfigList:
+    _require_technical_admin(session)
+    printers = _order_service().save_group_printers([item.model_dump() for item in payload.printers])
+    return LocalGroupPrinterConfigList(printers=printers)
+
+
 @app.post("/orders/technical/check", response_model=LocalConnectionCheckResponse)
 def technical_connection_check(
     _: None = Depends(_require_token),
@@ -738,6 +766,7 @@ def create_order(
     try:
         order = _order_service().create_order(payload)
         _sync_order_to_xd_or_raise(order)
+        _print_order_items_by_group(order)
         return LocalOrderView.model_validate(order)
     except HTTPException:
         raise
@@ -842,7 +871,7 @@ def close_order(
     session=Depends(_require_order_session),
 ) -> LocalOrderView:
     try:
-        order = _order_service().close_order(order_uuid, payload)
+        order = _order_service().close_order(order_uuid, payload, session)
         _sync_order_to_xd_or_raise(order)
         return LocalOrderView.model_validate(order)
     except HTTPException:
@@ -989,10 +1018,11 @@ def order_account(
     session=Depends(_require_order_session),
 ) -> LocalOrderActionResponse:
     try:
+        _order_repository().require_permission(session.operator_code, "order.close")
         summary = _order_service().order_summary(order_uuid=order_uuid, command_number=command_number)
     except Exception as exc:
         raise _handle_order_error(exc) from exc
-    return LocalOrderActionResponse(status="ok", message="Conta consultada.", payload=_summary_payload(summary))
+    return LocalOrderActionResponse(status="ok", message="Fechamento de conta autorizado.", payload=_summary_payload(summary))
 
 
 @app.post("/orders/void", response_model=LocalOrderActionResponse)

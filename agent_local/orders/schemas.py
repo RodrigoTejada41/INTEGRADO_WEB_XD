@@ -306,6 +306,24 @@ class LocalCommandaSettingsResponse(BaseModel):
     settings: LocalCommandaSettings
 
 
+class LocalGroupPrinterConfig(BaseModel):
+    family: str = Field(min_length=1, max_length=160)
+    printer_name: str = Field(min_length=1, max_length=160)
+    active: bool = True
+
+    @field_validator("family", "printer_name")
+    @classmethod
+    def strip_group_printer_text(cls, value: str) -> str:
+        cleaned = value.strip()
+        if not cleaned:
+            raise ValueError("Campo obrigatorio.")
+        return cleaned
+
+
+class LocalGroupPrinterConfigList(BaseModel):
+    printers: list[LocalGroupPrinterConfig] = Field(default_factory=list, max_length=200)
+
+
 class LocalProductFamilyListResponse(BaseModel):
     families: list[str]
 

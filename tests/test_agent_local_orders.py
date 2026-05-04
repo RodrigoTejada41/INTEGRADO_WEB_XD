@@ -318,6 +318,9 @@ def test_local_orders_web_ui_is_available() -> None:
     assert "TRANSFERENCIA" in response.text
     assert "PAGAMENTO PARCIAL" in response.text
     assert "DESCONTO" in response.text
+    assert "FECHAR CONTA" in response.text
+    assert "Nao tem permissao para fechar conta." in response.text
+    assert "order.close" in response.text
     assert "/orders/local-token" in response.text
     assert "Token local invalido" in response.text
     assert "localFetch(url, options = {}, retried = false)" in response.text
@@ -831,6 +834,64 @@ def test_local_comanda_can_be_edited_cancelled_and_closed() -> None:
         assert canceled.json()["status"] == "cancelled"
 
 
+def test_local_comanda_close_account_requires_permission() -> None:
+    db_path = Path("output/test_agent_local_orders/close_permission.db")
+    token_file = Path("output/test_agent_local_orders/close_permission_token.txt")
+    db_path.parent.mkdir(parents=True, exist_ok=True)
+    if db_path.exists():
+        db_path.unlink()
+    token_file.write_text("local-token-test", encoding="ascii")
+
+    os.environ["LOCAL_ORDER_DB_PATH"] = str(db_path)
+    os.environ["LOCAL_API_TOKEN_FILE"] = str(token_file)
+    os.environ["AGENT_EMPRESA_ID"] = "12345678000199"
+    os.environ["LOCAL_ORDER_AUTO_REFRESH_CATALOG"] = "false"
+
+    local_api = _reload_local_api()
+
+    with TestClient(local_api.app) as client:
+        headers = _order_headers(client, db_path)
+        with sqlite3.connect(db_path) as connection:
+            connection.execute(
+                """
+                INSERT INTO local_order_operator_permissions (operator_code, permission, allowed)
+                VALUES (?, ?, 0)
+                ON CONFLICT(operator_code, permission) DO UPDATE SET allowed = excluded.allowed
+                """,
+                ("OP01", "order.close"),
+            )
+            connection.commit()
+
+        created = client.post(
+            "/orders",
+            headers=headers,
+            json={
+                "command_number": "060",
+                "items": [
+                    {"product_code": "AGUA", "description": "Agua", "quantity": "1", "unit_price": "5.00"}
+                ],
+            },
+        )
+        assert created.status_code == 201, created.text
+        order_uuid = created.json()["uuid"]
+
+        me = client.get("/orders/me", headers=headers)
+        assert me.status_code == 200, me.text
+        assert me.json()["permissions"]["order.close"] is False
+
+        account = client.get("/orders/account?command_number=060", headers=headers)
+        assert account.status_code == 403, account.text
+        assert account.json()["detail"] == "Permissao negada: order.close"
+
+        closed = client.post(
+            f"/orders/{order_uuid}/close",
+            headers=headers,
+            json={"payment_method": "dinheiro", "amount_paid": "5.00"},
+        )
+        assert closed.status_code == 403, closed.text
+        assert closed.json()["detail"] == "Permissao negada: order.close"
+
+
 def test_local_comanda_main_menu_operations_log_critical_actions() -> None:
     db_path = Path("output/test_agent_local_orders/menu_operations.db")
     token_file = Path("output/test_agent_local_orders/menu_operations_token.txt")
@@ -1056,3 +1117,84 @@ def test_local_comanda_generates_thermal_receipt_and_print_job() -> None:
         job_path = Path(body["job_path"])
         assert job_path.exists()
         assert "MESA 030" in job_path.read_text(encoding="utf-8")
+
+
+def test_local_comanda_auto_prints_items_by_product_group(monkeypatch) -> None:
+    db_path = Path("output/test_agent_local_orders/group_printers.db")
+    token_file = Path("output/test_agent_local_orders/group_printers_token.txt")
+    jobs_dir = Path("output/test_agent_local_orders/group_print_jobs")
+    db_path.parent.mkdir(parents=True, exist_ok=True)
+    if db_path.exists():
+        db_path.unlink()
+    if jobs_dir.exists():
+        for path in jobs_dir.glob("*.txt"):
+            path.unlink()
+    token_file.write_text("local-token-test", encoding="ascii")
+
+    os.environ["LOCAL_ORDER_DB_PATH"] = str(db_path)
+    os.environ["LOCAL_API_TOKEN_FILE"] = str(token_file)
+    os.environ["AGENT_EMPRESA_ID"] = "12345678000199"
+    os.environ["LOCAL_ORDER_AUTO_REFRESH_CATALOG"] = "false"
+    os.environ["LOCAL_ORDER_PRINT_JOBS_DIR"] = str(jobs_dir)
+    os.environ["LOCAL_ORDER_RECEIPT_WIDTH"] = "32"
+
+    local_api = _reload_local_api()
+    import agent_local.orders.printer as printer_module
+
+    def fake_send_to_windows_printer(self, *, order_uuid, job_path):
+        return printer_module.LocalPrintJob(
+            order_uuid=order_uuid,
+            job_path=job_path,
+            status="sent",
+            printer_name=self.printer_name,
+        )
+
+    monkeypatch.setattr(printer_module.LocalOrderPrinter, "_send_to_windows_printer", fake_send_to_windows_printer)
+
+    with TestClient(local_api.app) as client:
+        headers = _order_headers(client, db_path)
+        local_api._order_repository().upsert_catalog(
+            operators=[],
+            products=[
+                {"product_code": "SUSHI01", "description": "Hot Roll", "family": "Sushi", "unit_price": "30.00"},
+                {"product_code": "BEB01", "description": "Agua", "family": "Bebidas", "unit_price": "5.00"},
+            ],
+        )
+        configured = client.put(
+            "/orders/technical/printers/groups",
+            headers=headers,
+            json={
+                "printers": [
+                    {"family": "Sushi", "printer_name": "Printer Sushi", "active": True},
+                    {"family": "Bebidas", "printer_name": "Printer Bebidas", "active": True},
+                ]
+            },
+        )
+        assert configured.status_code == 200, configured.text
+
+        listed = client.get("/orders/technical/printers/groups", headers=headers)
+        assert listed.status_code == 200, listed.text
+        assert {item["family"] for item in listed.json()["printers"]} == {"Bebidas", "Sushi"}
+
+        created = client.post(
+            "/orders/confirm",
+            headers=headers,
+            json={
+                "command_number": "070",
+                "items": [
+                    {"product_code": "SUSHI01", "description": "Hot Roll", "quantity": "2", "unit_price": "30.00"},
+                    {"product_code": "BEB01", "description": "Agua", "quantity": "1", "unit_price": "5.00"},
+                ],
+            },
+        )
+        assert created.status_code == 201, created.text
+
+    jobs = sorted(jobs_dir.glob("*.txt"))
+    assert len(jobs) == 2
+    contents = {path.name: path.read_text(encoding="utf-8") for path in jobs}
+    sushi_ticket = "\n".join(text for text in contents.values() if "SUSHI" in text)
+    bebidas_ticket = "\n".join(text for text in contents.values() if "BEBIDAS" in text)
+    assert "2x Hot Roll" in sushi_ticket
+    assert "Agua" not in sushi_ticket
+    assert "1x Agua" in bebidas_ticket
+    assert "Hot Roll" not in bebidas_ticket

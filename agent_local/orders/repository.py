@@ -42,6 +42,13 @@ class StoredOrderPayment:
 
 
 @dataclass(frozen=True)
+class StoredOrderPrintGroup:
+    family: str
+    printer_name: str | None
+    items: list[StoredOrderItem]
+
+
+@dataclass(frozen=True)
 class StoredOrder:
     uuid: str
     empresa_id: str
@@ -341,6 +348,17 @@ class LocalOrderRepository:
                 )
                 """
             )
+            connection.execute(
+                """
+                CREATE TABLE IF NOT EXISTS local_order_group_printers (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    family TEXT NOT NULL UNIQUE,
+                    printer_name TEXT NOT NULL,
+                    active INTEGER NOT NULL DEFAULT 1,
+                    updated_at TEXT NOT NULL
+                )
+                """
+            )
             self._add_column_if_missing(connection, "local_orders", "command_number", "TEXT NULL")
             self._add_column_if_missing(connection, "local_orders", "people_count", "INTEGER NULL")
             self._add_column_if_missing(connection, "local_orders", "table_reference", "TEXT NULL")
@@ -595,8 +613,10 @@ class LocalOrderRepository:
         empresa_id: str,
         order_uuid: str,
         payload: LocalOrderCloseRequest,
+        session: StoredOrderSession,
     ) -> StoredOrder:
         self.initialize()
+        self.require_permission(session.operator_code, "order.close")
         self._ensure_order_editable(empresa_id=empresa_id, order_uuid=order_uuid)
         order = self.get_by_uuid(empresa_id=empresa_id, order_uuid=order_uuid)
         payments = self._normalize_close_payments(payload)
@@ -832,6 +852,7 @@ class LocalOrderRepository:
         self.initialize()
         defaults = {
             "order.create": True,
+            "order.close": True,
             "order.void": True,
             "order.transfer": True,
             "order.partial_payment": True,
@@ -1411,6 +1432,73 @@ class LocalOrderRepository:
             }
             for row in rows
         ]
+
+    def list_group_printers(self) -> list[dict[str, object]]:
+        self.initialize()
+        with self._connect() as connection:
+            rows = connection.execute(
+                """
+                SELECT family, printer_name, active
+                FROM local_order_group_printers
+                ORDER BY family
+                """
+            ).fetchall()
+        return [
+            {"family": str(row["family"]), "printer_name": str(row["printer_name"]), "active": bool(row["active"])}
+            for row in rows
+        ]
+
+    def save_group_printers(self, mappings: list[dict[str, object]]) -> list[dict[str, object]]:
+        self.initialize()
+        now = _utc_now_text()
+        with self._connect() as connection:
+            connection.execute("DELETE FROM local_order_group_printers")
+            connection.executemany(
+                """
+                INSERT INTO local_order_group_printers (family, printer_name, active, updated_at)
+                VALUES (?, ?, ?, ?)
+                """,
+                [
+                    (
+                        str(item["family"]).strip(),
+                        str(item["printer_name"]).strip(),
+                        1 if item.get("active", True) else 0,
+                        now,
+                    )
+                    for item in mappings
+                    if str(item.get("family", "")).strip() and str(item.get("printer_name", "")).strip()
+                ],
+            )
+            connection.commit()
+        return self.list_group_printers()
+
+    def order_print_groups(self, *, order: StoredOrder) -> list[StoredOrderPrintGroup]:
+        self.initialize()
+        with self._connect() as connection:
+            rows = connection.execute(
+                """
+                SELECT i.id, COALESCE(p.family, 'Geral') AS family, gp.printer_name
+                FROM local_order_items i
+                LEFT JOIN local_order_products p ON p.product_code = i.product_code
+                INNER JOIN local_order_group_printers gp ON gp.family = COALESCE(p.family, 'Geral') AND gp.active = 1
+                WHERE i.order_uuid = ?
+                ORDER BY COALESCE(p.family, 'Geral'), i.id
+                """,
+                (order.uuid,),
+            ).fetchall()
+        items_by_id = {item.id: item for item in order.items}
+        grouped: dict[str, StoredOrderPrintGroup] = {}
+        for row in rows:
+            item = items_by_id.get(int(row["id"]))
+            if item is None:
+                continue
+            family = str(row["family"] or "Geral")
+            current = grouped.get(family)
+            if current is None:
+                current = StoredOrderPrintGroup(family=family, printer_name=row["printer_name"], items=[])
+                grouped[family] = current
+            current.items.append(item)
+        return list(grouped.values())
 
     def _next_command_number(self, empresa_id: str) -> str:
         with self._connect() as connection:

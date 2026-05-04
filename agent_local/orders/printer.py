@@ -7,7 +7,7 @@ from datetime import UTC, datetime
 from decimal import Decimal
 from pathlib import Path
 
-from agent_local.orders.repository import StoredOrder
+from agent_local.orders.repository import StoredOrder, StoredOrderItem
 
 
 DEFAULT_RECEIPT_WIDTH = 32
@@ -93,6 +93,33 @@ def render_thermal_receipt(order: StoredOrder, *, width: int = DEFAULT_RECEIPT_W
     return "\n".join(lines)
 
 
+def render_group_order_ticket(
+    order: StoredOrder,
+    *,
+    family: str,
+    items: list[StoredOrderItem],
+    width: int = DEFAULT_RECEIPT_WIDTH,
+) -> str:
+    width = max(24, min(width, 48))
+    reference_label = f"Referencia {order.table_reference}" if order.table_reference else "Referencia nao informada"
+    lines = [
+        _center("PEDIDO", width),
+        _center(_clean_text(family).upper(), width),
+        _center(f"MESA {order.command_number}", width),
+        _separator(width),
+        _fit(reference_label, width),
+        _fit(f"Operador: {order.operator_name or order.operator_code or 'Nao informado'}", width),
+        _separator(width),
+    ]
+    for item in items:
+        quantity = _money(item.quantity).rstrip("0").rstrip(".")
+        lines.append(_fit(f"{quantity}x {item.description}", width))
+        if item.notes:
+            lines.append(_fit(f"Obs: {item.notes}", width))
+    lines.extend([_separator(width), datetime.now(UTC).strftime("%Y-%m-%d %H:%M:%S UTC"), ""])
+    return "\n".join(lines)
+
+
 class LocalOrderPrinter:
     def __init__(self, *, jobs_dir: str | Path, printer_name: str | None = None, width: int = DEFAULT_RECEIPT_WIDTH):
         self.jobs_dir = Path(jobs_dir)
@@ -114,6 +141,41 @@ class LocalOrderPrinter:
                 status="queued",
                 printer_name=None,
                 message="LOCAL_ORDER_PRINTER_NAME nao configurado.",
+            )
+
+        if os.name != "nt":
+            return LocalPrintJob(
+                order_uuid=order.uuid,
+                job_path=job_path,
+                status="queued",
+                printer_name=self.printer_name,
+                message="Envio automatico disponivel apenas no Windows.",
+            )
+
+        return self._send_to_windows_printer(order_uuid=order.uuid, job_path=job_path)
+
+    def create_group_job(
+        self,
+        order: StoredOrder,
+        *,
+        family: str,
+        items: list[StoredOrderItem],
+    ) -> LocalPrintJob:
+        self.jobs_dir.mkdir(parents=True, exist_ok=True)
+        content = render_group_order_ticket(order, family=family, items=items, width=self.width)
+        created_at = datetime.now(UTC).strftime("%Y%m%d_%H%M%S")
+        command_number = _safe_filename_part(order.command_number)
+        family_name = _safe_filename_part(family)
+        job_path = self.jobs_dir / f"order_{command_number}_{family_name}_{created_at}.txt"
+        job_path.write_text(content, encoding="utf-8")
+
+        if not self.printer_name:
+            return LocalPrintJob(
+                order_uuid=order.uuid,
+                job_path=job_path,
+                status="queued",
+                printer_name=None,
+                message=f"Impressora nao configurada para grupo {family}.",
             )
 
         if os.name != "nt":

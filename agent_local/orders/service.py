@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from agent_local.orders.printer import LocalOrderPrinter
+from agent_local.orders.printer import LocalOrderPrinter, LocalPrintJob
 from agent_local.orders.repository import LocalOrderRepository, StoredOrder, StoredOrderSession
 from agent_local.orders.schemas import (
     LocalOrderCancelRequest,
@@ -47,6 +47,12 @@ class LocalOrderService:
     def save_settings(self, payload: LocalCommandaSettings) -> LocalCommandaSettings:
         return self.repository.save_settings(payload)
 
+    def list_group_printers(self) -> list[dict[str, object]]:
+        return self.repository.list_group_printers()
+
+    def save_group_printers(self, mappings: list[dict[str, object]]) -> list[dict[str, object]]:
+        return self.repository.save_group_printers(mappings)
+
     def list_product_families(self) -> list[str]:
         return self.repository.list_product_families()
 
@@ -70,8 +76,18 @@ class LocalOrderService:
     def clear_items(self, order_uuid: str) -> StoredOrder:
         return self.repository.clear_items(empresa_id=self.empresa_id, order_uuid=order_uuid)
 
-    def close_order(self, order_uuid: str, payload: LocalOrderCloseRequest) -> StoredOrder:
-        return self.repository.close_order(empresa_id=self.empresa_id, order_uuid=order_uuid, payload=payload)
+    def close_order(
+        self,
+        order_uuid: str,
+        payload: LocalOrderCloseRequest,
+        session: StoredOrderSession,
+    ) -> StoredOrder:
+        return self.repository.close_order(
+            empresa_id=self.empresa_id,
+            order_uuid=order_uuid,
+            payload=payload,
+            session=session,
+        )
 
     def cancel_order(self, order_uuid: str, payload: LocalOrderCancelRequest) -> StoredOrder:
         return self.repository.cancel_order(empresa_id=self.empresa_id, order_uuid=order_uuid, reason=payload.reason)
@@ -104,3 +120,14 @@ class LocalOrderService:
     def print_order(self, order_uuid: str, *, jobs_dir: str | Path, printer_name: str | None, width: int):
         order = self.repository.get_by_uuid(empresa_id=self.empresa_id, order_uuid=order_uuid)
         return LocalOrderPrinter(jobs_dir=jobs_dir, printer_name=printer_name, width=width).create_job(order)
+
+    def print_order_by_group(self, order: StoredOrder, *, jobs_dir: str | Path, width: int) -> list[LocalPrintJob]:
+        jobs: list[LocalPrintJob] = []
+        for group in self.repository.order_print_groups(order=order):
+            job = LocalOrderPrinter(
+                jobs_dir=jobs_dir,
+                printer_name=group.printer_name,
+                width=width,
+            ).create_group_job(order, family=group.family, items=group.items)
+            jobs.append(job)
+        return jobs
