@@ -64,13 +64,13 @@ def _separator(width: int) -> str:
 
 def render_thermal_receipt(order: StoredOrder, *, width: int = DEFAULT_RECEIPT_WIDTH) -> str:
     width = max(24, min(width, 48))
-    table_label = f"Mesa {order.table_reference}" if order.table_reference else "Mesa nao informada"
+    reference_label = f"Referencia {order.table_reference}" if order.table_reference else "Referencia nao informada"
     operator = order.operator_name or order.operator_code or "Nao informado"
     lines = [
         _center("PRE-CONTA", width),
-        _center(f"COMANDA {order.command_number}", width),
+        _center(f"MESA {order.command_number}", width),
         _separator(width),
-        _line(table_label, order.status.upper(), width),
+        _line(reference_label, order.status.upper(), width),
         _fit(f"Operador: {operator}", width),
         _separator(width),
     ]

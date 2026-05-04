@@ -108,6 +108,9 @@ function Stop-MoviProcesses([string[]]$InstallDirs) {
             return $false
         } |
         ForEach-Object {
+            if ($_.ProcessId -eq $PID) {
+                return
+            }
             try {
                 Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue
             }
@@ -344,6 +347,13 @@ else {
         Set-Content -Path ".env" -Value $envText -Encoding ascii
     }
 }
+$envText = Get-Content ".env" -Raw
+if ($envText -notmatch "(?im)^LOCAL_ORDER_PUSH_XD_ENABLED=") {
+    Add-Content -Path ".env" -Value "LOCAL_ORDER_PUSH_XD_ENABLED=true" -Encoding ascii
+}
+if ($envText -notmatch "(?im)^LOCAL_ORDER_XD_TERMINAL_ID=") {
+    Add-Content -Path ".env" -Value "LOCAL_ORDER_XD_TERMINAL_ID=1" -Encoding ascii
+}
 
 Write-Step "Criando atalhos cmd"
 New-Item -ItemType Directory -Force -Path (Join-Path $InstallDir "logs") | Out-Null
@@ -443,6 +453,13 @@ shell.Run """" & "$InstallDir\.venv\Scripts\pythonw.exe" & """ -m agent_local.wi
 "@
 $windowsStartupVbsContent | Set-Content -Path "Iniciar_Movi_commanda_Windows.vbs" -Encoding ascii
 
+$apiTrayVbsContent = @"
+Set shell = CreateObject("WScript.Shell")
+shell.CurrentDirectory = "$InstallDir"
+shell.Run """" & "$InstallDir\.venv\Scripts\pythonw.exe" & """ -m agent_local.api_tray", 0, False
+"@
+$apiTrayVbsContent | Set-Content -Path "Abrir_Icone_API.vbs" -Encoding ascii
+
 @'
 @echo off
 cd /d %~dp0
@@ -456,6 +473,13 @@ cd /d %~dp0
 powershell -ExecutionPolicy Bypass -File ".\scripts\set-agent-manual-password.ps1" -Password 25032015
 pause
 '@ | Set-Content -Path "Definir_Senha_Manual.cmd" -Encoding ascii
+
+@'
+@echo off
+cd /d %~dp0
+powershell -NoProfile -ExecutionPolicy Bypass -File ".\scripts\set-local-operator-password.ps1"
+pause
+'@ | Set-Content -Path "Definir_Senha_Operador_Local.cmd" -Encoding ascii
 
 if (Test-Path ".\scripts\set-agent-manual-password.ps1") {
     Write-Step "Configurando senha local de suporte"

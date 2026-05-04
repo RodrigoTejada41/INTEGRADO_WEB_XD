@@ -278,7 +278,7 @@ def render_orders_ui() -> str:
       <div class="surface stack">
         <div class="grid two">
           <div>
-            <label>Numero da comanda</label>
+            <label>Mesa</label>
             <input id="command-number" inputmode="numeric" autocomplete="off">
           </div>
           <div>
@@ -286,7 +286,7 @@ def render_orders_ui() -> str:
             <input id="people-count" type="number" min="1" step="1" inputmode="numeric">
           </div>
           <div>
-            <label>Mesa</label>
+            <label>Referencia</label>
             <input id="table-reference" autocomplete="off">
           </div>
         </div>
@@ -294,7 +294,7 @@ def render_orders_ui() -> str:
           <button class="primary" type="button" onclick="goProducts()">Selecionar produtos</button>
           <button class="secondary" type="button" onclick="showScreen('menu')">Voltar</button>
         </div>
-        <div class="muted">A comanda identifica o pedido. A mesa e apenas referencia fisica.</div>
+        <div class="muted">Mesa identifica o pedido. Referencia e apenas apoio operacional.</div>
       </div>
     </section>
 
@@ -341,11 +341,11 @@ def render_orders_ui() -> str:
       <div class="surface stack">
         <div class="grid two">
           <div>
-            <label>Mesa</label>
+            <label>Referencia</label>
             <input id="consult-table" autocomplete="off">
           </div>
           <div>
-            <label>Comanda</label>
+            <label>Mesa</label>
             <input id="consult-command" autocomplete="off">
           </div>
         </div>
@@ -356,7 +356,7 @@ def render_orders_ui() -> str:
       </div>
       <div class="surface" style="margin-top:12px; overflow:auto;">
         <table class="table-list">
-          <thead><tr><th>Comanda</th><th>Mesa</th><th>Status</th><th>Total</th><th></th></tr></thead>
+          <thead><tr><th>Mesa</th><th>Referencia</th><th>Status</th><th>Total</th><th></th></tr></thead>
           <tbody id="orders"></tbody>
         </table>
       </div>
@@ -365,7 +365,7 @@ def render_orders_ui() -> str:
     <section id="screen-print" class="screen">
       <div class="surface stack">
         <div>
-          <label>Comanda para pre-conta</label>
+          <label>Mesa para pre-conta</label>
           <select id="print-order"></select>
         </div>
         <div class="actions">
@@ -442,6 +442,8 @@ async function responseMessage(response) {
   try {
     const data = JSON.parse(text);
     if (data.detail === 'Local token invalid.') return 'Token local invalido. No servidor, abra por http://127.0.0.1:8765/orders/ui para preencher automaticamente. No celular, copie o token de ACESSO_REDE_LOCAL.txt.';
+    if (data.detail === 'Sessao de usuario obrigatoria.') return 'Entre em USUARIOS com operador tecnico antes de usar esta funcao.';
+    if (data.detail === 'Sessao de usuario invalida ou expirada.') return 'Sessao expirada. Entre novamente em USUARIOS.';
     return data.detail || data.message || text;
   } catch {
     return text;
@@ -452,7 +454,7 @@ async function loadUsers() {
   const message = document.getElementById('login-message');
   const select = document.getElementById('operator-code');
   message.textContent = 'Carregando usuarios...';
-  const response = await fetch('/orders/users', {headers: localHeaders(false)});
+  const response = await localFetch('/orders/users', {headers: localHeaders(false)});
   if (!response.ok) {
     message.className = 'error';
     message.textContent = 'Nao foi possivel carregar usuarios. Verifique token local e banco.';
@@ -465,20 +467,41 @@ async function loadUsers() {
 }
 
 async function loadAppInfo() {
-  const response = await fetch('/orders/app-info', {headers: localHeaders(false)});
+  const response = await localFetch('/orders/app-info', {headers: localHeaders(false)});
   if (!response.ok) return;
   const data = await response.json();
   document.getElementById('app-version').textContent = `Versao ${data.version_name}`;
 }
 
-async function loadLocalTokenIfAvailable() {
+function isLoopbackHost() {
+  return ['127.0.0.1', 'localhost', '::1'].includes(window.location.hostname);
+}
+
+async function loadLocalTokenIfAvailable(force = false) {
   const tokenInput = document.getElementById('local-token');
-  if (tokenInput.value.trim()) return;
-  if (!['127.0.0.1', 'localhost', '::1'].includes(window.location.hostname)) return;
-  const response = await fetch('/orders/local-token');
-  if (!response.ok) return;
+  if (tokenInput.value.trim() && !force) return false;
+  if (!isLoopbackHost()) return false;
+  const response = await window.fetch('/orders/local-token');
+  if (!response.ok) return false;
   const data = await response.json();
   tokenInput.value = data.token || '';
+  return Boolean(tokenInput.value.trim());
+}
+
+async function localFetch(url, options = {}, retried = false) {
+  const response = await window.fetch(url, options);
+  if (response.status !== 401 || retried || !isLoopbackHost()) return response;
+  let data = null;
+  try {
+    data = await response.clone().json();
+  } catch {
+    return response;
+  }
+  if (data.detail !== 'Local token invalid.') return response;
+  const refreshed = await loadLocalTokenIfAvailable(true);
+  if (!refreshed) return response;
+  const nextOptions = {...options, headers: localHeaders(options.headers?.['Content-Type'] !== undefined)};
+  return localFetch(url, nextOptions, true);
 }
 
 async function openUsers() {
@@ -493,6 +516,16 @@ function startApplication() {
     return;
   }
   openUsers();
+}
+
+async function requireTechnicalSession() {
+  if (state.sessionToken && state.operator) return true;
+  await loadLocalTokenIfAvailable();
+  openModal(
+    'Login tecnico',
+    '<pre>Entre em USUARIOS com operador tecnico para usar esta funcao.</pre><button class="primary" type="button" onclick="closeModal(); openUsers()">Entrar</button>'
+  );
+  return false;
 }
 
 async function openSettings() {
@@ -535,7 +568,7 @@ function fillSettings(settings) {
 }
 
 async function loadNetworkInfo() {
-  const response = await fetch('/orders/technical/network', {headers: localHeaders(false)});
+  const response = await localFetch('/orders/technical/network', {headers: localHeaders(false)});
   if (!response.ok) return;
   const data = await response.json();
   state.networkInfo = data;
@@ -563,7 +596,7 @@ async function copyConnectionUrl() {
 
 async function loadSettings() {
   const message = document.getElementById('settings-message');
-  const response = await fetch('/orders/settings', {headers: localHeaders(false)});
+  const response = await localFetch('/orders/settings', {headers: localHeaders(false)});
   if (!response.ok) {
     if (message) message.textContent = 'Nao foi possivel carregar definicoes. Verifique token local.';
     return;
@@ -580,7 +613,7 @@ async function saveSettings() {
     message.textContent = 'Endereco IP e porta sao obrigatorios.';
     return;
   }
-  const response = await fetch('/orders/settings', {
+  const response = await localFetch('/orders/settings', {
     method: 'PUT',
     headers: localHeaders(),
     body: JSON.stringify(payload)
@@ -590,19 +623,19 @@ async function saveSettings() {
 }
 
 async function testConnection() {
-  const response = await fetch('/orders/settings/test-connection', {method: 'POST', headers: localHeaders(false)});
+  const response = await localFetch('/orders/settings/test-connection', {method: 'POST', headers: localHeaders(false)});
   const data = response.ok ? await response.json() : {message: await response.text()};
   openModal('Smart Connect', `<pre>${escapeHtml(data.message)}</pre>`);
 }
 
 async function loadServerData() {
-  const response = await fetch('/orders/settings/load-server-data', {method: 'POST', headers: localHeaders(false)});
+  const response = await localFetch('/orders/settings/load-server-data', {method: 'POST', headers: localHeaders(false)});
   const data = response.ok ? await response.json() : {message: await response.text()};
   openModal('Carregar dados', `<pre>${escapeHtml(data.message)}</pre>`);
 }
 
 async function validateLicense() {
-  const response = await fetch('/orders/license/validate', {method: 'POST', headers: localHeaders(false)});
+  const response = await localFetch('/orders/license/validate', {method: 'POST', headers: localHeaders(false)});
   const data = response.ok ? await response.json() : {message: await response.text()};
   openModal('Licenca', `<pre>${escapeHtml(data.message)}</pre>`);
 }
@@ -619,14 +652,16 @@ function renderStatusLines(payload) {
 }
 
 async function restartService() {
-  const response = await fetch('/orders/technical/restart-service', {method: 'POST', headers: localHeaders(false)});
-  const data = response.ok ? await response.json() : {status: 'error', message: await response.text()};
+  if (!(await requireTechnicalSession())) return;
+  const response = await localFetch('/orders/technical/restart-service', {method: 'POST', headers: localHeaders(false)});
+  const data = response.ok ? await response.json() : {status: 'error', message: await responseMessage(response)};
   openModal('Reiniciar servico', `<pre>${escapeHtml(data.message)}</pre>`);
 }
 
 async function checkConnections() {
-  const response = await fetch('/orders/technical/check', {method: 'POST', headers: localHeaders(false)});
-  const data = response.ok ? await response.json() : {message: await response.text()};
+  if (!(await requireTechnicalSession())) return;
+  const response = await localFetch('/orders/technical/check', {method: 'POST', headers: localHeaders(false)});
+  const data = response.ok ? await response.json() : {message: await responseMessage(response)};
   if (!response.ok) {
     openModal('Verificar conexao', `<pre>${escapeHtml(data.message)}</pre>`);
     return;
@@ -644,8 +679,9 @@ async function checkConnections() {
 }
 
 async function showConnectedClients() {
-  const response = await fetch('/orders/technical/clients', {headers: localHeaders(false)});
-  const data = response.ok ? await response.json() : {clients: [], message: await response.text()};
+  if (!(await requireTechnicalSession())) return;
+  const response = await localFetch('/orders/technical/clients', {headers: localHeaders(false)});
+  const data = response.ok ? await response.json() : {clients: [], message: await responseMessage(response)};
   if (!response.ok) {
     openModal('Clientes conectados', `<pre>${escapeHtml(data.message)}</pre>`);
     return;
@@ -670,8 +706,13 @@ async function showConnectionIp() {
 }
 
 async function openDatabasePanel() {
-  const response = await fetch('/orders/technical/database', {headers: localHeaders(false)});
-  const config = response.ok ? await response.json() : {database_type: 'mariadb', host: '127.0.0.1', port: 3308, database: '', username: 'root', password_configured: true, ssl_enabled: false};
+  if (!(await requireTechnicalSession())) return;
+  const response = await localFetch('/orders/technical/database', {headers: localHeaders(false)});
+  if (!response.ok) {
+    openModal('Banco de dados', `<pre>${escapeHtml(await responseMessage(response))}</pre>`);
+    return;
+  }
+  const config = await response.json();
   openModal('Banco de dados', `
     <div class="grid two">
       <div><label>Tipo de banco</label><input id="db-type" value="${escapeHtml(config.database_type || 'mariadb')}"></div>
@@ -702,7 +743,7 @@ function databasePayload() {
 }
 
 async function testDatabaseConnection() {
-  const response = await fetch('/orders/technical/database/test', {method: 'POST', headers: localHeaders(), body: JSON.stringify(databasePayload())});
+  const response = await localFetch('/orders/technical/database/test', {method: 'POST', headers: localHeaders(), body: JSON.stringify(databasePayload())});
   const data = response.ok ? await response.json() : {message: await responseMessage(response)};
   document.getElementById('db-message').className = response.ok && data.status === 'connected' ? 'success' : 'error';
   document.getElementById('db-message').textContent = data.message;
@@ -715,7 +756,7 @@ async function saveDatabaseConfig() {
     document.getElementById('db-message').textContent = 'Host, porta, banco e usuario sao obrigatorios.';
     return;
   }
-  const response = await fetch('/orders/technical/database', {method: 'PUT', headers: localHeaders(), body: JSON.stringify(payload)});
+  const response = await localFetch('/orders/technical/database', {method: 'PUT', headers: localHeaders(), body: JSON.stringify(payload)});
   document.getElementById('db-message').className = response.ok ? 'success' : 'error';
   document.getElementById('db-message').textContent = response.ok ? 'Configuracao salva.' : await responseMessage(response);
 }
@@ -726,7 +767,7 @@ async function login() {
     operator_code: document.getElementById('operator-code').value,
     password: document.getElementById('operator-password').value
   };
-  const response = await fetch('/orders/login', {
+  const response = await localFetch('/orders/login', {
     method: 'POST',
     headers: localHeaders(),
     body: JSON.stringify(payload)
@@ -772,8 +813,8 @@ function startOrder() {
 async function goProducts() {
   const command = document.getElementById('command-number').value.trim();
   const table = document.getElementById('table-reference').value.trim();
-  if (!command || !table) {
-    alert('Informe comanda e mesa.');
+  if (!command) {
+    alert('Informe a mesa.');
     return;
   }
   await loadProducts();
@@ -781,7 +822,7 @@ async function goProducts() {
 }
 
 async function loadFamilies() {
-  const response = await fetch('/orders/product-families', {headers: localHeaders(false)});
+  const response = await localFetch('/orders/product-families', {headers: localHeaders(false)});
   if (!response.ok) return;
   const data = await response.json();
   state.families = data.families;
@@ -816,7 +857,7 @@ async function loadProducts() {
   const params = new URLSearchParams();
   if (state.selectedFamily && !q) params.set('family', state.selectedFamily);
   if (q) params.set('q', q);
-  const response = await fetch(`/orders/products?${params.toString()}`, {headers: localHeaders(false)});
+  const response = await localFetch(`/orders/products?${params.toString()}`, {headers: localHeaders(false)});
   if (!response.ok) return;
   const data = await response.json();
   state.products = data.products;
@@ -905,8 +946,8 @@ function showReview() {
   }
   const command = document.getElementById('command-number').value.trim();
   const table = document.getElementById('table-reference').value.trim();
-  document.getElementById('review-header').textContent = `Comanda ${command}`;
-  document.getElementById('review-meta').textContent = `Mesa ${table} | Pessoas ${document.getElementById('people-count').value || '-'}`;
+  document.getElementById('review-header').textContent = `Mesa ${command}`;
+  document.getElementById('review-meta').textContent = `Referencia ${table || '-'} | Pessoas ${document.getElementById('people-count').value || '-'}`;
   renderCart();
   showScreen('review');
 }
@@ -919,7 +960,7 @@ async function confirmOrder() {
   const payload = {
     command_number: document.getElementById('command-number').value.trim(),
     people_count: document.getElementById('people-count').value || null,
-    table_reference: document.getElementById('table-reference').value.trim(),
+    table_reference: document.getElementById('table-reference').value.trim() || null,
     operator_code: state.operator ? state.operator.code : null,
     items: state.cart.map(item => ({
       product_code: item.product_code,
@@ -929,7 +970,7 @@ async function confirmOrder() {
       notes: item.notes || null
     }))
   };
-  const response = await fetch('/orders/confirm', {
+  const response = await localFetch('/orders/confirm', {
     method: 'POST',
     headers: localHeaders(),
     body: JSON.stringify(payload)
@@ -961,7 +1002,7 @@ async function loadOrders() {
   const table = document.getElementById('consult-table').value.trim();
   const command = document.getElementById('consult-command').value.trim();
   const url = table ? `/orders?table_reference=${encodeURIComponent(table)}` : '/orders';
-  const response = await fetch(url, {headers: localHeaders(false)});
+  const response = await localFetch(url, {headers: localHeaders(false)});
   if (!response.ok) return;
   const data = await response.json();
   const orders = command ? data.orders.filter(order => order.command_number === command) : data.orders;
@@ -975,7 +1016,7 @@ async function loadOrders() {
     </tr>
   `).join('');
   document.getElementById('print-order').innerHTML = orders.map(order => `
-    <option value="${escapeHtml(order.uuid)}">Comanda ${escapeHtml(order.command_number)} - Mesa ${escapeHtml(order.table_reference || '')}</option>
+    <option value="${escapeHtml(order.uuid)}">Mesa ${escapeHtml(order.command_number)} - Ref ${escapeHtml(order.table_reference || '-')}</option>
   `).join('');
 }
 
@@ -990,7 +1031,7 @@ function closeModal() {
 }
 
 function activeCommand() {
-  return state.activeCommandNumber || document.getElementById('command-number').value.trim() || prompt('Numero da comanda') || '';
+  return state.activeCommandNumber || document.getElementById('command-number').value.trim() || prompt('Numero da mesa') || '';
 }
 
 function renderSummary(payload) {
@@ -1005,7 +1046,7 @@ function renderSummary(payload) {
     </tr>
   `).join('');
   return `
-    <div class="muted">Comanda ${escapeHtml(order.command_number)} | Mesa ${escapeHtml(order.table_reference || '')} | Pessoas ${escapeHtml(order.people_count || '-')}</div>
+    <div class="muted">Mesa ${escapeHtml(order.command_number)} | Referencia ${escapeHtml(order.table_reference || '-')} | Pessoas ${escapeHtml(order.people_count || '-')}</div>
     <table class="table-list">
       <thead><tr><th>Item</th><th>Qtd</th><th>Unit.</th><th>Total</th></tr></thead>
       <tbody>${items}</tbody>
@@ -1022,7 +1063,7 @@ function renderSummary(payload) {
 async function openSubtotalFlow() {
   const command = activeCommand();
   if (!command) return;
-  const response = await fetch(`/orders/subtotal?command_number=${encodeURIComponent(command)}`, {headers: localHeaders(false)});
+  const response = await localFetch(`/orders/subtotal?command_number=${encodeURIComponent(command)}`, {headers: localHeaders(false)});
   const data = response.ok ? await response.json() : {message: await response.text()};
   openModal('Subtotal', response.ok ? renderSummary(data.payload) : `<pre>${escapeHtml(data.message)}</pre>`);
 }
@@ -1030,7 +1071,7 @@ async function openSubtotalFlow() {
 async function openAccountFlow() {
   const command = activeCommand();
   if (!command) return;
-  const response = await fetch(`/orders/account?command_number=${encodeURIComponent(command)}`, {headers: localHeaders(false)});
+  const response = await localFetch(`/orders/account?command_number=${encodeURIComponent(command)}`, {headers: localHeaders(false)});
   const data = response.ok ? await response.json() : {message: await response.text()};
   openModal('Conta', response.ok ? renderSummary(data.payload) : `<pre>${escapeHtml(data.message)}</pre>`);
 }
@@ -1039,7 +1080,7 @@ async function openVoidFlow() {
   const command = activeCommand();
   const reason = prompt('Motivo da anulacao');
   if (!command || !reason) return;
-  const response = await fetch('/orders/void', {
+  const response = await localFetch('/orders/void', {
     method: 'POST',
     headers: localHeaders(),
     body: JSON.stringify({command_number: command, reason})
@@ -1051,10 +1092,10 @@ async function openVoidFlow() {
 
 async function openTransferFlow() {
   const source = activeCommand();
-  const destinationTable = prompt('Mesa destino');
+  const destinationTable = prompt('Referencia destino');
   const reason = prompt('Motivo da transferencia');
   if (!source || !destinationTable || !reason) return;
-  const response = await fetch('/orders/transfer', {
+  const response = await localFetch('/orders/transfer', {
     method: 'POST',
     headers: localHeaders(),
     body: JSON.stringify({
@@ -1074,7 +1115,7 @@ async function openPartialPaymentFlow() {
   const amount = prompt('Valor do pagamento parcial');
   const paymentMethod = prompt('Forma de pagamento');
   if (!command || !amount || !paymentMethod) return;
-  const response = await fetch('/orders/partial-payment', {
+  const response = await localFetch('/orders/partial-payment', {
     method: 'POST',
     headers: localHeaders(),
     body: JSON.stringify({command_number: command, amount, payment_method: paymentMethod})
@@ -1089,7 +1130,7 @@ async function openDiscountFlow() {
   const value = prompt('Valor do desconto');
   const reason = prompt('Motivo do desconto');
   if (!command || !type || !value || !reason) return;
-  const response = await fetch('/orders/discount', {
+  const response = await localFetch('/orders/discount', {
     method: 'POST',
     headers: localHeaders(),
     body: JSON.stringify({command_number: command, discount_type: type, value, reason})
@@ -1099,21 +1140,21 @@ async function openDiscountFlow() {
 }
 
 async function openMessages() {
-  const response = await fetch('/orders/messages', {headers: localHeaders(false)});
+  const response = await localFetch('/orders/messages', {headers: localHeaders(false)});
   const data = response.ok ? await response.json() : {messages: []};
   const rows = data.messages.map(msg => `<div class="surface"><strong>${escapeHtml(msg.title)}</strong><div class="muted">${escapeHtml(msg.body)}</div></div>`).join('');
   openModal('Mensagens', rows || '<div class="muted">Nenhuma mensagem.</div>');
 }
 
 async function openOutbox() {
-  const response = await fetch('/orders/outbox', {headers: localHeaders(false)});
+  const response = await localFetch('/orders/outbox', {headers: localHeaders(false)});
   const data = response.ok ? await response.json() : {events: []};
   const rows = data.events.map(event => `<div class="surface"><strong>${escapeHtml(event.event_type)}</strong><div class="muted">${escapeHtml(event.sync_status)} | ${escapeHtml(event.created_at)}</div></div>`).join('');
   openModal('Caixa de saida', rows || '<div class="muted">Nenhum evento pendente.</div>');
 }
 
 async function startVoiceCommand() {
-  const response = await fetch('/orders/voice-command', {method: 'POST', headers: localHeaders(false)});
+  const response = await localFetch('/orders/voice-command', {method: 'POST', headers: localHeaders(false)});
   const data = response.ok ? await response.json() : {message: await response.text()};
   openModal('Controle por voz', `<pre>${escapeHtml(data.message)}</pre>`);
 }

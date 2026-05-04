@@ -91,10 +91,25 @@ def hash_order_password(password: str, *, iterations: int = 210_000) -> str:
     return f"pbkdf2_sha256${iterations}${salt.hex()}${digest.hex()}"
 
 
+def _looks_like_sha256_hex(value: str) -> bool:
+    return len(value) == 64 and all(char in "0123456789abcdefABCDEF" for char in value)
+
+
+def hash_imported_order_password(password: str) -> str:
+    cleaned = password.strip()
+    if _looks_like_sha256_hex(cleaned):
+        return f"xd_sha256${cleaned.lower()}"
+    return hash_order_password(cleaned)
+
+
 def _verify_password(password: str, stored_hash: str | None) -> bool:
     if not stored_hash:
         return False
     try:
+        if stored_hash.startswith("xd_sha256$"):
+            expected_hex = stored_hash.split("$", 1)[1]
+            actual_hex = hashlib.sha256(password.encode("utf-8")).hexdigest()
+            return hmac.compare_digest(actual_hex, expected_hex)
         algorithm, iterations_raw, salt_hex, digest_hex = stored_hash.split("$", 3)
         if algorithm != "pbkdf2_sha256":
             return False
@@ -165,6 +180,16 @@ class LocalOrderRepository:
                     sync_status TEXT NOT NULL,
                     created_at TEXT NOT NULL,
                     synced_at TEXT NULL
+                )
+                """
+            )
+            connection.execute(
+                """
+                CREATE TABLE IF NOT EXISTS local_order_xd_sync (
+                    order_uuid TEXT PRIMARY KEY,
+                    sale_zone_area_object_id INTEGER NOT NULL,
+                    order_number INTEGER NOT NULL,
+                    synced_at TEXT NOT NULL
                 )
                 """
             )
@@ -1229,17 +1254,79 @@ class LocalOrderRepository:
             for row in rows
         ]
 
+    def get_xd_sync(self, order_uuid: str) -> dict[str, int] | None:
+        self.initialize()
+        with self._connect() as connection:
+            row = connection.execute(
+                """
+                SELECT sale_zone_area_object_id, order_number
+                FROM local_order_xd_sync
+                WHERE order_uuid = ?
+                """,
+                (order_uuid,),
+            ).fetchone()
+        if row is None:
+            return None
+        return {
+            "sale_zone_area_object_id": int(row["sale_zone_area_object_id"]),
+            "order_number": int(row["order_number"]),
+        }
+
+    def save_xd_sync(self, *, order_uuid: str, sale_zone_area_object_id: int, order_number: int) -> None:
+        self.initialize()
+        now = _utc_now_text()
+        with self._connect() as connection:
+            connection.execute(
+                """
+                INSERT INTO local_order_xd_sync (
+                    order_uuid, sale_zone_area_object_id, order_number, synced_at
+                )
+                VALUES (?, ?, ?, ?)
+                ON CONFLICT(order_uuid) DO UPDATE SET
+                    sale_zone_area_object_id = excluded.sale_zone_area_object_id,
+                    order_number = excluded.order_number,
+                    synced_at = excluded.synced_at
+                """,
+                (order_uuid, sale_zone_area_object_id, order_number, now),
+            )
+            connection.commit()
+
+    def mark_order_synced(self, order_uuid: str) -> None:
+        self.initialize()
+        now = _utc_now_text()
+        with self._connect() as connection:
+            connection.execute(
+                "UPDATE local_orders SET sync_status = ?, updated_at = ? WHERE uuid = ?",
+                ("synced", now, order_uuid),
+            )
+            connection.execute(
+                """
+                UPDATE local_order_outbox
+                SET sync_status = ?, synced_at = ?
+                WHERE order_uuid = ? AND sync_status = ?
+                """,
+                ("synced", now, order_uuid, "pending"),
+            )
+            connection.commit()
+
     def upsert_catalog(self, *, operators: list[dict[str, str]], products: list[dict[str, str]]) -> None:
         self.initialize()
         with self._connect() as connection:
             connection.executemany(
                 """
-                INSERT INTO local_order_operators (code, name, active)
-                VALUES (?, ?, 1)
-                ON CONFLICT(code) DO UPDATE SET name = excluded.name, active = 1
+                INSERT INTO local_order_operators (code, name, password_hash, active)
+                VALUES (?, ?, ?, 1)
+                ON CONFLICT(code) DO UPDATE SET
+                    name = excluded.name,
+                    password_hash = COALESCE(excluded.password_hash, local_order_operators.password_hash),
+                    active = 1
                 """,
                 [
-                    (operator["code"], operator["name"])
+                    (
+                        operator["code"],
+                        operator["name"],
+                        hash_imported_order_password(operator["password"]) if operator.get("password") else None,
+                    )
                     for operator in operators
                     if operator.get("code") and operator.get("name")
                 ],

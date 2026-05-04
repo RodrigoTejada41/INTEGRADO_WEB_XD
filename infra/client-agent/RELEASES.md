@@ -1,5 +1,213 @@
 # Releases - Cliente Agent
 
+## v2026-05-04_comandas_r23
+
+- Release corretiva para cor visual de mesa ocupada no XD.
+- Diagnostico:
+  - itens estavam em `tmpdocumentstables`;
+  - painel continuava verde porque `xconfigsalezonesareaobjects` nao era atualizado;
+  - mesa `100` nao tinha registro visual nessa tabela.
+- Backend local:
+  - atualiza `Status`, `Total`, `LoginDate`, `LogoutDate`, `Terminal` e `NumberPersons`;
+  - cria registro visual da mesa quando ausente;
+  - calcula total visual com taxa de servico ativa em `xconfig`;
+  - limpa estado visual quando nao houver itens abertos.
+- Validacao real:
+  - mesa `3` ficou `Status=1`, `Total=1752.300`;
+  - mesa `100` ficou `Status=1`, `Total=298.100`.
+- ZIP de entrega:
+  - `release-artifacts/Movi_commanda_Installer_v2026-05-04_comandas_r23.zip`
+- Tamanho validado:
+  - `179123` bytes
+- Validacao:
+  - `py -3 -m pytest tests\test_agent_local_orders.py -q` com `18 passed`;
+  - `py -3 -m compileall agent_local -q` sem erro;
+  - `py -3 -m pytest -q` com `87 passed, 1 skipped`.
+
+## v2026-05-04_comandas_r22
+
+- Release corretiva para entrada real das comandas na tela do XD.
+- Diagnostico:
+  - app local gravava em `local_orders` e `local_order_outbox`;
+  - XD mostra comandas abertas a partir de `tmpdocumentstables`;
+  - `SaleZoneAreaObjectId` e o numero da mesa/comanda.
+- Backend local:
+  - novo `XDOpenOrdersWriter`;
+  - cria/atualiza linhas em `tmpdocumentstables`;
+  - usa `ParentGuid` com UUID local para evitar duplicacao;
+  - grava mapeamento em `local_order_xd_sync`;
+  - adiciona `POST /orders/sync-xd` para reenviar pendentes.
+- Instalador:
+  - define `LOCAL_ORDER_PUSH_XD_ENABLED=true`;
+  - define `LOCAL_ORDER_XD_TERMINAL_ID=1`.
+- Validacao real:
+  - mesa `3` sincronizada para pedido XD `190`, total `1239.00`;
+  - mesa `100` sincronizada para pedido XD `189`, total `271.00`.
+- ZIP de entrega:
+  - `release-artifacts/Movi_commanda_Installer_v2026-05-04_comandas_r22.zip`
+- Tamanho validado:
+  - `178424` bytes
+- Validacao:
+  - `py -3 -m pytest tests\test_agent_local_orders.py -q` com `18 passed`;
+  - `py -3 -m compileall agent_local -q` sem erro;
+  - `py -3 -m pytest -q` com `87 passed, 1 skipped`.
+
+## v2026-05-04_comandas_r21
+
+- Release de alinhamento da nomenclatura XD.
+- Regra:
+  - `COMANDA` no XD foi substituida por `MESA`;
+  - no app local, `Mesa` e `command_number` sao o mesmo identificador operacional;
+  - campo antigo `Mesa` virou `Referencia`.
+- UI:
+  - campo principal agora e `Mesa`;
+  - `Referencia` e opcional;
+  - listagem, revisao e pre-conta mostram `Mesa` e `Referencia`.
+- API:
+  - payload legado com `table_reference` sem `command_number` e normalizado para `command_number`.
+- Impressao:
+  - recibo termico usa `MESA`;
+  - campo auxiliar usa `Referencia`.
+- ZIP de entrega:
+  - `release-artifacts/Movi_commanda_Installer_v2026-05-04_comandas_r21.zip`
+- Tamanho validado:
+  - `174396` bytes
+- Validacao:
+  - `py -3 -m pytest tests\test_agent_local_orders.py -q` com `18 passed`;
+  - `py -3 -m compileall agent_local -q` sem erro;
+  - `py -3 -m pytest -q` com `87 passed, 1 skipped`.
+
+## v2026-05-04_comandas_r20
+
+- Release corretiva para senha local de operador XD.
+- Diagnostico:
+  - `users.Password` no MariaDB tem 64 caracteres hexadecimais;
+  - nao e senha em texto;
+  - SQLite local tinha hash, mas gerado sobre o valor importado errado.
+- Backend local:
+  - suporta hash importado `xd_sha256$...`;
+  - no servidor local, se login falhar, grava PBKDF2 da senha digitada para o operador e autentica.
+- Utilitario local:
+  - `Definir_Senha_Operador_Local.cmd`;
+  - `scripts/set-local-operator-password.ps1`;
+  - permite definir a senha local sem expor senha no chat.
+- ZIP de entrega:
+  - `release-artifacts/Movi_commanda_Installer_v2026-05-04_comandas_r20.zip`
+- Tamanho validado:
+  - `174366` bytes
+- Validacao:
+  - `py -3 -m pytest tests\test_agent_local_orders.py -q` com `18 passed`;
+  - `py -3 -m compileall agent_local -q` sem erro;
+  - `py -3 -m pytest -q` com `87 passed, 1 skipped`.
+
+## v2026-05-04_comandas_r19
+
+- Release corretiva para erro de token local invalido na UI.
+- UI:
+  - adiciona `localFetch`;
+  - quando recebe `Local token invalid.` no servidor local, busca token atual em `/orders/local-token`;
+  - atualiza o campo `TOKEN LOCAL`;
+  - repete a chamada automaticamente uma vez.
+- Seguranca:
+  - auto token continua restrito a `127.0.0.1`, `localhost` e `::1`;
+  - celular/tablet continua usando token de `ACESSO_REDE_LOCAL.txt`.
+- ZIP de entrega:
+  - `release-artifacts/Movi_commanda_Installer_v2026-05-04_comandas_r19.zip`
+- Tamanho validado:
+  - `172974` bytes
+- Validacao:
+  - `py -3 -m pytest tests\test_agent_local_orders.py -q` com `16 passed`;
+  - `py -3 -m compileall agent_local -q` sem erro;
+  - `py -3 -m pytest -q` com `85 passed, 1 skipped`.
+
+## v2026-05-04_comandas_r18
+
+- Release corretiva do tray de status web.
+- Ajustes:
+  - timeout do tray para `/orders/technical/status` aumentado para 15s;
+  - monitoramento automatico reduzido para 30s para evitar consulta pesada de rede a cada 5s.
+- ZIP de entrega:
+  - `release-artifacts/Movi_commanda_Installer_v2026-05-04_comandas_r18.zip`
+- Tamanho validado:
+  - `172736` bytes
+- Validacao:
+  - `py -3 -m pytest tests\test_agent_local_orders.py -q` com `16 passed`;
+  - `py -3 -m compileall agent_local -q` sem erro;
+  - `py -3 -m pytest -q` com `85 passed, 1 skipped`.
+
+## v2026-05-04_comandas_r17
+
+- Release com IP do servidor e contador de clientes web no icone da API.
+- API local:
+  - `GET /orders/technical/status` retorna `web_clients_count`;
+  - contagem web exclui localhost/testclient.
+- Icone `Movi_commanda API`:
+  - mostra status da API;
+  - mostra IP/URL do servidor;
+  - mostra clientes web conectados;
+  - adiciona botao `Ver clientes conectados`.
+- ZIP de entrega:
+  - `release-artifacts/Movi_commanda_Installer_v2026-05-04_comandas_r17.zip`
+- Tamanho validado:
+  - `172736` bytes
+- Validacao:
+  - `py -3 -m pytest tests\test_agent_local_orders.py -q` com `16 passed`;
+  - `py -3 -m compileall agent_local -q` sem erro;
+  - `py -3 -m pytest -q` com `85 passed, 1 skipped`.
+
+## v2026-05-04_comandas_r16
+
+- Release com icone da API local na bandeja do Windows.
+- Adicionado:
+  - `agent_local/api_tray.py`;
+  - icone `Movi_commanda API` perto do relogio;
+  - status verde quando `/health` responde;
+  - status vermelho quando API local nao responde.
+- Menu do icone:
+  - abrir comandas;
+  - abrir configuracoes;
+  - iniciar API local;
+  - reiniciar API local;
+  - abrir log da API.
+- Autostart:
+  - inicia API local de comandas;
+  - inicia icone da API;
+  - continua sem iniciar `agent_local.main` e sem iniciar `agent_local.tray_app`.
+- Instalador:
+  - cria `Abrir_Icone_API.vbs`.
+- ZIP de entrega:
+  - `release-artifacts/Movi_commanda_Installer_v2026-05-04_comandas_r16.zip`
+- Tamanho validado:
+  - `172171` bytes
+- Validacao:
+  - `py -3 -m pytest tests\test_agent_local_orders.py -q` com `15 passed`;
+  - `py -3 -m compileall agent_local -q` sem erro;
+  - `py -3 -m pytest -q` com `84 passed, 1 skipped`.
+
+## v2026-05-04_comandas_r15
+
+- Release corretiva para login de usuarios importados do MariaDB.
+- Causa corrigida:
+  - usuarios eram importados para o combo;
+  - senha nao era importada;
+  - `local_order_operators.password_hash` ficava vazio;
+  - login falhava com `Usuario ou senha invalido.`.
+- API/local cache:
+  - importa senha quando existir coluna `Password`, `PassWord`, `Senha`, `Pass`, `Pwd` ou `UserPassword`;
+  - grava somente hash PBKDF2 no SQLite local;
+  - reimportacao sem senha preserva hash existente.
+- Instalador:
+  - evita encerrar o proprio PowerShell durante parada de processos antigos.
+- ZIP de entrega:
+  - `release-artifacts/Movi_commanda_Installer_v2026-05-04_comandas_r15.zip`
+- Tamanho validado:
+  - `170150` bytes
+- Validacao:
+  - `py -3 -m pytest tests\test_agent_local_orders.py -q` com `15 passed`;
+  - `py -3 -m compileall agent_local -q` sem erro;
+  - `py -3 -m pytest -q` com `84 passed, 1 skipped`;
+  - ZIP sem `__pycache__` e sem `.pyc`.
+
 ## v2026-05-03_comandas_r13
 
 - Release corretiva para reduzir erro de `Local token invalid` ao configurar banco no proprio servidor.

@@ -225,13 +225,21 @@ class MariaDBClient:
             columns = self._list_columns(session, table_name)
             code_column = self._first_available_column(columns, ("Code", "KeyId", "Id", "UserName", "Login", "Name"))
             name_column = self._first_available_column(columns, ("Name", "Description", "FullName", "UserName", "Login"))
+            password_column = self._first_available_column(
+                columns,
+                ("Password", "PassWord", "Senha", "Pass", "Pwd", "UserPassword"),
+            )
             if not code_column or not name_column:
                 continue
+            password_expr = f"`{password_column}`" if password_column else "NULL"
             inactive_filter = "WHERE COALESCE(Inactive, 0) = 0" if "Inactive" in columns else ""
             rows = session.execute(
                 text(
                     f"""
-                    SELECT DISTINCT `{code_column}` AS code, `{name_column}` AS name
+                    SELECT DISTINCT
+                        `{code_column}` AS code,
+                        `{name_column}` AS name,
+                        {password_expr} AS password
                     FROM `{table_name}`
                     {inactive_filter}
                     ORDER BY `{name_column}` ASC
@@ -253,7 +261,7 @@ class MariaDBClient:
         rows = session.execute(
             text(
                 f"""
-                SELECT DISTINCT `{name_column}` AS code, `{name_column}` AS name
+                SELECT DISTINCT `{name_column}` AS code, `{name_column}` AS name, NULL AS password
                 FROM `{header_table}`
                 WHERE `{name_column}` IS NOT NULL AND TRIM(`{name_column}`) <> ''
                 ORDER BY `{name_column}` ASC
@@ -370,7 +378,11 @@ class MariaDBClient:
             if not code or not name or code in seen:
                 continue
             seen.add(code)
-            operators.append({"code": code, "name": name})
+            operator = {"code": code, "name": name}
+            password = row.get("password") if hasattr(row, "get") else None
+            if password is not None and str(password).strip():
+                operator["password"] = str(password).strip()
+            operators.append(operator)
         return operators
 
     @staticmethod

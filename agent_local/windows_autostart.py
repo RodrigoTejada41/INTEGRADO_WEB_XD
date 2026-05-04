@@ -90,6 +90,14 @@ def start_local_api() -> bool:
     )
 
 
+def start_api_tray() -> bool:
+    return _start_once(
+        "agent_local.api_tray",
+        ["-m", "agent_local.api_tray"],
+        "local-api-tray.log",
+    )
+
+
 def _acquire_startup_lock() -> bool:
     LOCK_FILE.parent.mkdir(parents=True, exist_ok=True)
     if LOCK_FILE.exists():
@@ -118,6 +126,7 @@ def main() -> int:
         return 0
     try:
         start_local_api()
+        start_api_tray()
     finally:
         _release_startup_lock()
     return 0

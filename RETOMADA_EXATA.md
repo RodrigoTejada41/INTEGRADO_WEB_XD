@@ -1,6 +1,311 @@
 # RETOMADA EXATA - INTEGRADO_WEB_XD
 
-Data de atualizacao: 2026-05-03
+Data de atualizacao: 2026-05-04
+
+## Checkpoint Botoes Tecnicos API Comanda - 2026-05-04
+
+### Problema
+- Botoes tecnicos em `DEFINICOES` pareciam nao funcionar.
+- Causa: `Reiniciar`, `Conexao`, `Clientes` e `Banco` chamavam endpoints protegidos por sessao de usuario e permissao `technical.admin`, mas a tela podia ser aberta apenas com token local.
+
+### Implementado
+- `agent_local/orders/ui.py` agora bloqueia a chamada tecnica quando nao ha sessao.
+- A UI abre modal de login tecnico e direciona para `USUARIOS`.
+- Erros de sessao expirada/obrigatoria passam a mostrar mensagem operacional clara.
+- `Banco` nao renderiza painel falso quando a API retorna erro de autenticacao.
+
+### Validacao
+- `py -3 -m pytest tests\test_agent_local_orders.py -q` -> `18 passed`
+- `py -3 -m compileall agent_local -q` -> sem erro
+- `py -3 -m pytest -q` -> `87 passed, 1 skipped`
+
+## Checkpoint Cor Visual Mesa Ocupada XD - 2026-05-04
+
+### Problema
+- A comanda existia e abria ao digitar/clicar na mesa.
+- Porem a mesa continuava verde no painel.
+- So ficava vermelha depois de clicar na mesa e reenviar pelo XD.
+
+### Causa
+- `tmpdocumentstables` guarda os itens.
+- A cor do painel depende tambem de `xconfigsalezonesareaobjects`.
+- Campos relevantes:
+  - `Status = 1`
+  - `Total > 0`
+  - `LoginDate`
+  - `LogoutDate = 0001-01-01`
+- Mesa `100` nem tinha registro visual em `xconfigsalezonesareaobjects`.
+
+### Implementado
+- `XDOpenOrdersWriter` agora:
+  - atualiza `xconfigsalezonesareaobjects` ao sincronizar a comanda;
+  - cria o registro visual da mesa se ele nao existir;
+  - calcula `Total` visual com taxa de servico quando `UsingServiceTax` estiver ativo;
+  - limpa o estado visual quando a comanda for fechada/cancelada e nao houver mais itens.
+
+### Validacao real local
+- Mesa `3`:
+  - `Status=1`
+  - `Total=1752.300`
+- Mesa `100`:
+  - registro visual criado;
+  - `Status=1`
+  - `Total=298.100`
+- Ambas prontas para aparecer como ocupadas/vermelhas no painel do XD.
+
+### Validacao
+- `py -3 -m pytest tests\test_agent_local_orders.py -q` -> `18 passed`
+- `py -3 -m compileall agent_local -q` -> sem erro
+- `py -3 -m pytest -q` -> `87 passed, 1 skipped`
+- Release gerada:
+  - `release-artifacts/Movi_commanda_Installer_v2026-05-04_comandas_r23.zip`
+- Tamanho:
+  - `179123` bytes
+- ZIP validado sem `__pycache__`, sem `.pyc`, sem `.env` e sem `local_orders.db`
+
+## Checkpoint Ponte Comandas -> XD tmpdocumentstables - 2026-05-04
+
+### Problema
+- Pedido criado na UI local gravava em `local_orders` e `local_order_outbox`.
+- Nao aparecia na tela de comandas do XD.
+- Diagnostico real:
+  - `local_orders` tinha pedidos `pending`;
+  - `local_order_items` tinha itens;
+  - `local_order_outbox` estava `pending`;
+  - a tela do XD usa `tmpdocumentstables`, com `SaleZoneAreaObjectId` como mesa/comanda.
+
+### Implementado
+- Novo writer `agent_local/db/xd_open_orders_writer.py`.
+- Sincronizacao para `tmpdocumentstables` apos criar/alterar/cancelar/fechar pedido.
+- `ParentGuid` recebe o UUID local para regravar sem duplicar linhas.
+- `local_order_xd_sync` guarda `SaleZoneAreaObjectId` e `OrderNumber` do XD.
+- Endpoint de recuperacao:
+  - `POST /orders/sync-xd`
+- Instalador agora define:
+  - `LOCAL_ORDER_PUSH_XD_ENABLED=true`
+  - `LOCAL_ORDER_XD_TERMINAL_ID=1`
+
+### Validacao real local
+- Sincronizados no banco XD:
+  - mesa `3`, pedido XD `190`, `29` itens, total `1239.00`;
+  - mesa `100`, pedido XD `189`, `7` itens, total `271.00`.
+- Query validou as linhas em `tmpdocumentstables`.
+- Processo atual da API em `8765` nao reiniciou por `Acesso negado`; proxima criacao automatica exige reiniciar a API/Windows para carregar o codigo novo.
+
+### Validacao
+- `py -3 -m pytest tests\test_agent_local_orders.py -q` -> `18 passed`
+- `py -3 -m compileall agent_local -q` -> sem erro
+- `py -3 -m pytest -q` -> `87 passed, 1 skipped`
+- Release gerada:
+  - `release-artifacts/Movi_commanda_Installer_v2026-05-04_comandas_r22.zip`
+- Tamanho:
+  - `178424` bytes
+- ZIP validado sem `__pycache__`, sem `.pyc`, sem `.env` e sem `local_orders.db`
+
+## Checkpoint Nomenclatura Mesa/Referencia XD - 2026-05-04
+
+### Problema
+- No XD, `COMANDA` foi substituida por `MESA`.
+- Portanto `Mesa` e `command_number` sao o mesmo identificador operacional.
+- O campo antigo `Mesa` deve virar somente `Referencia`.
+- UI local exigia `Numero da comanda` + `Mesa`, causando registro fora do fluxo esperado do caixa.
+
+### Implementado
+- UI:
+  - `Numero da comanda` virou `Mesa`;
+  - `Mesa` virou `Referencia`;
+  - `Referencia` deixou de ser obrigatoria;
+  - consulta/listagem mostram `Mesa` e `Referencia`;
+  - pre-conta mostra `Mesa` e `Referencia`.
+- API:
+  - se payload legado vier com `table_reference` e sem `command_number`, promove `table_reference` para `command_number`.
+- Impressao:
+  - recibo termico imprime `MESA <numero>`;
+  - referencia aparece como `Referencia <valor>`.
+
+### Validacao
+- `py -3 -m pytest tests\test_agent_local_orders.py -q` -> `18 passed`
+- `py -3 -m compileall agent_local -q` -> sem erro
+- `py -3 -m pytest -q` -> `87 passed, 1 skipped`
+- Release gerada:
+  - `release-artifacts/Movi_commanda_Installer_v2026-05-04_comandas_r21.zip`
+- Tamanho:
+  - `174396` bytes
+- ZIP validado sem `__pycache__` e sem `.pyc`
+- Arquivos copiados para `C:\Movi_commanda`.
+- API instalada nao reiniciou porque PID atual na porta `8765` retornou `Acesso negado` ao `taskkill`.
+
+## Checkpoint Senha Local Operador XD - 2026-05-04
+
+### Problema
+- Senha do usuario ainda nao autenticava.
+- Verificacao real:
+  - `local_order_operators.password_hash` existia para ADM e demais usuarios;
+  - MariaDB `users.Password` tem 64 caracteres hexadecimais;
+  - nao e senha em texto;
+  - processo antigo da API na porta `8765` nao carregava a correcao nova;
+  - `taskkill`/`Stop-Process` retornaram `Acesso negado` para o PID atual.
+
+### Implementado
+- Suporte a hash importado `xd_sha256$...` no repositorio.
+- Fallback operacional no servidor:
+  - se login falhar no servidor local, grava PBKDF2 da senha digitada e autentica.
+- Utilitario local criado:
+  - `C:\Movi_commanda\Definir_Senha_Operador_Local.cmd`
+  - `C:\Movi_commanda\scripts\set-local-operator-password.ps1`
+- O utilitario lista usuarios, pede codigo/nome e senha local sem expor senha no chat.
+
+### Validacao
+- `py -3 -m pytest tests\test_agent_local_orders.py -q` -> `18 passed`
+- `py -3 -m compileall agent_local -q` -> sem erro
+- `py -3 -m pytest -q` -> `87 passed, 1 skipped`
+- Release gerada:
+  - `release-artifacts/Movi_commanda_Installer_v2026-05-04_comandas_r20.zip`
+- Tamanho:
+  - `174366` bytes
+- ZIP validado sem `__pycache__` e sem `.pyc`
+
+## Checkpoint Auto Recuperacao Token Local UI - 2026-05-04
+
+### Problema
+- Tela podia manter token antigo no campo `TOKEN LOCAL`.
+- Ao chamar endpoints protegidos, aparecia:
+  - `Token local invalido. No servidor, abra por http://127.0.0.1:8765/orders/ui...`
+- O token real estava valido no arquivo e em `/orders/local-token`, mas a UI nao repetia a chamada automaticamente.
+
+### Implementado
+- UI agora usa `localFetch`.
+- Se resposta for `401` com `Local token invalid.` e a tela estiver em `127.0.0.1`/`localhost`:
+  - busca token atual em `/orders/local-token`;
+  - atualiza o campo `TOKEN LOCAL`;
+  - repete a chamada uma vez.
+- Celular/tablet continua sem receber token automaticamente por seguranca.
+
+### Validacao
+- `py -3 -m pytest tests\test_agent_local_orders.py -q` -> `16 passed`
+- `py -3 -m compileall agent_local -q` -> sem erro
+- `py -3 -m pytest -q` -> `85 passed, 1 skipped`
+- Release gerada:
+  - `release-artifacts/Movi_commanda_Installer_v2026-05-04_comandas_r19.zip`
+- Tamanho:
+  - `172974` bytes
+- ZIP validado sem `__pycache__` e sem `.pyc`
+- Hotfix copiado para `C:\Movi_commanda\agent_local\orders\ui.py`.
+- API local reiniciada:
+  - PID antigo `27840` finalizado;
+  - novo processo na porta `8765`: PID `34360`.
+- `GET /orders/ui` servido pela API instalada contem:
+  - `localFetch(url, options = {}, retried = false)`
+  - `loadLocalTokenIfAvailable(true)`
+- `GET /orders/local-token` retornou o token atual com sucesso.
+
+## Checkpoint Status IP e Clientes Web no Tray - 2026-05-04
+
+### Implementado
+- `GET /orders/technical/status` agora retorna:
+  - `clients_count`: total visto pela API;
+  - `web_clients_count`: somente clientes de rede, excluindo localhost/testclient.
+- Icone `Movi_commanda API` agora mostra no menu:
+  - status da API;
+  - IP/URL do servidor;
+  - quantidade de clientes web conectados.
+- Menu recebeu botao:
+  - `Ver clientes conectados`
+- O botao atualiza o status e notifica:
+  - URL do servidor;
+  - total de clientes web conectados.
+- Timeout do tray para status tecnico ajustado para 15s.
+- Atualizacao automatica do tray ajustada para 30s para evitar consulta pesada de rede a cada 5s.
+
+### Validacao
+- `py -3 -m pytest tests\test_agent_local_orders.py -q` -> `16 passed`
+- `py -3 -m compileall agent_local -q` -> sem erro
+- `py -3 -m pytest -q` -> `85 passed, 1 skipped`
+- Release gerada:
+  - `release-artifacts/Movi_commanda_Installer_v2026-05-04_comandas_r18.zip`
+- Tamanho:
+  - `172736` bytes
+- ZIP validado sem `__pycache__` e sem `.pyc`
+- Hotfix copiado para `C:\Movi_commanda`.
+- Icone reiniciado com PID `9408`.
+- API local atual respondeu `/orders/technical/status`, mas ainda sem `web_clients_count` porque o processo antigo da API nao foi encerrado.
+- Tentativa de parar PID `20988` na porta `8765` retornou `Acesso negado`.
+- O campo `web_clients_count` entra em vigor apos reiniciar o Windows ou parar a API como administrador.
+
+## Checkpoint Icone API Bandeja Windows - 2026-05-04
+
+### Implementado
+- Novo tray dedicado:
+  - `agent_local/api_tray.py`
+  - nome: `Movi_commanda API`
+  - icone verde quando `/health` responde;
+  - icone vermelho quando API local nao responde.
+- Menu do icone perto do relogio:
+  - abrir comandas;
+  - abrir configuracoes;
+  - iniciar API local;
+  - reiniciar API local;
+  - abrir log da API;
+  - fechar icone.
+- `agent_local/windows_autostart.py` agora inicia:
+  - API local de comandas;
+  - icone de status da API.
+- Mantida separacao:
+  - autostart nao inicia `agent_local.main`;
+  - autostart nao inicia `agent_local.tray_app` de relatorios.
+- Instalador gera:
+  - `Abrir_Icone_API.vbs`
+
+### Release gerada
+- `release-artifacts/Movi_commanda_Installer_v2026-05-04_comandas_r16.zip`
+- Tamanho:
+  - `172171` bytes
+
+### Validacao
+- `py -3 -m pytest tests\test_agent_local_orders.py -q` -> `15 passed`
+- `py -3 -m compileall agent_local -q` -> sem erro
+- `py -3 -m pytest -q` -> `84 passed, 1 skipped`
+- ZIP validado sem `__pycache__` e sem `.pyc`
+- Hotfix copiado para `C:\Movi_commanda`.
+- `agent_local.api_tray` ativo em `C:\Movi_commanda` com PID `21420`.
+- API local respondeu `GET /health` com `{"status":"ok"}`.
+
+## Checkpoint Senha Operador Comandas - 2026-05-04
+
+### Problema
+- `GET /orders/users` carregava usuarios reais do MariaDB.
+- `POST /orders/login` falhava com `Usuario ou senha invalido.`
+- Causa: importacao de operadores trazia `code` e `name`, mas nao trazia senha; `local_order_operators.password_hash` ficava vazio.
+
+### Implementado
+- Descoberta de operadores agora procura coluna de senha em:
+  - `Password`
+  - `PassWord`
+  - `Senha`
+  - `Pass`
+  - `Pwd`
+  - `UserPassword`
+- A senha importada e gravada apenas como hash PBKDF2 no SQLite local.
+- Reimportacao sem senha nao apaga hash ja existente.
+- Instalador ajustado para nao matar o proprio processo ao parar processos antigos.
+
+### Release gerada
+- `release-artifacts/Movi_commanda_Installer_v2026-05-04_comandas_r15.zip`
+- Tamanho:
+  - `170150` bytes
+
+### Validacao
+- `py -3 -m pytest tests\test_agent_local_orders.py -q` -> `15 passed`
+- `py -3 -m compileall agent_local -q` -> sem erro
+- `py -3 -m pytest -q` -> `84 passed, 1 skipped`
+- ZIP validado sem `__pycache__` e sem `.pyc`
+- Arquivos corrigidos copiados para `C:\Movi_commanda`.
+- API local atual respondeu `GET /health` com `{"status":"ok"}`.
+
+### Observacao operacional
+- A reinstalacao completa em `C:\Movi_commanda` foi bloqueada por `C:\Movi_commanda\.venv\Lib\site-packages\bcrypt\_bcrypt.pyd` travado por `pythonw.exe`.
+- `Stop-Process` e `taskkill` retornaram `Acesso negado`.
+- Para carregar o codigo novo no processo em execucao, reiniciar o servico/app como administrador ou reiniciar o Windows.
 
 ## Checkpoint Auto Token Local - 2026-05-03
 

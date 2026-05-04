@@ -119,6 +119,105 @@ def test_order_catalog_prefers_real_retail_price_columns() -> None:
     ]
 
 
+def test_order_catalog_imports_operator_password_for_local_login() -> None:
+    from agent_local.db.mariadb_client import MariaDBClient
+    from agent_local.orders.repository import LocalOrderRepository
+
+    db_path = Path("output/test_agent_local_orders/catalog_operator_password.db")
+    local_db_path = Path("output/test_agent_local_orders/catalog_operator_password_local.db")
+    for path in (db_path, local_db_path):
+        if path.exists():
+            path.unlink()
+
+    engine = create_engine(f"sqlite+pysqlite:///{db_path.as_posix()}", future=True)
+    with engine.begin() as connection:
+        connection.execute(
+            text(
+                """
+                CREATE TABLE xconfigoperators (
+                    Code TEXT NOT NULL,
+                    Name TEXT NOT NULL,
+                    Password TEXT NOT NULL,
+                    Inactive INTEGER NULL
+                )
+                """
+            )
+        )
+        connection.execute(text("INSERT INTO xconfigoperators VALUES ('ADM', 'ADM', '1234', 0)"))
+
+    client = MariaDBClient("sqlite://")
+    client.session_factory = sessionmaker(bind=engine, class_=Session, autoflush=False)
+    client._list_columns = lambda session, table_name: {  # type: ignore[method-assign]
+        "Code",
+        "Name",
+        "Password",
+        "Inactive",
+    }
+
+    with client.session_factory() as session:
+        operators = client._discover_order_operators(session, {"xconfigoperators"})
+
+    repository = LocalOrderRepository(local_db_path)
+    repository.upsert_catalog(operators=operators, products=[])
+
+    session = repository.authenticate_operator("ADM", "1234")
+    assert session.operator_code == "ADM"
+    assert repository.authenticate_operator("ADM", "1234").operator_name == "ADM"
+
+
+def test_order_catalog_accepts_xd_sha256_operator_password() -> None:
+    from agent_local.orders.repository import LocalOrderRepository
+
+    db_path = Path("output/test_agent_local_orders/xd_sha256_password.db")
+    if db_path.exists():
+        db_path.unlink()
+
+    repository = LocalOrderRepository(db_path)
+    repository.upsert_catalog(
+        operators=[
+            {
+                "code": "ADM",
+                "name": "ADM",
+                "password": "03ac674216f3e15c761ee1a5e255f067953623c8b388b4459e13f978d7c846f4",
+            }
+        ],
+        products=[],
+    )
+
+    session = repository.authenticate_operator("ADM", "1234")
+    assert session.operator_code == "ADM"
+
+
+def test_local_login_learns_imported_operator_password_on_server() -> None:
+    db_path = Path("output/test_agent_local_orders/login_learns_password.db")
+    token_file = Path("output/test_agent_local_orders/login_learns_password_token.txt")
+    db_path.parent.mkdir(parents=True, exist_ok=True)
+    if db_path.exists():
+        db_path.unlink()
+    token_file.write_text("local-token-test", encoding="ascii")
+
+    os.environ["LOCAL_ORDER_DB_PATH"] = str(db_path)
+    os.environ["LOCAL_API_TOKEN_FILE"] = str(token_file)
+    os.environ["AGENT_EMPRESA_ID"] = "12345678000199"
+    os.environ["LOCAL_ORDER_AUTO_REFRESH_CATALOG"] = "false"
+
+    local_api = _reload_local_api()
+
+    with TestClient(local_api.app) as client:
+        headers = {"X-Local-Token": "local-token-test"}
+        repository = local_api._order_repository()
+        repository.upsert_catalog(
+            operators=[{"code": "ADM", "name": "ADM", "password": "external-xd-hash"}],
+            products=[],
+        )
+
+        login = client.post("/orders/login", headers=headers, json={"operator_code": "ADM", "password": "4321"})
+        assert login.status_code == 200, login.text
+
+        second_login = client.post("/orders/login", headers=headers, json={"operator_code": "ADM", "password": "4321"})
+        assert second_login.status_code == 200, second_login.text
+
+
 def test_local_order_api_creates_order_offline_and_calculates_total() -> None:
     db_path = Path("output/test_agent_local_orders/orders.db")
     token_file = Path("output/test_agent_local_orders/local_api_token.txt")
@@ -172,6 +271,20 @@ def test_local_order_api_creates_order_offline_and_calculates_total() -> None:
         assert listed.json()["total"] == 1
         assert listed.json()["orders"][0]["uuid"] == body["uuid"]
 
+        mesa_only = client.post(
+            "/orders",
+            headers=headers,
+            json={
+                "command_number": "99",
+                "items": [
+                    {"product_code": "P003", "description": "Produto 3", "quantity": "1", "unit_price": "3.00"}
+                ],
+            },
+        )
+        assert mesa_only.status_code == 201, mesa_only.text
+        assert mesa_only.json()["command_number"] == "99"
+        assert mesa_only.json()["table_reference"] is None
+
 
 def test_local_orders_web_ui_is_available() -> None:
     local_api = _reload_local_api()
@@ -193,6 +306,9 @@ def test_local_orders_web_ui_is_available() -> None:
     assert "Buscar produto" in response.text
     assert "Revisar pedido" in response.text
     assert "Confirmar pedido" in response.text
+    assert "Mesa identifica o pedido. Referencia e apenas apoio operacional." in response.text
+    assert "<th>Mesa</th><th>Referencia</th>" in response.text
+    assert "Numero da comanda" not in response.text
     assert "Lixeira" in response.text
     assert "CONTROLE POR VOZ" in response.text
     assert "CAIXA DE SAIDA" in response.text
@@ -204,6 +320,11 @@ def test_local_orders_web_ui_is_available() -> None:
     assert "DESCONTO" in response.text
     assert "/orders/local-token" in response.text
     assert "Token local invalido" in response.text
+    assert "localFetch(url, options = {}, retried = false)" in response.text
+    assert "loadLocalTokenIfAvailable(true)" in response.text
+    assert "requireTechnicalSession()" in response.text
+    assert "Entre em USUARIOS com operador tecnico" in response.text
+    assert "if (!(await requireTechnicalSession())) return;" in response.text
     assert "XD" not in response.text
     assert "XD Orders" not in response.text
     assert "XDOrders" not in response.text
@@ -229,6 +350,9 @@ def test_client_installer_removes_old_movisync_residue() -> None:
     assert "--host 0.0.0.0 --port $LocalApiPort" in installer
     assert "Iniciar_Relatorios_Sync.cmd" in installer
     assert "Abrir_Status_Relatorios.cmd" in installer
+    assert "Abrir_Icone_API.vbs" in installer
+    assert "agent_local.api_tray" in installer
+    assert "Definir_Senha_Operador_Local.cmd" in installer
     assert "Abrir_Status_Sync.vbs" not in installer
     assert "Iniciar_Agente.vbs" not in installer
     assert "Iniciar_Movi_commanda_Windows.vbs" in installer
@@ -237,6 +361,7 @@ def test_client_installer_removes_old_movisync_residue() -> None:
     assert "Movi_commanda Iniciar Servico -" not in installer
     assert "MoviSync" not in quick_start
     assert "C:\\MoviSyncAgent" not in readme
+    assert Path("infra/client-agent/scripts/set-local-operator-password.ps1").exists()
     assert "psycopg2-binary==2.9.10" in requirements
     assert "psycopg2-binary==2.9.9" not in requirements
 
@@ -244,6 +369,7 @@ def test_client_installer_removes_old_movisync_residue() -> None:
 def test_local_command_network_mode_uses_lan_api_and_sqlite_cache_controls() -> None:
     autostart = Path("agent_local/windows_autostart.py").read_text(encoding="utf-8")
     repository = Path("agent_local/orders/repository.py").read_text(encoding="utf-8")
+    api_tray = Path("agent_local/api_tray.py").read_text(encoding="utf-8")
 
     assert 'DEFAULT_LOCAL_API_HOST = "0.0.0.0"' in autostart
     assert "windows-autostart.lock" in autostart
@@ -251,6 +377,12 @@ def test_local_command_network_mode_uses_lan_api_and_sqlite_cache_controls() -> 
     assert '"--host", host, "--port", port' in autostart
     assert "agent_local.main" not in autostart
     assert "agent_local.tray_app" not in autostart
+    assert "agent_local.api_tray" in autostart
+    assert "start_api_tray()" in autostart
+    assert "/orders/technical/status" in api_tray
+    assert "IP servidor:" in api_tray
+    assert "Clientes web conectados:" in api_tray
+    assert "Ver clientes conectados" in api_tray
     assert "sqlite3.connect(self.db_path, timeout=30)" in repository
     assert "PRAGMA busy_timeout = 30000" in repository
     assert "PRAGMA journal_mode = WAL" in repository
@@ -421,6 +553,36 @@ def test_local_commanda_settings_app_info_and_license() -> None:
         assert validated.json()["status"] == "valid"
 
 
+def test_local_commanda_status_reports_network_url_and_web_clients() -> None:
+    db_path = Path("output/test_agent_local_orders/status_clients.db")
+    token_file = Path("output/test_agent_local_orders/status_clients_token.txt")
+    db_path.parent.mkdir(parents=True, exist_ok=True)
+    if db_path.exists():
+        db_path.unlink()
+    token_file.write_text("local-token-test", encoding="ascii")
+
+    os.environ["LOCAL_ORDER_DB_PATH"] = str(db_path)
+    os.environ["LOCAL_API_TOKEN_FILE"] = str(token_file)
+    os.environ["AGENT_EMPRESA_ID"] = "12345678000199"
+    os.environ["LOCAL_ORDER_AUTO_REFRESH_CATALOG"] = "false"
+    os.environ["LOCAL_API_PORT"] = "8765"
+
+    local_api = _reload_local_api()
+    local_api._connected_clients.clear()
+    now = local_api._utc_now()
+    local_api._connected_clients["127.0.0.1"] = {"ip": "127.0.0.1", "last_seen_at": now}
+    local_api._connected_clients["192.168.15.25"] = {"ip": "192.168.15.25", "last_seen_at": now}
+
+    with TestClient(local_api.app) as client:
+        response = client.get("/orders/technical/status", headers={"X-Local-Token": "local-token-test"})
+
+    assert response.status_code == 200, response.text
+    body = response.json()
+    assert body["network"]["port"] == 8765
+    assert body["clients_count"] >= 2
+    assert body["web_clients_count"] == 1
+
+
 def test_local_comandas_use_operator_catalog_item_notes_and_prebill() -> None:
     db_path = Path("output/test_agent_local_orders/comandas.db")
     token_file = Path("output/test_agent_local_orders/comandas_token.txt")
@@ -522,8 +684,8 @@ def test_local_comandas_use_operator_catalog_item_notes_and_prebill() -> None:
 
         prebill = client.get(f"/orders/{first_body['uuid']}/prebill", headers=headers)
         assert prebill.status_code == 200, prebill.text
-        assert "Comanda 001" in prebill.text
-        assert "Mesa 10" in prebill.text
+        assert "Mesa 001" in prebill.text
+        assert "Referencia 10" in prebill.text
         assert "Ana Caixa" in prebill.text
         assert "sem cebola" in prebill.text
 
@@ -880,7 +1042,7 @@ def test_local_comanda_generates_thermal_receipt_and_print_job() -> None:
         receipt = client.get(f"/orders/{order_uuid}/thermal-receipt", headers=headers)
         assert receipt.status_code == 200, receipt.text
         assert "PRE-CONTA" in receipt.text
-        assert "COMANDA 030" in receipt.text
+        assert "MESA 030" in receipt.text
         assert "Pizza Grande" in receipt.text
         assert "TOTAL" in receipt.text
         assert "80.00" in receipt.text
@@ -893,4 +1055,4 @@ def test_local_comanda_generates_thermal_receipt_and_print_job() -> None:
         assert body["message"] == "LOCAL_ORDER_PRINTER_NAME nao configurado."
         job_path = Path(body["job_path"])
         assert job_path.exists()
-        assert "COMANDA 030" in job_path.read_text(encoding="utf-8")
+        assert "MESA 030" in job_path.read_text(encoding="utf-8")
