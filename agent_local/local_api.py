@@ -342,7 +342,12 @@ def _refresh_order_catalog_from_server() -> None:
     if not mariadb_url:
         return
     try:
-        client = MariaDBClient(mariadb_url=mariadb_url, source_query=_config_value("AGENT_SOURCE_QUERY"))
+        terminal_id = int(_config_value("LOCAL_ORDER_XD_TERMINAL_ID", "1") or "1")
+        client = MariaDBClient(
+            mariadb_url=mariadb_url,
+            source_query=_config_value("AGENT_SOURCE_QUERY"),
+            terminal_id=terminal_id,
+        )
         catalog = client.fetch_order_catalog()
         _order_repository().upsert_catalog(
             operators=catalog.get("operators", []),
@@ -757,6 +762,7 @@ def create_order(
     _: None = Depends(_require_token),
     session=Depends(_require_order_session),
 ) -> LocalOrderView:
+    _refresh_order_catalog_from_server()
     if not payload.command_number and payload.table_reference:
         payload = payload.model_copy(update={"command_number": payload.table_reference, "table_reference": None})
     if not payload.operator_code:

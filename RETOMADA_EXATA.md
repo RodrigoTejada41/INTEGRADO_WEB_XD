@@ -2,6 +2,31 @@
 
 Data de atualizacao: 2026-05-04
 
+## Checkpoint Impressao XD por Mapa Impressao - 2026-05-04
+
+### Problema
+- API Comanda nao usava o cadastro de impressoras do XD mostrado em `Imp.Producao`.
+- O envio anterior dependia de cadastro manual em `local_order_group_printers`.
+
+### Implementado
+- Catalogo local agora importa o mapa real do XD:
+  - `items.Printer1..Printer20`;
+  - `itemsgroups.Printer1..Printer20` como fallback;
+  - `xconfig.Printer1..Printer20`;
+  - `xconfigprinters.Port`, `ReportConfiguration`, `UsePrinter` e `Terminal`.
+- Ao registrar pedido por `/orders` ou `/orders/confirm`, a API atualiza o catalogo do XD e envia cada item para a impressora configurada no menu da foto.
+- Mantido fallback manual por familia quando o produto nao tiver mapa XD.
+
+### Validacao
+- `py -3 -m compileall agent_local -q` -> sem erro
+- `py -3 -m pytest tests\test_agent_local_orders.py -q` -> `22 passed`
+- `py -3 -m pytest -q` -> `91 passed, 1 skipped`
+- Release gerada:
+  - `release-artifacts/api-comanda/Movi_commanda_Installer_v2026-05-04_comandas_r25.zip`
+- Tamanho:
+  - `182503` bytes
+- ZIP validado sem `__pycache__`, sem `.pyc`, sem `.env` e sem `local_orders.db`
+
 ## Checkpoint Impressao por Grupo de Produto - 2026-05-04
 
 ### Problema

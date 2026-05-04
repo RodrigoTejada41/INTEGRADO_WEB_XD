@@ -119,6 +119,109 @@ def test_order_catalog_prefers_real_retail_price_columns() -> None:
     ]
 
 
+def test_order_catalog_imports_xd_production_printer_map() -> None:
+    from agent_local.db.mariadb_client import MariaDBClient
+
+    db_path = Path("output/test_agent_local_orders/catalog_printers.db")
+    if db_path.exists():
+        db_path.unlink()
+
+    engine = create_engine(f"sqlite+pysqlite:///{db_path.as_posix()}", future=True)
+    with engine.begin() as connection:
+        connection.execute(
+            text(
+                """
+                CREATE TABLE xconfig (
+                    Printer1 TEXT NULL,
+                    Printer2 TEXT NULL
+                )
+                """
+            )
+        )
+        connection.execute(
+            text(
+                """
+                CREATE TABLE xconfigprinters (
+                    Id INTEGER NOT NULL,
+                    Port TEXT NOT NULL,
+                    ReportConfiguration TEXT NULL,
+                    UsePrinter INTEGER NULL,
+                    Terminal INTEGER NULL
+                )
+                """
+            )
+        )
+        connection.execute(
+            text(
+                """
+                CREATE TABLE items (
+                    KeyId TEXT NOT NULL,
+                    Description TEXT NOT NULL,
+                    GroupId TEXT NULL,
+                    RetailPrice1 NUMERIC NULL,
+                    Printer1 INTEGER NULL,
+                    Printer2 INTEGER NULL,
+                    Inactive INTEGER NULL
+                )
+                """
+            )
+        )
+        connection.execute(
+            text(
+                """
+                CREATE TABLE itemsgroups (
+                    Id TEXT NOT NULL,
+                    Description TEXT NOT NULL
+                )
+                """
+            )
+        )
+        connection.execute(text("INSERT INTO xconfig VALUES ('Imp.Producao1', 'Imp.Producao2')"))
+        connection.execute(
+            text(
+                """
+                INSERT INTO xconfigprinters
+                VALUES
+                    (1, 'ELGIN COZINHA', 'production_order_separado_linha.dok', 1, 1),
+                    (2, 'ELGIN BAR', 'production_order_separado_linha.dok', 1, 1)
+                """
+            )
+        )
+        connection.execute(text("INSERT INTO itemsgroups VALUES ('G1', 'SUSHI')"))
+        connection.execute(
+            text(
+                """
+                INSERT INTO items (
+                    KeyId, Description, GroupId, RetailPrice1, Printer1, Printer2, Inactive
+                )
+                VALUES ('HOT', 'Hot Roll', 'G1', 30.00, 1, 0, 0)
+                """
+            )
+        )
+
+    client = MariaDBClient("sqlite://", terminal_id=1)
+    client.session_factory = sessionmaker(bind=engine, class_=Session, autoflush=False)
+    tables = {"items", "itemsgroups", "xconfig", "xconfigprinters"}
+    table_columns = {
+        "items": {"KeyId", "Description", "GroupId", "RetailPrice1", "Printer1", "Printer2", "Inactive"},
+        "itemsgroups": {"Id", "Description"},
+        "xconfig": {"Printer1", "Printer2"},
+        "xconfigprinters": {"Id", "Port", "ReportConfiguration", "UsePrinter", "Terminal"},
+    }
+    client._list_columns = lambda session, table_name: table_columns[table_name]  # type: ignore[method-assign]
+    with client.session_factory() as session:
+        products = client._discover_order_products(session, tables, table_columns)
+
+    assert products[0]["production_printers"] == [
+        {
+            "slot": 1,
+            "label": "Imp.Producao1",
+            "printer_name": "ELGIN COZINHA",
+            "report": "production_order_separado_linha.dok",
+        }
+    ]
+
+
 def test_order_catalog_imports_operator_password_for_local_login() -> None:
     from agent_local.db.mariadb_client import MariaDBClient
     from agent_local.orders.repository import LocalOrderRepository
@@ -1198,3 +1301,95 @@ def test_local_comanda_auto_prints_items_by_product_group(monkeypatch) -> None:
     assert "Agua" not in sushi_ticket
     assert "1x Agua" in bebidas_ticket
     assert "Hot Roll" not in bebidas_ticket
+
+
+def test_local_comanda_prints_using_xd_production_printer_map(monkeypatch) -> None:
+    db_path = Path("output/test_agent_local_orders/xd_printer_map.db")
+    token_file = Path("output/test_agent_local_orders/xd_printer_map_token.txt")
+    jobs_dir = Path("output/test_agent_local_orders/xd_printer_jobs")
+    db_path.parent.mkdir(parents=True, exist_ok=True)
+    if db_path.exists():
+        db_path.unlink()
+    if jobs_dir.exists():
+        for path in jobs_dir.glob("*.txt"):
+            path.unlink()
+    token_file.write_text("local-token-test", encoding="ascii")
+
+    os.environ["LOCAL_ORDER_DB_PATH"] = str(db_path)
+    os.environ["LOCAL_API_TOKEN_FILE"] = str(token_file)
+    os.environ["AGENT_EMPRESA_ID"] = "12345678000199"
+    os.environ["LOCAL_ORDER_AUTO_REFRESH_CATALOG"] = "false"
+    os.environ["LOCAL_ORDER_PRINT_JOBS_DIR"] = str(jobs_dir)
+    os.environ["LOCAL_ORDER_RECEIPT_WIDTH"] = "32"
+
+    local_api = _reload_local_api()
+    import agent_local.orders.printer as printer_module
+
+    sent_printers = []
+
+    def fake_send_to_windows_printer(self, *, order_uuid, job_path):
+        sent_printers.append(self.printer_name)
+        return printer_module.LocalPrintJob(
+            order_uuid=order_uuid,
+            job_path=job_path,
+            status="sent",
+            printer_name=self.printer_name,
+        )
+
+    monkeypatch.setattr(printer_module.LocalOrderPrinter, "_send_to_windows_printer", fake_send_to_windows_printer)
+
+    with TestClient(local_api.app) as client:
+        headers = _order_headers(client, db_path)
+        local_api._order_repository().upsert_catalog(
+            operators=[],
+            products=[
+                {
+                    "product_code": "HOT",
+                    "description": "Hot Roll",
+                    "family": "SUSHI",
+                    "unit_price": "30.00",
+                    "production_printers": [
+                        {
+                            "slot": 1,
+                            "label": "Imp.Producao1",
+                            "printer_name": "ELGIN COZINHA",
+                            "report": "production_order_separado_linha.dok",
+                        }
+                    ],
+                },
+                {
+                    "product_code": "AGUA",
+                    "description": "Agua",
+                    "family": "BEBIDAS",
+                    "unit_price": "5.00",
+                    "production_printers": [
+                        {
+                            "slot": 2,
+                            "label": "Imp.Producao2",
+                            "printer_name": "ELGIN BAR",
+                            "report": "production_order_separado_linha.dok",
+                        }
+                    ],
+                },
+            ],
+        )
+
+        created = client.post(
+            "/orders/confirm",
+            headers=headers,
+            json={
+                "command_number": "071",
+                "items": [
+                    {"product_code": "HOT", "description": "Hot Roll", "quantity": "1", "unit_price": "30.00"},
+                    {"product_code": "AGUA", "description": "Agua", "quantity": "1", "unit_price": "5.00"},
+                ],
+            },
+        )
+        assert created.status_code == 201, created.text
+
+    assert sent_printers == ["ELGIN BAR", "ELGIN COZINHA"]
+    jobs = sorted(jobs_dir.glob("*.txt"))
+    assert len(jobs) == 2
+    contents = "\n".join(path.read_text(encoding="utf-8") for path in jobs)
+    assert "IMP.PRODUCAO1 - SUSHI" in contents
+    assert "IMP.PRODUCAO2 - BEBIDAS" in contents

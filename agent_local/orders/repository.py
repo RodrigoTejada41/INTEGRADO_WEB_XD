@@ -344,6 +344,7 @@ class LocalOrderRepository:
                     description TEXT NOT NULL,
                     family TEXT NOT NULL,
                     unit_price TEXT NOT NULL,
+                    production_printers TEXT NULL,
                     active INTEGER NOT NULL DEFAULT 1
                 )
                 """
@@ -370,6 +371,7 @@ class LocalOrderRepository:
             self._add_column_if_missing(connection, "local_orders", "cancel_reason", "TEXT NULL")
             self._add_column_if_missing(connection, "local_order_items", "notes", "TEXT NULL")
             self._add_column_if_missing(connection, "local_order_operators", "password_hash", "TEXT NULL")
+            self._add_column_if_missing(connection, "local_order_products", "production_printers", "TEXT NULL")
             self._seed_default_settings(connection)
             connection.commit()
 
@@ -1354,12 +1356,13 @@ class LocalOrderRepository:
             )
             connection.executemany(
                 """
-                INSERT INTO local_order_products (product_code, description, family, unit_price, active)
-                VALUES (?, ?, ?, ?, 1)
+                INSERT INTO local_order_products (product_code, description, family, unit_price, production_printers, active)
+                VALUES (?, ?, ?, ?, ?, 1)
                 ON CONFLICT(product_code) DO UPDATE SET
                     description = excluded.description,
                     family = excluded.family,
                     unit_price = excluded.unit_price,
+                    production_printers = excluded.production_printers,
                     active = 1
                 """,
                 [
@@ -1368,6 +1371,7 @@ class LocalOrderRepository:
                         product["description"],
                         product.get("family") or "Geral",
                         str(product.get("unit_price") or "0"),
+                        json.dumps(product.get("production_printers") or [], ensure_ascii=True),
                     )
                     for product in products
                     if product.get("product_code") and product.get("description")
@@ -1477,10 +1481,9 @@ class LocalOrderRepository:
         with self._connect() as connection:
             rows = connection.execute(
                 """
-                SELECT i.id, COALESCE(p.family, 'Geral') AS family, gp.printer_name
+                SELECT i.id, COALESCE(p.family, 'Geral') AS family, p.production_printers
                 FROM local_order_items i
                 LEFT JOIN local_order_products p ON p.product_code = i.product_code
-                INNER JOIN local_order_group_printers gp ON gp.family = COALESCE(p.family, 'Geral') AND gp.active = 1
                 WHERE i.order_uuid = ?
                 ORDER BY COALESCE(p.family, 'Geral'), i.id
                 """,
@@ -1488,17 +1491,81 @@ class LocalOrderRepository:
             ).fetchall()
         items_by_id = {item.id: item for item in order.items}
         grouped: dict[str, StoredOrderPrintGroup] = {}
+        rows_without_xd_mapping: list[sqlite3.Row] = []
         for row in rows:
             item = items_by_id.get(int(row["id"]))
             if item is None:
                 continue
             family = str(row["family"] or "Geral")
+            production_printers = self._decode_production_printers(row["production_printers"])
+            if not production_printers:
+                rows_without_xd_mapping.append(row)
+                continue
+            for printer in production_printers:
+                printer_name = str(printer.get("printer_name") or "").strip()
+                if not printer_name:
+                    continue
+                slot = str(printer.get("slot") or "")
+                label = str(printer.get("label") or f"Imp.Producao{slot}").strip()
+                group_key = f"xd:{slot}:{printer_name}"
+                current = grouped.get(group_key)
+                if current is None:
+                    current = StoredOrderPrintGroup(family=f"{label} - {family}", printer_name=printer_name, items=[])
+                    grouped[group_key] = current
+                current.items.append(item)
+        if rows_without_xd_mapping:
+            grouped.update(self._manual_order_print_groups(order=order, rows=rows_without_xd_mapping, items_by_id=items_by_id))
+        return list(grouped.values())
+
+    @staticmethod
+    def _decode_production_printers(raw_value: object) -> list[dict[str, object]]:
+        if not raw_value or not str(raw_value).strip():
+            return []
+        try:
+            payload = json.loads(str(raw_value))
+        except json.JSONDecodeError:
+            return []
+        if not isinstance(payload, list):
+            return []
+        return [item for item in payload if isinstance(item, dict)]
+
+    def _manual_order_print_groups(
+        self,
+        *,
+        order: StoredOrder,
+        rows: list[sqlite3.Row],
+        items_by_id: dict[int, StoredOrderItem],
+    ) -> dict[str, StoredOrderPrintGroup]:
+        families = sorted({str(row["family"] or "Geral") for row in rows})
+        if not families:
+            return {}
+        placeholders = ", ".join("?" for _ in families)
+        with self._connect() as connection:
+            printer_rows = connection.execute(
+                f"""
+                SELECT family, printer_name
+                FROM local_order_group_printers
+                WHERE active = 1
+                  AND family IN ({placeholders})
+                """,
+                families,
+            ).fetchall()
+        printers_by_family = {str(row["family"]): str(row["printer_name"]) for row in printer_rows}
+        grouped: dict[str, StoredOrderPrintGroup] = {}
+        for row in rows:
+            item = items_by_id.get(int(row["id"]))
+            if item is None:
+                continue
+            family = str(row["family"] or "Geral")
+            printer_name = printers_by_family.get(family)
+            if not printer_name:
+                continue
             current = grouped.get(family)
             if current is None:
-                current = StoredOrderPrintGroup(family=family, printer_name=row["printer_name"], items=[])
+                current = StoredOrderPrintGroup(family=family, printer_name=printer_name, items=[])
                 grouped[family] = current
             current.items.append(item)
-        return list(grouped.values())
+        return grouped
 
     def _next_command_number(self, empresa_id: str) -> str:
         with self._connect() as connection:

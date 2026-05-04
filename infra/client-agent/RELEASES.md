@@ -14,6 +14,24 @@
   - tamanho;
   - validacoes executadas.
 
+## v2026-05-04_comandas_r25
+
+- Release para usar o cadastro real de impressoras do XD na API Comanda.
+- Backend local:
+  - importa `items.Printer1..Printer20` e fallback por `itemsgroups.Printer1..Printer20`;
+  - cruza com `xconfig.Printer1..Printer20` e `xconfigprinters.Port`;
+  - envia cada item para a impressora do menu `Imp.Producao`;
+  - mantem fallback manual por familia quando nao houver mapa XD.
+- ZIP de entrega:
+  - `release-artifacts/api-comanda/Movi_commanda_Installer_v2026-05-04_comandas_r25.zip`
+- Tamanho validado:
+  - `182503` bytes
+- Validacao:
+  - `py -3 -m compileall agent_local -q` sem erro;
+  - `py -3 -m pytest tests\test_agent_local_orders.py -q` com `22 passed`;
+  - `py -3 -m pytest -q` com `91 passed, 1 skipped`;
+  - ZIP validado sem `__pycache__`, sem `.pyc`, sem `.env` e sem `local_orders.db`.
+
 ## v2026-05-04_comandas_r24
 
 - Release para impressao automatica por grupo de produto e permissao de fechar conta.

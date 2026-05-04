@@ -12,10 +12,11 @@ from agent_local.db.xd_sales_mapper import (
 
 
 class MariaDBClient:
-    def __init__(self, mariadb_url: str, source_query: str | None = None):
+    def __init__(self, mariadb_url: str, source_query: str | None = None, terminal_id: int = 1):
         self.engine = create_engine(mariadb_url, pool_pre_ping=True, future=True)
         self.session_factory = sessionmaker(bind=self.engine, class_=Session, autoflush=False)
         self.source_query = source_query
+        self.terminal_id = terminal_id
 
     def fetch_changed_vendas(
         self,
@@ -163,6 +164,8 @@ class MariaDBClient:
             "employees",
             "users",
             "xconfigoperators",
+            "xconfigprinters",
+            "xconfig",
             "xconfigitemsunits",
             "entities",
         }
@@ -326,6 +329,20 @@ class MariaDBClient:
                     )
                 ).mappings()
                 products = self._normalize_product_rows(rows)
+                printer_mappings = self._discover_xd_production_printer_mappings(
+                    session=session,
+                    tables=tables,
+                    items_table=items_table,
+                    items_columns=items_columns,
+                    code_column=code_column,
+                    group_column=group_column,
+                    groups_table=groups_table,
+                    table_columns=table_columns,
+                )
+                for product in products:
+                    mapped_printers = printer_mappings.get(product["product_code"])
+                    if mapped_printers:
+                        product["production_printers"] = mapped_printers
                 if products:
                     return products
 
@@ -358,6 +375,148 @@ class MariaDBClient:
             )
         ).mappings()
         return self._normalize_product_rows(rows)
+
+    def _discover_xd_production_printer_mappings(
+        self,
+        *,
+        session: Session,
+        tables: set[str],
+        items_table: str,
+        items_columns: set[str],
+        code_column: str,
+        group_column: str | None,
+        groups_table: str | None,
+        table_columns: dict[str, set[str]],
+    ) -> dict[str, list[dict[str, object]]]:
+        printer_slots = [index for index in range(1, 21) if f"Printer{index}" in items_columns]
+        if not printer_slots:
+            return {}
+
+        printer_configs = self._discover_xd_printer_configs(session, tables, table_columns)
+        if not printer_configs:
+            return {}
+
+        select_columns = [f"i.`{code_column}` AS product_code"]
+        for index in printer_slots:
+            select_columns.append(f"i.`Printer{index}` AS item_printer_{index}")
+
+        group_slots: list[int] = []
+        join_sql = ""
+        if groups_table and group_column:
+            groups_columns = table_columns.get(groups_table) or self._list_columns(session, groups_table)
+            group_key = self._first_available_column(groups_columns, ("Id", "KeyId", "GroupId"))
+            if group_key:
+                group_slots = [index for index in range(1, 21) if f"Printer{index}" in groups_columns]
+                if group_slots:
+                    join_sql = f"LEFT JOIN `{groups_table}` g ON g.`{group_key}` = i.`{group_column}`"
+                    for index in group_slots:
+                        select_columns.append(f"g.`Printer{index}` AS group_printer_{index}")
+
+        rows = session.execute(
+            text(
+                f"""
+                SELECT {", ".join(select_columns)}
+                FROM `{items_table}` i
+                {join_sql}
+                """
+            )
+        ).mappings()
+
+        mappings: dict[str, list[dict[str, object]]] = {}
+        for row in rows:
+            product_code = str(row["product_code"]).strip() if row["product_code"] is not None else ""
+            if not product_code:
+                continue
+            printers: list[dict[str, object]] = []
+            for index in printer_slots:
+                item_enabled = self._truthy(row.get(f"item_printer_{index}"))
+                group_enabled = self._truthy(row.get(f"group_printer_{index}")) if index in group_slots else False
+                if not item_enabled and not group_enabled:
+                    continue
+                config = printer_configs.get(index)
+                if config:
+                    printers.append(config)
+            if printers:
+                mappings[product_code] = printers
+        return mappings
+
+    def _discover_xd_printer_configs(
+        self,
+        session: Session,
+        tables: set[str],
+        table_columns: dict[str, set[str]],
+    ) -> dict[int, dict[str, object]]:
+        printers_table = self._find_table(tables, "xconfigprinters")
+        if not printers_table:
+            return {}
+        columns = table_columns.get(printers_table) or self._list_columns(session, printers_table)
+        if not {"Port", "ReportConfiguration"} <= columns:
+            return {}
+
+        terminal_filter = ""
+        params: dict[str, object] = {}
+        if "Terminal" in columns:
+            terminal_filter = "WHERE Terminal = :terminal_id"
+            params["terminal_id"] = self.terminal_id
+        if "UsePrinter" in columns:
+            terminal_filter += " AND COALESCE(UsePrinter, 0) = 1" if terminal_filter else "WHERE COALESCE(UsePrinter, 0) = 1"
+
+        rows = session.execute(
+            text(
+                f"""
+                SELECT Port, ReportConfiguration
+                FROM `{printers_table}`
+                {terminal_filter}
+                ORDER BY Id ASC
+                LIMIT 20
+                """
+            ),
+            params,
+        ).mappings()
+        labels = self._discover_xd_printer_labels(session, tables, table_columns)
+        configs: dict[int, dict[str, object]] = {}
+        for slot, row in enumerate(rows, start=1):
+            port = str(row["Port"]).strip() if row["Port"] is not None else ""
+            if not port:
+                continue
+            configs[slot] = {
+                "slot": slot,
+                "label": labels.get(slot) or f"Imp.Producao{slot}",
+                "printer_name": port,
+                "report": str(row["ReportConfiguration"] or "").strip(),
+            }
+        return configs
+
+    def _discover_xd_printer_labels(
+        self,
+        session: Session,
+        tables: set[str],
+        table_columns: dict[str, set[str]],
+    ) -> dict[int, str]:
+        config_table = self._find_table(tables, "xconfig")
+        if not config_table:
+            return {}
+        columns = table_columns.get(config_table) or self._list_columns(session, config_table)
+        printer_columns = [f"Printer{index}" for index in range(1, 21) if f"Printer{index}" in columns]
+        if not printer_columns:
+            return {}
+        row = session.execute(
+            text(f"SELECT {', '.join(f'`{column}`' for column in printer_columns)} FROM `{config_table}` LIMIT 1")
+        ).mappings().first()
+        if row is None:
+            return {}
+        labels: dict[int, str] = {}
+        for column in printer_columns:
+            value = row.get(column)
+            if value and str(value).strip():
+                labels[int(column.replace("Printer", ""))] = str(value).strip()
+        return labels
+
+    @staticmethod
+    def _truthy(value: object) -> bool:
+        if value is None:
+            return False
+        return str(value).strip().lower() in {"1", "true", "t", "yes", "y", "sim", "s"}
 
     @staticmethod
     def _first_available_column(columns: set[str], candidates: tuple[str, ...]) -> str | None:
