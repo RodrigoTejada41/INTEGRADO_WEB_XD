@@ -1,5 +1,41 @@
 # Releases - Cliente Agent
 
+## Procedimento obrigatorio de fechamento
+
+- Ao concluir qualquer ajuste funcional do cliente/comanda, gerar release versionada.
+- Usar tag incremental do pacote, exemplo: `v2026-05-04_comandas_r24`.
+- Gerar pasta com `infra/client-agent/build-release.ps1`.
+- Gerar ZIP em `release-artifacts/Movi_commanda_Installer_<tag>.zip`.
+- Validar ZIP sem `__pycache__`, sem `.pyc`, sem `.env` e sem `local_orders.db`.
+- Registrar neste arquivo e em `RETOMADA_EXATA.md`:
+  - tag;
+  - ZIP;
+  - tamanho;
+  - validacoes executadas.
+
+## v2026-05-04_comandas_r24
+
+- Release para impressao automatica por grupo de produto e permissao de fechar conta.
+- Backend local:
+  - adiciona cadastro de impressora por grupo em `local_order_group_printers`;
+  - adiciona `GET/PUT /orders/technical/printers/groups`;
+  - separa itens por familia/grupo ao registrar pedidos via `/orders` e `/orders/confirm`;
+  - gera um ticket por grupo e envia para a impressora cadastrada;
+  - mantem ticket em job local quando o envio nao for possivel.
+- UI/permissao:
+  - botao `CONTA` renomeado para `FECHAR CONTA`;
+  - fechamento exige permissao `order.close`;
+  - usuario sem permissao recebe aviso operacional.
+- ZIP de entrega:
+  - `release-artifacts/Movi_commanda_Installer_v2026-05-04_comandas_r24.zip`
+- Tamanho validado:
+  - `180567` bytes
+- Validacao:
+  - `py -3 -m compileall agent_local -q` sem erro;
+  - `py -3 -m pytest tests\test_agent_local_orders.py -q` com `20 passed`;
+  - `py -3 -m pytest -q` com `89 passed, 1 skipped`;
+  - ZIP validado sem `__pycache__`, sem `.pyc`, sem `.env` e sem `local_orders.db`.
+
 ## v2026-05-04_comandas_r23
 
 - Release corretiva para cor visual de mesa ocupada no XD.
@@ -658,6 +694,8 @@
 ```powershell
 powershell -ExecutionPolicy Bypass -File .\infra\client-agent\build-release.ps1
 ```
+
+Depois compacte a pasta gerada para `release-artifacts/Movi_commanda_Installer_<tag>.zip`, valide o conteudo e registre o resultado nesta lista.
 
 ## Proxima release
 

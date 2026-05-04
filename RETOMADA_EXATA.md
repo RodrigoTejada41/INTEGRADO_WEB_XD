@@ -22,6 +22,15 @@ Data de atualizacao: 2026-05-04
 - `py -3 -m compileall agent_local -q` -> sem erro
 - `py -3 -m pytest tests\test_agent_local_orders.py -q` -> `20 passed`
 - `py -3 -m pytest -q` -> `89 passed, 1 skipped`
+- Release gerada:
+  - `release-artifacts/Movi_commanda_Installer_v2026-05-04_comandas_r24.zip`
+- Tamanho:
+  - `180567` bytes
+- ZIP validado sem `__pycache__`, sem `.pyc`, sem `.env` e sem `local_orders.db`
+
+### Procedimento permanente registrado
+- Ao concluir qualquer ajuste funcional do cliente/comanda, gerar release versionada.
+- Registrar tag, ZIP, tamanho e validacoes em `infra/client-agent/RELEASES.md` e `RETOMADA_EXATA.md`.
 
 ## Checkpoint Permissao Fechar Conta Comanda - 2026-05-04
 
