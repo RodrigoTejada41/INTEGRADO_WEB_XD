@@ -2,6 +2,47 @@
 
 Data de atualizacao: 2026-05-03
 
+## Checkpoint Separacao Comandas x Relatorios - 2026-05-03
+
+### Problema
+- A mesma inicializacao local subia a API de comandas e o sync de relatorios.
+- Isso nao misturava rotas, mas confundia operacao e manutencao.
+
+### Implementado
+- `Movi_commanda AutoStart` agora inicia somente:
+  - API local de comandas;
+  - `agent_local.local_api`;
+  - `/orders/*`;
+  - `/orders/ui`.
+- `agent_local.windows_autostart` nao inicia mais:
+  - `agent_local.main`;
+  - `agent_local.tray_app`.
+- Sync de relatorios separado em scripts proprios:
+  - `Iniciar_Relatorios_Sync.cmd`
+  - `Iniciar_Relatorios_Sync.vbs`
+  - `Abrir_Status_Relatorios.cmd`
+  - `Abrir_Status_Relatorios.vbs`
+  - `Iniciar_Relatorios_Sync_Debug.cmd`
+- Tray do sync renomeado para:
+  - `Movi_relatorios_sync`
+
+### Decisao tecnica
+- Mantido mesmo pacote fisico para reaproveitar runtime/configuracao.
+- Separados processos, atalhos e inicializacao.
+- A comanda nao depende mais de iniciar o sync de relatorios.
+
+### Release gerada
+- `release-artifacts/Movi_commanda_Installer_v2026-05-03_comandas_r11.zip`
+- Tamanho:
+  - `169418` bytes
+
+### Validacao no workspace
+- `py -3 -m pytest tests\test_agent_local_orders.py -q` -> `12 passed`
+- `py -3 -m compileall agent_local -q` -> sem erro
+- `py -3 -m pytest -q` -> `81 passed, 1 skipped`
+- ZIP validado sem `__pycache__` e sem `.pyc`
+- `windows_autostart.py` da release validado sem `agent_local.main` e sem `agent_local.tray_app`
+
 ## Checkpoint Manutencao Tecnica Movi_commanda - 2026-05-03
 
 ### Implementado

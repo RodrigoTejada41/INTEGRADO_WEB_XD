@@ -34,6 +34,23 @@ O painel local permite configurar sem editar JSON ou `.env` manualmente:
 - Log em `C:\Movi_commanda\logs\agent-sync.log`
 - Arquivo de acesso em rede: `C:\Movi_commanda\ACESSO_REDE_LOCAL.txt`
 
+## Separacao operacional
+
+O `Movi_commanda` inicia somente a API local de comandas.
+
+- Comandas:
+  - `Iniciar_Movi_commanda_Windows.vbs`
+  - `Abrir_Comandas_Locais.vbs`
+  - rotas `/orders/*`
+  - cache `agent_local\data\local_orders.db`
+- Relatorios/sync:
+  - `Iniciar_Relatorios_Sync.cmd`
+  - `Abrir_Status_Relatorios.cmd`
+  - processo `agent_local.main`
+  - logs `logs\agent-sync.log`
+
+O sync de relatorios nao inicia mais junto com a comanda.
+
 ## Acesso em rede local
 
 O computador onde o instalador roda vira o servidor local das comandas.

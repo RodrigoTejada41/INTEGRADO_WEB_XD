@@ -225,6 +225,10 @@ def test_client_installer_removes_old_movisync_residue() -> None:
     assert "Ensure-LocalApiFirewallRule" in installer
     assert "ACESSO_REDE_LOCAL.txt" in installer
     assert "--host 0.0.0.0 --port $LocalApiPort" in installer
+    assert "Iniciar_Relatorios_Sync.cmd" in installer
+    assert "Abrir_Status_Relatorios.cmd" in installer
+    assert "Abrir_Status_Sync.vbs" not in installer
+    assert "Iniciar_Agente.vbs" not in installer
     assert "Iniciar_Movi_commanda_Windows.vbs" in installer
     assert "Movi_commanda API Local -" not in installer
     assert "Movi_commanda Status -" not in installer
@@ -243,6 +247,8 @@ def test_local_command_network_mode_uses_lan_api_and_sqlite_cache_controls() -> 
     assert "windows-autostart.lock" in autostart
     assert 'os.getenv("LOCAL_API_HOST", DEFAULT_LOCAL_API_HOST)' in autostart
     assert '"--host", host, "--port", port' in autostart
+    assert "agent_local.main" not in autostart
+    assert "agent_local.tray_app" not in autostart
     assert "sqlite3.connect(self.db_path, timeout=30)" in repository
     assert "PRAGMA busy_timeout = 30000" in repository
     assert "PRAGMA journal_mode = WAL" in repository

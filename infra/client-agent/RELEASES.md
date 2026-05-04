@@ -1,5 +1,38 @@
 # Releases - Cliente Agent
 
+## v2026-05-03_comandas_r11
+
+- Release com separacao operacional entre comandas e sync de relatorios.
+- `Movi_commanda AutoStart` agora inicia somente:
+  - API local de comandas (`agent_local.local_api`);
+  - rotas `/orders/*`;
+  - UI `/orders/ui`.
+- O autostart nao inicia mais:
+  - `agent_local.main`;
+  - `agent_local.tray_app`;
+  - sync de relatorios.
+- Sync de relatorios fica separado em:
+  - `Iniciar_Relatorios_Sync.cmd`;
+  - `Iniciar_Relatorios_Sync.vbs`;
+  - `Abrir_Status_Relatorios.cmd`;
+  - `Abrir_Status_Relatorios.vbs`.
+- Tray do sync renomeado para:
+  - `Movi_relatorios_sync`
+- Resultado:
+  - comandas e relatorios continuam no mesmo pacote fisico;
+  - processos e inicializacao ficam separados;
+  - a comanda nao sobe mais o sync de relatorios junto.
+- ZIP de entrega:
+  - `release-artifacts/Movi_commanda_Installer_v2026-05-03_comandas_r11.zip`
+- Tamanho validado:
+  - `169418` bytes
+- Validacao:
+  - `py -3 -m pytest tests\test_agent_local_orders.py -q` com `12 passed`;
+  - `py -3 -m compileall agent_local -q` sem erro;
+  - `py -3 -m pytest -q` com `81 passed, 1 skipped`;
+  - ZIP sem `__pycache__` e sem `.pyc`;
+  - release validada sem `agent_local.main` e sem `agent_local.tray_app` no `windows_autostart.py`.
+
 ## v2026-05-03_comandas_r10
 
 - Release com recursos de rede, conexao e manutencao tecnica do servidor local.

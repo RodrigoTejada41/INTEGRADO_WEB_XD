@@ -406,21 +406,21 @@ $ordersVbsContent | Set-Content -Path "Abrir_Comandas_Locais.vbs" -Encoding asci
 @'
 @echo off
 cd /d %~dp0
-wscript //nologo "%~dp0Abrir_Status_Sync.vbs"
-'@ | Set-Content -Path "Iniciar_Agente.cmd" -Encoding ascii
+wscript //nologo "%~dp0Iniciar_Relatorios_Sync.vbs"
+'@ | Set-Content -Path "Iniciar_Relatorios_Sync.cmd" -Encoding ascii
 
 @'
 @echo off
 cd /d %~dp0
-wscript //nologo "%~dp0Abrir_Status_Sync.vbs"
-'@ | Set-Content -Path "Abrir_Status_Sync.cmd" -Encoding ascii
+wscript //nologo "%~dp0Abrir_Status_Relatorios.vbs"
+'@ | Set-Content -Path "Abrir_Status_Relatorios.cmd" -Encoding ascii
 
 $statusVbsContent = @"
 Set shell = CreateObject("WScript.Shell")
 shell.CurrentDirectory = "$InstallDir"
 shell.Run """" & "$InstallDir\.venv\Scripts\pythonw.exe" & """ -m agent_local.tray_app", 0, False
 "@
-$statusVbsContent | Set-Content -Path "Abrir_Status_Sync.vbs" -Encoding ascii
+$statusVbsContent | Set-Content -Path "Abrir_Status_Relatorios.vbs" -Encoding ascii
 
 $localApiVbsContent = @"
 Set shell = CreateObject("WScript.Shell")
@@ -434,7 +434,7 @@ Set shell = CreateObject("WScript.Shell")
 shell.CurrentDirectory = "$InstallDir"
 shell.Run """" & "$InstallDir\.venv\Scripts\pythonw.exe" & """ -m agent_local.main", 0, False
 "@
-$agentVbsContent | Set-Content -Path "Iniciar_Agente.vbs" -Encoding ascii
+$agentVbsContent | Set-Content -Path "Iniciar_Relatorios_Sync.vbs" -Encoding ascii
 
 $windowsStartupVbsContent = @"
 Set shell = CreateObject("WScript.Shell")
@@ -448,7 +448,7 @@ $windowsStartupVbsContent | Set-Content -Path "Iniciar_Movi_commanda_Windows.vbs
 cd /d %~dp0
 ".\.venv\Scripts\python.exe" -m agent_local.main
 pause
-'@ | Set-Content -Path "Iniciar_Agente_Debug.cmd" -Encoding ascii
+'@ | Set-Content -Path "Iniciar_Relatorios_Sync_Debug.cmd" -Encoding ascii
 
 @'
 @echo off
@@ -485,8 +485,8 @@ Write-Host "Proximos passos no painel local:"
 Write-Host "1) Informe o codigo de vinculacao."
 Write-Host "2) Configure o banco MariaDB local."
 Write-Host "3) Clique para testar e salvar."
-Write-Host "4) A API local, o Sync e o icone iniciam junto com o Windows."
-Write-Host "5) Use o icone perto do relogio para iniciar, parar ou reiniciar."
+Write-Host "4) A API local de comandas inicia junto com o Windows."
+Write-Host "5) O sync de relatorios fica separado em Iniciar_Relatorios_Sync.cmd."
 
 if ($OpenPanel) {
     Write-Step "Abrindo painel local"
