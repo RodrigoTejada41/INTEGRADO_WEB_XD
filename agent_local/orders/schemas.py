@@ -319,3 +319,66 @@ class LocalProductView(BaseModel):
 
 class LocalProductListResponse(BaseModel):
     products: list[LocalProductView]
+
+
+class LocalNetworkAddressView(BaseModel):
+    ip: str
+    label: str
+    url: str
+    selected: bool = False
+
+
+class LocalNetworkInfoResponse(BaseModel):
+    host: str
+    port: int
+    selected_ip: str | None = None
+    access_url: str | None = None
+    addresses: list[LocalNetworkAddressView]
+
+
+class LocalConnectedClientView(BaseModel):
+    ip: str
+    device_name: str | None = None
+    user_agent: str | None = None
+    operator_code: str | None = None
+    operator_name: str | None = None
+    last_seen_at: datetime
+    status: str
+
+
+class LocalConnectedClientListResponse(BaseModel):
+    clients: list[LocalConnectedClientView]
+
+
+class LocalDatabaseConfigPayload(BaseModel):
+    database_type: str = Field(default="mariadb", max_length=40)
+    host: str = Field(min_length=1, max_length=160)
+    port: int = Field(default=3306, ge=1, le=65535)
+    database: str = Field(min_length=1, max_length=160)
+    username: str = Field(min_length=1, max_length=160)
+    password: str | None = Field(default=None, max_length=300)
+    ssl_enabled: bool = False
+
+    @field_validator("database_type", "host", "database", "username", "password")
+    @classmethod
+    def strip_database_config_text(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        cleaned = value.strip()
+        return cleaned or None
+
+
+class LocalDatabaseConfigResponse(BaseModel):
+    database_type: str
+    host: str
+    port: int
+    database: str
+    username: str
+    password_configured: bool
+    ssl_enabled: bool
+
+
+class LocalConnectionCheckResponse(BaseModel):
+    server_api: dict[str, object]
+    database: dict[str, object]
+    printer: dict[str, object]

@@ -1,5 +1,49 @@
 # Releases - Cliente Agent
 
+## v2026-05-03_comandas_r10
+
+- Release com recursos de rede, conexao e manutencao tecnica do servidor local.
+- UI de definicoes:
+  - exibe `IP local automatico`;
+  - lista IPs locais detectados para escolha;
+  - exibe URL de conexao para celulares/tablets;
+  - permite copiar a URL;
+  - adiciona area inferior com botoes de manutencao:
+    - reiniciar servico;
+    - verificar conexao;
+    - clientes conectados;
+    - IP de conexao;
+    - banco de dados.
+- Endpoints tecnicos adicionados:
+  - `GET /orders/technical/network`;
+  - `POST /orders/technical/check`;
+  - `GET /orders/technical/clients`;
+  - `GET /orders/technical/status`;
+  - `POST /orders/technical/restart-service`;
+  - `GET /orders/technical/database`;
+  - `POST /orders/technical/database/test`;
+  - `PUT /orders/technical/database`.
+- Banco/configuracao:
+  - painel para tipo, host, porta, banco, usuario e senha;
+  - senha nao retorna em resposta;
+  - logs nao registram senha;
+  - salvar banco exige teste de conexao com sucesso.
+- Seguranca:
+  - endpoints tecnicos sensiveis exigem `X-Local-Token`;
+  - exigem sessao de usuario `X-Order-Session`;
+  - exigem permissao `technical.admin`.
+- Clientes conectados:
+  - rastreia IP, user agent, usuario logado quando houver sessao, ultimo acesso e status online/offline.
+- ZIP de entrega:
+  - `release-artifacts/Movi_commanda_Installer_v2026-05-03_comandas_r10.zip`
+- Tamanho validado:
+  - `169346` bytes
+- Validacao:
+  - `py -3 -m pytest tests\test_agent_local_orders.py -q` com `12 passed`;
+  - `py -3 -m compileall agent_local -q` sem erro;
+  - `py -3 -m pytest -q` com `81 passed, 1 skipped`;
+  - ZIP sem `__pycache__` e sem `.pyc`.
+
 ## v2026-05-03_comandas_r9
 
 - Release para operacao em rede local com varios celulares/tablets.

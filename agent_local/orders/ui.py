@@ -100,6 +100,12 @@ def render_orders_ui() -> str:
     .setting-row { display: grid; grid-template-columns: 1fr minmax(110px, 42%); gap: 10px; align-items: center; padding: 12px; border-top: 1px solid var(--line); }
     .setting-row strong { display: block; font-size: 15px; }
     .setting-row small { color: var(--muted); }
+    .maintenance-bar { position: sticky; bottom: 0; z-index: 12; display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 8px; padding: 10px; background: #ffffffee; border: 1px solid var(--line); border-radius: 8px; }
+    .maintenance-bar button { min-height: 58px; padding: 6px 4px; background: #123f66; color: #fff; display: grid; place-items: center; align-content: center; gap: 4px; font-size: 11px; }
+    .maintenance-bar .icon { width: 24px; height: 24px; border: 1px solid #fff; border-radius: 50%; display: grid; place-items: center; font-size: 10px; }
+    .technical-status { display: grid; gap: 8px; }
+    .status-line { display: grid; grid-template-columns: 1fr auto; gap: 10px; padding: 10px; border: 1px solid var(--line); border-radius: 6px; }
+    .status-pill { border-radius: 999px; padding: 4px 8px; font-size: 12px; font-weight: 800; background: #eef3f8; color: var(--text); }
     @media (min-width: 700px) {
       .screen { padding: 18px; }
       .initial-screen { margin: -18px; padding: 28px 24px 20px; }
@@ -188,7 +194,15 @@ def render_orders_ui() -> str:
           <div class="setting-row"><div><strong>Licenca</strong><small>Codigo de licenca</small></div><input id="set-licenca"></div>
           <div class="setting-row"><div><strong>Porta</strong><small>Porta da API</small></div><input id="set-porta-servidor" type="number" min="1" max="65535"></div>
           <div class="setting-row"><div><strong>Nome da(s) rede(s) Wi-Fi</strong><small>SSID permitido</small></div><input id="set-ssid-wifi"></div>
+          <div class="setting-row"><div><strong>IP local automatico</strong><small>Endereco para celulares/tablets</small></div><select id="set-local-ip"></select></div>
+          <div class="setting-row"><div><strong>URL de conexao</strong><small id="local-access-url">Carregando rede local</small></div><button class="secondary" type="button" onclick="copyConnectionUrl()">Copiar</button></div>
           <div class="setting-row"><div><strong>Carregar dados</strong><small>Atualiza usuarios, familias e produtos</small></div><button class="primary" type="button" onclick="loadServerData()">Carregar dados</button></div>
+        </div>
+        <div class="settings-section">
+          <h2>Status tecnico</h2>
+          <div id="technical-status" class="technical-status" style="padding:12px;">
+            <div class="muted">Use os botoes inferiores para verificar conexoes e dispositivos.</div>
+          </div>
         </div>
         <div class="settings-section">
           <h2>Impressora Bluetooth</h2>
@@ -216,6 +230,13 @@ def render_orders_ui() -> str:
         <div class="actions">
           <button class="primary" type="button" onclick="saveSettings()">Salvar definicoes</button>
           <button class="secondary" type="button" onclick="validateLicense()">Validar licenca</button>
+        </div>
+        <div class="maintenance-bar">
+          <button type="button" onclick="restartService()"><span class="icon">R</span>Reiniciar</button>
+          <button type="button" onclick="checkConnections()"><span class="icon">C</span>Conexao</button>
+          <button type="button" onclick="showConnectedClients()"><span class="icon">D</span>Clientes</button>
+          <button type="button" onclick="showConnectionIp()"><span class="icon">IP</span>IP</button>
+          <button type="button" onclick="openDatabasePanel()"><span class="icon">DB</span>Banco</button>
         </div>
         <div id="settings-message" class="muted"></div>
       </div>
@@ -376,6 +397,7 @@ const state = {
   cart: [],
   activeOrderUuid: '',
   activeCommandNumber: '',
+  networkInfo: null,
   searchTimer: null
 };
 
@@ -453,6 +475,7 @@ function startApplication() {
 
 async function openSettings() {
   await loadSettings();
+  await loadNetworkInfo();
   showScreen('settings');
 }
 
@@ -486,6 +509,33 @@ function fillSettings(settings) {
   document.getElementById('set-usuario-logado').value = settings.usuario_logado || '';
   document.getElementById('set-versao-app').value = settings.versao_app || '';
   document.getElementById('set-codigo-versao').value = settings.codigo_versao || '';
+}
+
+async function loadNetworkInfo() {
+  const response = await fetch('/orders/technical/network', {headers: localHeaders(false)});
+  if (!response.ok) return;
+  const data = await response.json();
+  state.networkInfo = data;
+  const select = document.getElementById('set-local-ip');
+  const addresses = data.addresses || [];
+  select.innerHTML = addresses.map(item => `<option value="${escapeHtml(item.ip)}" ${item.selected ? 'selected' : ''}>${escapeHtml(item.ip)} - ${escapeHtml(item.label)}</option>`).join('');
+  const selected = addresses.find(item => item.ip === select.value) || addresses[0];
+  document.getElementById('local-access-url').textContent = selected ? selected.url : 'Nenhum IP local encontrado';
+}
+
+function selectedAccessUrl() {
+  const select = document.getElementById('set-local-ip');
+  const addresses = state.networkInfo?.addresses || [];
+  const selected = addresses.find(item => item.ip === select.value) || addresses[0];
+  return selected ? selected.url : '';
+}
+
+async function copyConnectionUrl() {
+  const url = selectedAccessUrl();
+  if (!url) return;
+  await navigator.clipboard?.writeText(url);
+  document.getElementById('settings-message').className = 'success';
+  document.getElementById('settings-message').textContent = 'Endereco copiado.';
 }
 
 async function loadSettings() {
@@ -532,6 +582,119 @@ async function validateLicense() {
   const response = await fetch('/orders/license/validate', {method: 'POST', headers: localHeaders(false)});
   const data = response.ok ? await response.json() : {message: await response.text()};
   openModal('Licenca', `<pre>${escapeHtml(data.message)}</pre>`);
+}
+
+function renderStatusLines(payload) {
+  return `<div class="technical-status">
+    ${Object.entries(payload).map(([key, value]) => `
+      <div class="status-line">
+        <div><strong>${escapeHtml(key)}</strong><div class="muted">${escapeHtml(value.message || '')}</div></div>
+        <span class="status-pill">${escapeHtml(value.status || '')}</span>
+      </div>
+    `).join('')}
+  </div>`;
+}
+
+async function restartService() {
+  const response = await fetch('/orders/technical/restart-service', {method: 'POST', headers: localHeaders(false)});
+  const data = response.ok ? await response.json() : {status: 'error', message: await response.text()};
+  openModal('Reiniciar servico', `<pre>${escapeHtml(data.message)}</pre>`);
+}
+
+async function checkConnections() {
+  const response = await fetch('/orders/technical/check', {method: 'POST', headers: localHeaders(false)});
+  const data = response.ok ? await response.json() : {message: await response.text()};
+  if (!response.ok) {
+    openModal('Verificar conexao', `<pre>${escapeHtml(data.message)}</pre>`);
+    return;
+  }
+  document.getElementById('technical-status').innerHTML = renderStatusLines({
+    API: data.server_api,
+    Banco: data.database,
+    Impressora: data.printer
+  });
+  openModal('Verificar conexao', renderStatusLines({
+    API: data.server_api,
+    Banco: data.database,
+    Impressora: data.printer
+  }));
+}
+
+async function showConnectedClients() {
+  const response = await fetch('/orders/technical/clients', {headers: localHeaders(false)});
+  const data = response.ok ? await response.json() : {clients: [], message: await response.text()};
+  if (!response.ok) {
+    openModal('Clientes conectados', `<pre>${escapeHtml(data.message)}</pre>`);
+    return;
+  }
+  const rows = data.clients.map(client => `
+    <div class="surface">
+      <strong>${escapeHtml(client.ip)}</strong>
+      <div class="muted">${escapeHtml(client.operator_name || client.operator_code || 'Sem usuario')} | ${escapeHtml(client.status)} | ${escapeHtml(client.last_seen_at)}</div>
+      <div class="muted">${escapeHtml(client.device_name || client.user_agent || 'Dispositivo sem nome')}</div>
+    </div>
+  `).join('');
+  openModal('Clientes conectados', rows || '<div class="muted">Nenhum cliente conectado.</div>');
+}
+
+async function showConnectionIp() {
+  await loadNetworkInfo();
+  const url = selectedAccessUrl();
+  openModal('IP de conexao', `
+    <pre>${escapeHtml(`IP: ${document.getElementById('set-local-ip').value || 'nao detectado'}\nPorta: ${state.networkInfo?.port || ''}\nURL: ${url}`)}</pre>
+    <button class="primary" type="button" onclick="copyConnectionUrl()">Copiar endereco</button>
+  `);
+}
+
+async function openDatabasePanel() {
+  const response = await fetch('/orders/technical/database', {headers: localHeaders(false)});
+  const config = response.ok ? await response.json() : {database_type: 'mariadb', host: '', port: 3306, database: '', username: '', password_configured: false, ssl_enabled: false};
+  openModal('Banco de dados', `
+    <div class="grid two">
+      <div><label>Tipo de banco</label><input id="db-type" value="${escapeHtml(config.database_type || 'mariadb')}"></div>
+      <div><label>Host/IP</label><input id="db-host" value="${escapeHtml(config.host || '')}"></div>
+      <div><label>Porta</label><input id="db-port" type="number" value="${escapeHtml(config.port || 3306)}"></div>
+      <div><label>Nome do banco</label><input id="db-name" value="${escapeHtml(config.database || '')}"></div>
+      <div><label>Usuario</label><input id="db-user" value="${escapeHtml(config.username || '')}"></div>
+      <div><label>Senha</label><input id="db-pass" type="password" placeholder="${config.password_configured ? 'Senha configurada' : ''}"></div>
+    </div>
+    <div class="actions">
+      <button class="secondary" type="button" onclick="testDatabaseConnection()">Testar conexao</button>
+      <button class="primary" type="button" onclick="saveDatabaseConfig()">Salvar configuracao</button>
+    </div>
+    <div id="db-message" class="muted"></div>
+  `);
+}
+
+function databasePayload() {
+  return {
+    database_type: document.getElementById('db-type').value,
+    host: document.getElementById('db-host').value,
+    port: Number(document.getElementById('db-port').value || 0),
+    database: document.getElementById('db-name').value,
+    username: document.getElementById('db-user').value,
+    password: document.getElementById('db-pass').value || null,
+    ssl_enabled: false
+  };
+}
+
+async function testDatabaseConnection() {
+  const response = await fetch('/orders/technical/database/test', {method: 'POST', headers: localHeaders(), body: JSON.stringify(databasePayload())});
+  const data = response.ok ? await response.json() : {message: await response.text()};
+  document.getElementById('db-message').className = response.ok && data.status === 'connected' ? 'success' : 'error';
+  document.getElementById('db-message').textContent = data.message;
+}
+
+async function saveDatabaseConfig() {
+  const payload = databasePayload();
+  if (!payload.host || !payload.port || !payload.database || !payload.username) {
+    document.getElementById('db-message').className = 'error';
+    document.getElementById('db-message').textContent = 'Host, porta, banco e usuario sao obrigatorios.';
+    return;
+  }
+  const response = await fetch('/orders/technical/database', {method: 'PUT', headers: localHeaders(), body: JSON.stringify(payload)});
+  document.getElementById('db-message').className = response.ok ? 'success' : 'error';
+  document.getElementById('db-message').textContent = response.ok ? 'Configuracao salva.' : await response.text();
 }
 
 async function login() {

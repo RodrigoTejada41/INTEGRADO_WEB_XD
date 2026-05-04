@@ -1,12 +1,23 @@
 from __future__ import annotations
 
 import os
+import socket
+import subprocess
 from pathlib import Path
 from html import escape
+from datetime import UTC, datetime, timedelta
 
-from fastapi import Depends, FastAPI, Header, HTTPException, Query, status
+import httpx
+from fastapi import Depends, FastAPI, Header, HTTPException, Query, Request, status
 from fastapi.responses import HTMLResponse, PlainTextResponse
 
+from agent_local.config.database_config import (
+    DEFAULT_DATABASE_TYPE,
+    DEFAULT_MARIADB_PORT,
+    LocalDatabaseConfig,
+    LocalDatabaseConfigService,
+    parse_mariadb_url,
+)
 from agent_local.db.mariadb_client import MariaDBClient
 from agent_local.orders.printer import render_thermal_receipt
 from agent_local.orders.repository import LocalOrderRepository
@@ -14,6 +25,13 @@ from agent_local.orders.schemas import (
     LocalCommandaAppInfoResponse,
     LocalCommandaSettings,
     LocalCommandaSettingsResponse,
+    LocalConnectedClientListResponse,
+    LocalConnectedClientView,
+    LocalConnectionCheckResponse,
+    LocalDatabaseConfigPayload,
+    LocalDatabaseConfigResponse,
+    LocalNetworkAddressView,
+    LocalNetworkInfoResponse,
     LocalOperatorListResponse,
     LocalOperatorContextResponse,
     LocalOperatorView,
@@ -45,12 +63,20 @@ DEFAULT_TOKEN_FILE = Path("agent_local/data/local_api_token.txt")
 DEFAULT_ORDER_DB = Path("agent_local/data/local_orders.db")
 DEFAULT_PRINT_JOBS_DIR = Path("agent_local/data/print_jobs")
 ENV_FILE = Path(".env")
+DEFAULT_LOCAL_API_HOST = "0.0.0.0"
+DEFAULT_LOCAL_API_PORT = 8765
+CLIENT_ONLINE_WINDOW = timedelta(minutes=5)
 
 APP_NAME = "Movi_commanda"
 DEFAULT_APP_VERSION = "1.0.0"
 DEFAULT_VERSION_CODE = "100"
 
 app = FastAPI(title="Movi_commanda Local API")
+_connected_clients: dict[str, dict[str, object]] = {}
+
+
+def _utc_now() -> datetime:
+    return datetime.now(UTC)
 
 
 def _env_file_value(name: str) -> str | None:
@@ -158,6 +184,146 @@ def _receipt_width() -> int:
         raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="LOCAL_ORDER_RECEIPT_WIDTH invalido.") from None
 
 
+def _local_api_port() -> int:
+    raw_port = _config_value("LOCAL_API_PORT", str(DEFAULT_LOCAL_API_PORT)) or str(DEFAULT_LOCAL_API_PORT)
+    try:
+        return int(raw_port)
+    except ValueError:
+        return DEFAULT_LOCAL_API_PORT
+
+
+def _selected_local_ip() -> str | None:
+    configured = _config_value("LOCAL_COMMAND_SELECTED_IP")
+    if configured:
+        return configured
+    addresses = _detect_local_addresses()
+    return addresses[0]["ip"] if addresses else None
+
+
+def _detect_local_addresses() -> list[dict[str, str]]:
+    addresses: list[dict[str, str]] = []
+    seen: set[str] = set()
+
+    def add(ip: str, label: str) -> None:
+        if not ip or ip in seen or ip.startswith("127.") or ip.startswith("169.254."):
+            return
+        seen.add(ip)
+        addresses.append({"ip": ip, "label": label})
+
+    try:
+        with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as probe:
+            probe.connect(("8.8.8.8", 80))
+            add(probe.getsockname()[0], "rota principal")
+    except OSError:
+        pass
+
+    try:
+        hostname = socket.gethostname()
+        for item in socket.getaddrinfo(hostname, None, socket.AF_INET):
+            add(str(item[4][0]), hostname)
+    except OSError:
+        pass
+
+    if os.name == "nt":
+        try:
+            command = (
+                "Get-NetIPConfiguration | "
+                "Where-Object { $_.IPv4Address -and $_.NetAdapter.Status -eq 'Up' "
+                "-and $_.InterfaceAlias -notmatch 'vEthernet|Virtual|VMware|VirtualBox|Docker|WSL|Loopback|Bluetooth' } | "
+                "ForEach-Object { $_.InterfaceAlias + '|' + $_.IPv4Address.IPAddress }"
+            )
+            result = subprocess.run(
+                ["powershell", "-NoProfile", "-Command", command],
+                capture_output=True,
+                text=True,
+                timeout=6,
+                creationflags=subprocess.CREATE_NO_WINDOW if os.name == "nt" else 0,
+            )
+            for line in result.stdout.splitlines():
+                if "|" not in line:
+                    continue
+                label, ip = line.split("|", 1)
+                add(ip.strip(), label.strip())
+        except Exception:
+            pass
+
+    return addresses
+
+
+def _database_service() -> LocalDatabaseConfigService:
+    return LocalDatabaseConfigService()
+
+
+def _database_config_response(config: LocalDatabaseConfig) -> LocalDatabaseConfigResponse:
+    return LocalDatabaseConfigResponse(
+        database_type=config.database_type,
+        host=config.host,
+        port=config.port,
+        database=config.database,
+        username=config.username,
+        password_configured=bool(config.password),
+        ssl_enabled=config.ssl_enabled,
+    )
+
+
+def _load_database_config() -> LocalDatabaseConfig:
+    mariadb_url = _config_value("AGENT_MARIADB_URL")
+    if mariadb_url:
+        try:
+            return parse_mariadb_url(mariadb_url)
+        except Exception:
+            pass
+    return LocalDatabaseConfig(
+        database_type=DEFAULT_DATABASE_TYPE,
+        host="",
+        port=DEFAULT_MARIADB_PORT,
+        database="",
+        username="",
+        password="",
+    )
+
+
+def _require_technical_admin(session) -> None:
+    _order_repository().require_permission(session.operator_code, "technical.admin")
+
+
+def _safe_status(status_value: str, message: str, **extra: object) -> dict[str, object]:
+    payload: dict[str, object] = {"status": status_value, "message": message}
+    payload.update(extra)
+    return payload
+
+
+def _client_status(last_seen_at: datetime) -> str:
+    return "online" if _utc_now() - last_seen_at <= CLIENT_ONLINE_WINDOW else "offline"
+
+
+@app.middleware("http")
+async def track_connected_client(request: Request, call_next):
+    response = await call_next(request)
+    client_ip = request.client.host if request.client else ""
+    if client_ip:
+        session_token = request.headers.get("X-Order-Session")
+        operator_code = None
+        operator_name = None
+        if session_token:
+            try:
+                session = _order_service().get_session(session_token)
+                if session:
+                    operator_code = session.operator_code
+                    operator_name = session.operator_name
+            except Exception:
+                pass
+        _connected_clients[client_ip] = {
+            "ip": client_ip,
+            "device_name": request.headers.get("X-Device-Name"),
+            "user_agent": request.headers.get("User-Agent"),
+            "operator_code": operator_code,
+            "operator_name": operator_name,
+            "last_seen_at": _utc_now(),
+        }
+    return response
+
+
 def _refresh_order_catalog_from_server() -> None:
     enabled = (_config_value("LOCAL_ORDER_AUTO_REFRESH_CATALOG", "true") or "true").lower()
     if enabled in {"0", "false", "no", "nao"}:
@@ -249,6 +415,216 @@ def validate_order_license(_: None = Depends(_require_token)) -> dict[str, objec
         "status": "valid" if settings.licenca else "missing",
         "message": "Licenca informada." if settings.licenca else "Licenca nao configurada.",
     }
+
+
+@app.get("/orders/technical/network", response_model=LocalNetworkInfoResponse)
+def technical_network_info(_: None = Depends(_require_token)) -> LocalNetworkInfoResponse:
+    port = _local_api_port()
+    selected_ip = _selected_local_ip()
+    addresses = [
+        LocalNetworkAddressView(
+            ip=item["ip"],
+            label=item["label"],
+            url=f"http://{item['ip']}:{port}/orders/ui",
+            selected=item["ip"] == selected_ip,
+        )
+        for item in _detect_local_addresses()
+    ]
+    return LocalNetworkInfoResponse(
+        host=_config_value("LOCAL_API_HOST", DEFAULT_LOCAL_API_HOST) or DEFAULT_LOCAL_API_HOST,
+        port=port,
+        selected_ip=selected_ip,
+        access_url=f"http://{selected_ip}:{port}/orders/ui" if selected_ip else None,
+        addresses=addresses,
+    )
+
+
+@app.get("/orders/technical/clients", response_model=LocalConnectedClientListResponse)
+def technical_connected_clients(
+    _: None = Depends(_require_token),
+    session=Depends(_require_order_session),
+) -> LocalConnectedClientListResponse:
+    _require_technical_admin(session)
+    clients: list[LocalConnectedClientView] = []
+    for item in _connected_clients.values():
+        last_seen_at = item["last_seen_at"]
+        if not isinstance(last_seen_at, datetime):
+            continue
+        clients.append(
+            LocalConnectedClientView(
+                ip=str(item["ip"]),
+                device_name=str(item["device_name"]) if item.get("device_name") else None,
+                user_agent=str(item["user_agent"]) if item.get("user_agent") else None,
+                operator_code=str(item["operator_code"]) if item.get("operator_code") else None,
+                operator_name=str(item["operator_name"]) if item.get("operator_name") else None,
+                last_seen_at=last_seen_at,
+                status=_client_status(last_seen_at),
+            )
+        )
+    clients.sort(key=lambda client: client.last_seen_at, reverse=True)
+    return LocalConnectedClientListResponse(clients=clients)
+
+
+@app.get("/orders/technical/database", response_model=LocalDatabaseConfigResponse)
+def technical_get_database_config(
+    _: None = Depends(_require_token),
+    session=Depends(_require_order_session),
+) -> LocalDatabaseConfigResponse:
+    _require_technical_admin(session)
+    return _database_config_response(_load_database_config())
+
+
+@app.post("/orders/technical/database/test")
+def technical_test_database_config(
+    payload: LocalDatabaseConfigPayload,
+    _: None = Depends(_require_token),
+    session=Depends(_require_order_session),
+) -> dict[str, object]:
+    _require_technical_admin(session)
+    current = _load_database_config()
+    password = payload.password if payload.password is not None else current.password
+    config = LocalDatabaseConfig(
+        database_type=payload.database_type,
+        host=payload.host,
+        port=payload.port,
+        database=payload.database,
+        username=payload.username,
+        password=password or "",
+        ssl_enabled=payload.ssl_enabled,
+    )
+    try:
+        _database_service().test_connection(config)
+        return _safe_status("connected", "Banco conectado.")
+    except Exception as exc:
+        _order_repository().log_operation(
+            empresa_id=_empresa_id(),
+            session=session,
+            operation_type="technical.database_test",
+            reason="erro ao testar banco",
+            details={"status": "error", "error": exc.__class__.__name__},
+        )
+        return _safe_status("error", f"Erro ao conectar banco: {exc.__class__.__name__}")
+
+
+@app.put("/orders/technical/database", response_model=LocalDatabaseConfigResponse)
+def technical_save_database_config(
+    payload: LocalDatabaseConfigPayload,
+    _: None = Depends(_require_token),
+    session=Depends(_require_order_session),
+) -> LocalDatabaseConfigResponse:
+    _require_technical_admin(session)
+    current = _load_database_config()
+    password = payload.password if payload.password is not None else current.password
+    config = LocalDatabaseConfig(
+        database_type=payload.database_type,
+        host=payload.host,
+        port=payload.port,
+        database=payload.database,
+        username=payload.username,
+        password=password or "",
+        ssl_enabled=payload.ssl_enabled,
+    )
+    try:
+        _database_service().test_connection(config)
+        _database_service().save_config(config=config, env_file=str(ENV_FILE))
+        _order_repository().log_operation(
+            empresa_id=_empresa_id(),
+            session=session,
+            operation_type="technical.database_save",
+            reason="configuracao de banco atualizada",
+            details={
+                "database_type": config.database_type,
+                "host": config.host,
+                "port": config.port,
+                "database": config.database,
+                "username": config.username,
+                "ssl_enabled": config.ssl_enabled,
+            },
+        )
+        return _database_config_response(config)
+    except Exception as exc:
+        _order_repository().log_operation(
+            empresa_id=_empresa_id(),
+            session=session,
+            operation_type="technical.database_save_error",
+            reason="erro ao salvar banco",
+            details={"status": "error", "error": exc.__class__.__name__},
+        )
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Erro ao salvar banco: {exc.__class__.__name__}") from exc
+
+
+@app.post("/orders/technical/check", response_model=LocalConnectionCheckResponse)
+def technical_connection_check(
+    _: None = Depends(_require_token),
+    session=Depends(_require_order_session),
+) -> LocalConnectionCheckResponse:
+    _require_technical_admin(session)
+    server_api = _safe_status("connected", "API local conectada.", host=_config_value("LOCAL_API_HOST", DEFAULT_LOCAL_API_HOST), port=_local_api_port())
+    database_config = _load_database_config()
+    try:
+        if not database_config.host or not database_config.database or not database_config.username:
+            database = _safe_status("configuration_invalid", "Configuracao de banco incompleta.")
+        else:
+            _database_service().test_connection(database_config)
+            database = _safe_status("connected", "Banco conectado.")
+    except Exception as exc:
+        database = _safe_status("error", f"Erro ao conectar banco: {exc.__class__.__name__}")
+
+    printer_name = _config_value("LOCAL_ORDER_PRINTER_NAME")
+    printer = (
+        _safe_status("configured", "Impressora configurada.", printer_name=printer_name)
+        if printer_name
+        else _safe_status("configuration_invalid", "Impressora nao configurada.")
+    )
+    _order_repository().log_operation(
+        empresa_id=_empresa_id(),
+        session=session,
+        operation_type="technical.connection_check",
+        reason="verificacao de conexao",
+        details={"server_api": server_api["status"], "database": database["status"], "printer": printer["status"]},
+    )
+    return LocalConnectionCheckResponse(server_api=server_api, database=database, printer=printer)
+
+
+@app.get("/orders/technical/status")
+def technical_server_status(_: None = Depends(_require_token)) -> dict[str, object]:
+    network = technical_network_info(_)
+    return {
+        "status": "ok",
+        "app_name": APP_NAME,
+        "version": _package_version(),
+        "network": network.model_dump(mode="json"),
+        "sync_running": is_agent_running(),
+        "clients_count": len(_connected_clients),
+    }
+
+
+@app.post("/orders/technical/restart-service")
+def technical_restart_service(
+    _: None = Depends(_require_token),
+    session=Depends(_require_order_session),
+) -> dict[str, object]:
+    _require_technical_admin(session)
+    try:
+        if os.name == "nt":
+            subprocess.Popen(
+                ["wscript.exe", "//nologo", str(Path("Iniciar_Movi_commanda_Windows.vbs").resolve())],
+                cwd=Path.cwd(),
+                creationflags=subprocess.CREATE_NO_WINDOW,
+            )
+        else:
+            subprocess.Popen([os.sys.executable, "-m", "agent_local.windows_autostart"], cwd=Path.cwd())
+        result = _safe_status("scheduled", "Reinicio do servico solicitado.")
+    except Exception as exc:
+        result = _safe_status("error", f"Erro ao reiniciar servico: {exc.__class__.__name__}")
+    _order_repository().log_operation(
+        empresa_id=_empresa_id(),
+        session=session,
+        operation_type="technical.restart_service",
+        reason=str(result["message"]),
+        details={"status": result["status"]},
+    )
+    return result
 
 
 @app.get("/status")

@@ -813,6 +813,7 @@ class LocalOrderRepository:
             "order.discount": True,
             "order.print": True,
             "order.messages": True,
+            "technical.admin": True,
         }
         with self._connect() as connection:
             rows = connection.execute(

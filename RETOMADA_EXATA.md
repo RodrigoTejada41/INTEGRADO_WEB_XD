@@ -2,6 +2,78 @@
 
 Data de atualizacao: 2026-05-03
 
+## Checkpoint Manutencao Tecnica Movi_commanda - 2026-05-03
+
+### Implementado
+- Tela `Definicoes` recebeu area tecnica responsiva para celular/tablet.
+- Recursos adicionados:
+  - deteccao automatica de IP local;
+  - lista de IPs locais para escolha;
+  - exibicao da URL de conexao;
+  - copia da URL para area de transferencia;
+  - barra inferior de manutencao.
+
+### Botoes inferiores adicionados
+- Reiniciar servico
+- Verificar conexao
+- Clientes conectados
+- IP de conexao
+- Banco de dados
+
+### Endpoints adicionados
+- `GET /orders/technical/network`
+- `POST /orders/technical/check`
+- `GET /orders/technical/clients`
+- `GET /orders/technical/status`
+- `POST /orders/technical/restart-service`
+- `GET /orders/technical/database`
+- `POST /orders/technical/database/test`
+- `PUT /orders/technical/database`
+
+### Banco de dados
+- Painel criado com campos:
+  - tipo de banco;
+  - host/IP;
+  - porta;
+  - nome do banco;
+  - usuario;
+  - senha;
+  - testar conexao;
+  - salvar configuracao.
+- Senha:
+  - nao e exibida em resposta da API;
+  - nao e registrada em log;
+  - campo fica mascarado na UI.
+- Salvar configuracao exige teste de conexao com sucesso.
+
+### Seguranca
+- Endpoints tecnicos sensiveis exigem:
+  - `X-Local-Token`;
+  - `X-Order-Session`;
+  - permissao `technical.admin`.
+- Permissao default local adicionada:
+  - `technical.admin`
+
+### Clientes conectados
+- Rastreamento local por request:
+  - IP;
+  - nome do dispositivo quando enviado;
+  - user agent;
+  - usuario logado quando houver sessao;
+  - ultimo acesso;
+  - status online/offline.
+
+### Release gerada
+- `release-artifacts/Movi_commanda_Installer_v2026-05-03_comandas_r10.zip`
+- Tamanho:
+  - `169346` bytes
+
+### Validacao no workspace
+- `py -3 -m pytest tests\test_agent_local_orders.py -q` -> `12 passed`
+- `py -3 -m compileall agent_local -q` -> sem erro
+- `py -3 -m pytest -q` -> `81 passed, 1 skipped`
+- ZIP validado sem `__pycache__` e sem `.pyc`
+
 ## Checkpoint Rede Local Movi_commanda - 2026-05-03
 
 ### Requisito

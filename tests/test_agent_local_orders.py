@@ -249,6 +249,48 @@ def test_local_command_network_mode_uses_lan_api_and_sqlite_cache_controls() -> 
     assert "PRAGMA synchronous = NORMAL" in repository
 
 
+def test_local_commanda_technical_network_and_database_endpoints_do_not_expose_password() -> None:
+    db_path = Path("output/test_agent_local_orders/technical.db")
+    token_file = Path("output/test_agent_local_orders/technical_token.txt")
+    db_path.parent.mkdir(parents=True, exist_ok=True)
+    if db_path.exists():
+        db_path.unlink()
+    token_file.write_text("local-token-test", encoding="ascii")
+
+    os.environ["LOCAL_ORDER_DB_PATH"] = str(db_path)
+    os.environ["LOCAL_API_TOKEN_FILE"] = str(token_file)
+    os.environ["AGENT_EMPRESA_ID"] = "12345678000199"
+    os.environ["LOCAL_ORDER_AUTO_REFRESH_CATALOG"] = "false"
+    os.environ["LOCAL_API_HOST"] = "0.0.0.0"
+    os.environ["LOCAL_API_PORT"] = "8765"
+    os.environ["AGENT_MARIADB_URL"] = "mysql+pymysql://user:secret@127.0.0.1:3306/commanda?charset=utf8mb4"
+
+    local_api = _reload_local_api()
+
+    with TestClient(local_api.app) as client:
+        headers = _order_headers(client, db_path)
+
+        network = client.get("/orders/technical/network", headers=headers)
+        assert network.status_code == 200, network.text
+        assert network.json()["port"] == 8765
+
+        database = client.get("/orders/technical/database", headers=headers)
+        assert database.status_code == 200, database.text
+        body = database.json()
+        assert body["host"] == "127.0.0.1"
+        assert body["username"] == "user"
+        assert body["password_configured"] is True
+        assert "secret" not in database.text
+
+        clients = client.get("/orders/technical/clients", headers=headers)
+        assert clients.status_code == 200, clients.text
+        assert clients.json()["clients"]
+
+        check = client.post("/orders/technical/check", headers=headers)
+        assert check.status_code == 200, check.text
+        assert check.json()["server_api"]["status"] == "connected"
+
+
 def test_local_commanda_settings_app_info_and_license() -> None:
     db_path = Path("output/test_agent_local_orders/settings.db")
     token_file = Path("output/test_agent_local_orders/settings_token.txt")
