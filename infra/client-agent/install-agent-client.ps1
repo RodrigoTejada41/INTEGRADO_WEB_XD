@@ -59,6 +59,22 @@ function Resolve-LanIPv4() {
     return "IP-DA-MAQUINA"
 }
 
+function New-LocalPairingToken() {
+    $alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
+    $bytes = New-Object byte[] 6
+    $rng = [System.Security.Cryptography.RandomNumberGenerator]::Create()
+    try {
+        $rng.GetBytes($bytes)
+    }
+    finally {
+        $rng.Dispose()
+    }
+    $chars = foreach ($byte in $bytes) {
+        $alphabet[$byte % $alphabet.Length]
+    }
+    return -join $chars
+}
+
 function Ensure-LocalApiFirewallRule([string]$Port) {
     try {
         $ruleName = "Movi_commanda API Local"
@@ -362,11 +378,7 @@ $lanIPv4 = Resolve-LanIPv4
 
 $localApiTokenFile = Join-Path $InstallDir "agent_local\data\local_api_token.txt"
 if (!(Test-Path $localApiTokenFile)) {
-    $tokenBytes = New-Object byte[] 32
-    $rng = [System.Security.Cryptography.RandomNumberGenerator]::Create()
-    $rng.GetBytes($tokenBytes)
-    ($tokenBytes | ForEach-Object { $_.ToString("x2") }) -join "" |
-        Set-Content -Path $localApiTokenFile -Encoding ascii
+    New-LocalPairingToken | Set-Content -Path $localApiTokenFile -Encoding ascii
 }
 
 Write-Step "Configurando firewall para acesso em rede local"
@@ -377,7 +389,7 @@ Set-Content -Path (Join-Path $InstallDir "ACESSO_REDE_LOCAL.txt") -Encoding asci
     "URL nesta maquina: http://127.0.0.1:$LocalApiPort/orders/ui"
     "URL para celulares/tablets na mesma rede: http://$lanIPv4`:$LocalApiPort/orders/ui"
     "Porta: $LocalApiPort"
-    "Token local: $((Get-Content -Path $localApiTokenFile -Raw).Trim())"
+    "Token de pareamento: $((Get-Content -Path $localApiTokenFile -Raw).Trim())"
     "Observacao: conecte os celulares/tablets no mesmo Wi-Fi da maquina servidor."
 )
 

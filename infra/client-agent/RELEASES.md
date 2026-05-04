@@ -14,6 +14,27 @@
   - tamanho;
   - validacoes executadas.
 
+## v2026-05-04_comandas_r26
+
+- Release para pareamento rapido de celulares/tablets por token curto.
+- Instalador:
+  - gera token curto de 6 caracteres;
+  - grava `Token de pareamento` em `ACESSO_REDE_LOCAL.txt`.
+- Backend/UI:
+  - adiciona `POST /orders/pairing/token`;
+  - adiciona `POST /orders/pairing/validate`;
+  - adiciona botao `Gerar token` em `DEFINICOES`;
+  - validacao do token atualiza dados locais do banco antes da operacao.
+- ZIP de entrega:
+  - `release-artifacts/api-comanda/Movi_commanda_Installer_v2026-05-04_comandas_r26.zip`
+- Tamanho validado:
+  - `183452` bytes
+- Validacao:
+  - `py -3 -m compileall agent_local -q` sem erro;
+  - `py -3 -m pytest tests\test_agent_local_orders.py -q` com `24 passed`;
+  - `py -3 -m pytest -q` com `93 passed, 1 skipped`;
+  - ZIP validado sem `__pycache__`, sem `.pyc`, sem `.env` e sem `local_orders.db`.
+
 ## v2026-05-04_comandas_r25
 
 - Release para usar o cadastro real de impressoras do XD na API Comanda.

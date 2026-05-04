@@ -196,6 +196,7 @@ def render_orders_ui() -> str:
           <div class="setting-row"><div><strong>Nome da(s) rede(s) Wi-Fi</strong><small>SSID permitido</small></div><input id="set-ssid-wifi"></div>
           <div class="setting-row"><div><strong>IP local automatico</strong><small>Endereco para celulares/tablets</small></div><select id="set-local-ip"></select></div>
           <div class="setting-row"><div><strong>URL de conexao</strong><small id="local-access-url">Carregando rede local</small></div><button class="secondary" type="button" onclick="copyConnectionUrl()">Copiar</button></div>
+          <div class="setting-row"><div><strong>Token de pareamento</strong><small>Codigo curto para conectar celulares/tablets</small></div><button class="primary" type="button" onclick="generatePairingToken()">Gerar token</button></div>
           <div class="setting-row"><div><strong>Carregar dados</strong><small>Atualiza usuarios, familias e produtos</small></div><button class="primary" type="button" onclick="loadServerData()">Carregar dados</button></div>
         </div>
         <div class="settings-section">
@@ -597,6 +598,21 @@ async function copyConnectionUrl() {
   await navigator.clipboard?.writeText(url);
   document.getElementById('settings-message').className = 'success';
   document.getElementById('settings-message').textContent = 'Endereco copiado.';
+}
+
+async function generatePairingToken() {
+  if (!(await requireTechnicalSession())) return;
+  const response = await localFetch('/orders/pairing/token', {method: 'POST', headers: localHeaders(false)});
+  const data = response.ok ? await response.json() : {message: await responseMessage(response)};
+  if (!response.ok) {
+    openModal('Token de pareamento', `<pre>${escapeHtml(data.message)}</pre>`);
+    return;
+  }
+  document.getElementById('local-token').value = data.token;
+  openModal('Token de pareamento', `
+    <pre>${escapeHtml(`Token: ${data.token}\nURL: ${data.url}\nDigite este codigo no celular para parear.`)}</pre>
+    <button class="primary" type="button" onclick="navigator.clipboard?.writeText('${escapeHtml(data.token)}')">Copiar token</button>
+  `);
 }
 
 async function loadSettings() {

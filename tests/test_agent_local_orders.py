@@ -404,6 +404,8 @@ def test_local_orders_web_ui_is_available() -> None:
     assert "Entrar" in response.text
     assert "Definicoes" in response.text
     assert "Smart Connect" in response.text
+    assert "Token de pareamento" in response.text
+    assert "generatePairingToken" in response.text
     assert "Impressora Bluetooth" in response.text
     assert "Sobre a aplicacao" in response.text
     assert "Buscar produto" in response.text
@@ -587,6 +589,54 @@ def test_local_token_endpoint_only_returns_token_to_loopback_clients() -> None:
         response = client.get("/orders/local-token")
         assert response.status_code == 200, response.text
         assert response.json() == {"token": "local-token-test"}
+
+
+def test_local_pairing_token_can_be_rotated_and_used_for_mobile_authentication() -> None:
+    db_path = Path("output/test_agent_local_orders/pairing_token.db")
+    token_file = Path("output/test_agent_local_orders/pairing_token.txt")
+    db_path.parent.mkdir(parents=True, exist_ok=True)
+    if db_path.exists():
+        db_path.unlink()
+    token_file.write_text("ABC123", encoding="ascii")
+
+    os.environ["LOCAL_ORDER_DB_PATH"] = str(db_path)
+    os.environ["LOCAL_API_TOKEN_FILE"] = str(token_file)
+    os.environ["AGENT_EMPRESA_ID"] = "12345678000199"
+    os.environ["LOCAL_ORDER_AUTO_REFRESH_CATALOG"] = "false"
+    os.environ["LOCAL_API_PORT"] = "8765"
+
+    local_api = _reload_local_api()
+
+    with TestClient(local_api.app) as client:
+        headers = _order_headers(client, db_path, token="ABC123")
+
+        rotated = client.post("/orders/pairing/token", headers=headers)
+        assert rotated.status_code == 200, rotated.text
+        body = rotated.json()
+        assert body["token"] != "ABC123"
+        assert len(body["token"]) == 6
+        assert body["token"].isalnum()
+        assert body["url"].endswith("/orders/ui")
+        assert token_file.read_text(encoding="ascii").strip() == body["token"]
+
+        old_auth = client.get("/orders/users", headers={"X-Local-Token": "ABC123"})
+        assert old_auth.status_code == 401
+
+        paired = client.post("/orders/pairing/validate", json={"token": body["token"]})
+        assert paired.status_code == 200, paired.text
+        assert paired.json()["status"] == "paired"
+
+        new_auth = client.get("/orders/users", headers={"X-Local-Token": body["token"]})
+        assert new_auth.status_code == 200, new_auth.text
+
+
+def test_installer_generates_short_pairing_token_for_mobile_devices() -> None:
+    installer = Path("infra/client-agent/install-agent-client.ps1").read_text(encoding="utf-8")
+
+    assert "New-LocalPairingToken" in installer
+    assert "byte[] 32" not in installer
+    assert "Token de pareamento:" in installer
+    assert "Token local:" not in installer
 
 
 def test_local_commanda_settings_app_info_and_license() -> None:

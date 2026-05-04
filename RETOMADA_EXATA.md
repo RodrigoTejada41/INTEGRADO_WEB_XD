@@ -2,6 +2,32 @@
 
 Data de atualizacao: 2026-05-04
 
+## Checkpoint Pareamento por Token Curto - 2026-05-04
+
+### Problema
+- Token local era longo e dificil para digitar em celular/tablet.
+- Interface nao tinha botao para gerar novo token de conexao.
+
+### Implementado
+- Instalador passa a gerar token curto de 6 caracteres em `agent_local\data\local_api_token.txt`.
+- `ACESSO_REDE_LOCAL.txt` passa a exibir `Token de pareamento`.
+- Novo endpoint tecnico:
+  - `POST /orders/pairing/token`
+- Novo endpoint para celular validar o codigo:
+  - `POST /orders/pairing/validate`
+- Tela `DEFINICOES` ganhou botao `Gerar token`.
+- Ao validar o token, a API confirma pareamento e atualiza dados locais do banco antes da operacao.
+
+### Validacao
+- `py -3 -m compileall agent_local -q` -> sem erro
+- `py -3 -m pytest tests\test_agent_local_orders.py -q` -> `24 passed`
+- `py -3 -m pytest -q` -> `93 passed, 1 skipped`
+- Release gerada:
+  - `release-artifacts/api-comanda/Movi_commanda_Installer_v2026-05-04_comandas_r26.zip`
+- Tamanho:
+  - `183452` bytes
+- ZIP validado sem `__pycache__`, sem `.pyc`, sem `.env` e sem `local_orders.db`
+
 ## Checkpoint Impressao XD por Mapa Impressao - 2026-05-04
 
 ### Problema

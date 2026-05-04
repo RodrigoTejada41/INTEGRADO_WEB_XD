@@ -400,3 +400,19 @@ class LocalConnectionCheckResponse(BaseModel):
     server_api: dict[str, object]
     database: dict[str, object]
     printer: dict[str, object]
+
+
+class LocalPairingTokenRequest(BaseModel):
+    token: str = Field(min_length=4, max_length=16)
+
+    @field_validator("token")
+    @classmethod
+    def strip_pairing_token(cls, value: str) -> str:
+        return value.strip().upper().replace("-", "")
+
+
+class LocalPairingTokenResponse(BaseModel):
+    status: str
+    token: str
+    url: str
+    message: str

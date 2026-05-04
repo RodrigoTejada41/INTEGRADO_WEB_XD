@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 import os
+import secrets
 import socket
+import string
 import subprocess
 from pathlib import Path
 from html import escape
@@ -55,6 +57,8 @@ from agent_local.orders.schemas import (
     LocalOrderPrintResponse,
     LocalOrderTransferRequest,
     LocalOrderView,
+    LocalPairingTokenRequest,
+    LocalPairingTokenResponse,
     LocalProductFamilyListResponse,
     LocalProductListResponse,
 )
@@ -71,6 +75,8 @@ ENV_FILE = Path(".env")
 DEFAULT_LOCAL_API_HOST = "0.0.0.0"
 DEFAULT_LOCAL_API_PORT = 8765
 CLIENT_ONLINE_WINDOW = timedelta(minutes=5)
+PAIRING_TOKEN_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
+PAIRING_TOKEN_LENGTH = 6
 
 APP_NAME = "Movi_commanda"
 DEFAULT_APP_VERSION = "1.0.0"
@@ -129,6 +135,24 @@ def _read_token() -> str | None:
         return None
     token = token_file.read_text(encoding="ascii").strip()
     return token or None
+
+
+def _generate_pairing_token() -> str:
+    return "".join(secrets.choice(PAIRING_TOKEN_ALPHABET) for _ in range(PAIRING_TOKEN_LENGTH))
+
+
+def _write_token(token: str) -> str:
+    normalized = "".join(char for char in token.strip().upper().replace("-", "") if char in string.ascii_uppercase + string.digits)
+    if len(normalized) < 4 or len(normalized) > 16:
+        raise ValueError("Token de pareamento invalido.")
+    token_file = _token_file()
+    token_file.parent.mkdir(parents=True, exist_ok=True)
+    token_file.write_text(normalized, encoding="ascii")
+    return normalized
+
+
+def _connection_url() -> str:
+    return f"http://{_selected_local_ip() or '127.0.0.1'}:{_local_api_port()}/orders/ui"
 
 
 def _is_loopback_client(request: Request) -> bool:
@@ -429,6 +453,36 @@ def order_local_token(request: Request) -> dict[str, object]:
     if not token:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Token local nao encontrado.")
     return {"token": token}
+
+
+@app.post("/orders/pairing/token", response_model=LocalPairingTokenResponse)
+def rotate_pairing_token(
+    _: None = Depends(_require_token),
+    session=Depends(_require_order_session),
+) -> LocalPairingTokenResponse:
+    _require_technical_admin(session)
+    token = _write_token(_generate_pairing_token())
+    return LocalPairingTokenResponse(
+        status="generated",
+        token=token,
+        url=_connection_url(),
+        message="Token de pareamento gerado.",
+    )
+
+
+@app.post("/orders/pairing/validate", response_model=LocalPairingTokenResponse)
+def validate_pairing_token(payload: LocalPairingTokenRequest) -> LocalPairingTokenResponse:
+    token = _read_token()
+    normalized = payload.token.strip().upper().replace("-", "")
+    if not token or normalized != token:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Token de pareamento invalido.")
+    _refresh_order_catalog_from_server()
+    return LocalPairingTokenResponse(
+        status="paired",
+        token=normalized,
+        url=_connection_url(),
+        message="Dispositivo pareado.",
+    )
 
 
 @app.get("/orders/settings", response_model=LocalCommandaSettingsResponse)
