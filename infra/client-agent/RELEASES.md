@@ -1,5 +1,30 @@
 # Releases - Cliente Agent
 
+## v2026-05-03_comandas_r7
+
+- Release corretiva para reduzir poluicao na area de trabalho.
+- Instalador agora:
+  - remove atalhos antigos por prefixo `Movi`;
+  - remove atalhos cujo destino ou pasta de trabalho apontem para `C:\MoviSyncAgent` ou `C:\Movi_commanda`;
+  - cria somente dois atalhos na area de trabalho:
+    - `Movi_commanda`;
+    - `Movi_commanda Definicoes`;
+  - nao cria atalhos de API local, status ou iniciar servico na area de trabalho.
+- Limpeza local executada nesta maquina:
+  - atalhos antigos movidos para `C:\Users\Rodrigo Tejada\Desktop\Movi_commanda_residuos_20260503_213155`;
+  - `config.json` mantido porque pertence a Steam, nao ao Movi_commanda.
+- ZIP de entrega:
+  - `release-artifacts/Movi_commanda_Installer_v2026-05-03_comandas_r7.zip`
+- Tamanho validado:
+  - `162799` bytes
+- Validacao:
+  - parser PowerShell do instalador sem erro;
+  - `py -3 -m pytest tests\test_agent_local_orders.py -q` com `10 passed`;
+  - `py -3 -m compileall agent_local -q` sem erro;
+  - `py -3 -m pytest -q` com `79 passed, 1 skipped`;
+  - ZIP sem `__pycache__` e sem `.pyc`;
+  - release contem somente os atalhos `Movi_commanda` e `Movi_commanda Definicoes` no instalador.
+
 ## v2026-05-03_comandas_r6
 
 - Release corretiva para instalacao limpa da marca `Movi_commanda`.

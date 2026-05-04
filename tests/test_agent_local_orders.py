@@ -217,7 +217,11 @@ def test_client_installer_removes_old_movisync_residue() -> None:
     assert "Backup-InstallState" in installer
     assert "Restore-InstallState" in installer
     assert "Remove-InstallTree" in installer
+    assert "Remove-DesktopShortcutsByTargetRoots" in installer
     assert "Iniciar_Movi_commanda_Windows.vbs" in installer
+    assert "Movi_commanda API Local -" not in installer
+    assert "Movi_commanda Status -" not in installer
+    assert "Movi_commanda Iniciar Servico -" not in installer
     assert "MoviSync" not in quick_start
     assert "C:\\MoviSyncAgent" not in readme
 

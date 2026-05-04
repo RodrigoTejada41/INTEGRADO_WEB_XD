@@ -2,6 +2,40 @@
 
 Data de atualizacao: 2026-05-03
 
+## Checkpoint Desktop Limpo Movi_commanda - 2026-05-03
+
+### Implementado
+- Instalador ajustado para nao criar varios atalhos na area de trabalho.
+- A partir da release r7, o desktop recebe somente:
+  - `Movi_commanda`
+  - `Movi_commanda Definicoes`
+- Atalhos tecnicos removidos do desktop:
+  - API Local
+  - Status
+  - Iniciar Servico
+- Limpeza robusta adicionada:
+  - remove atalhos por prefixo `Movi`;
+  - remove atalhos cujo destino ou pasta de trabalho apontem para `C:\MoviSyncAgent` ou `C:\Movi_commanda`.
+
+### Limpeza executada nesta maquina
+- Atalhos antigos movidos para:
+  - `C:\Users\Rodrigo Tejada\Desktop\Movi_commanda_residuos_20260503_213155`
+- `config.json` nao foi removido:
+  - conteudo aponta para Steam (`steam_config_path`, `depot_cache_path`);
+  - nao foi identificado como arquivo gerado pelo Movi_commanda.
+
+### Release gerada
+- `release-artifacts/Movi_commanda_Installer_v2026-05-03_comandas_r7.zip`
+- Tamanho:
+  - `162799` bytes
+
+### Validacao no workspace
+- Parser PowerShell do instalador: OK
+- `py -3 -m pytest tests\test_agent_local_orders.py -q` -> `10 passed`
+- `py -3 -m compileall agent_local -q` -> sem erro
+- `py -3 -m pytest -q` -> `79 passed, 1 skipped`
+- ZIP validado sem `__pycache__` e sem `.pyc`
+
 ## Checkpoint Instalador Limpo Movi_commanda - 2026-05-03
 
 ### Implementado

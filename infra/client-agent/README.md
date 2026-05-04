@@ -30,8 +30,7 @@ O painel local permite configurar sem editar JSON ou `.env` manualmente:
 
 - `C:\Movi_commanda`
 - Atalho `Movi_commanda Definicoes` na area de trabalho
-- Atalho `Movi_commanda Status` na area de trabalho
-- Atalho `Movi_commanda Iniciar Servico` na area de trabalho
+- Atalho `Movi_commanda` na area de trabalho
 - Log em `C:\Movi_commanda\logs\agent-sync.log`
 
 ## Icone perto do relogio

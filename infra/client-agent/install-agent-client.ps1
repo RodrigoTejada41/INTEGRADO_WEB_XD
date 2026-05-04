@@ -133,6 +133,38 @@ function Remove-DesktopShortcutsByPrefix([string[]]$Prefixes) {
     }
 }
 
+function Remove-DesktopShortcutsByTargetRoots([string[]]$TargetRoots) {
+    $desktop = [Environment]::GetFolderPath("Desktop")
+    if ([string]::IsNullOrWhiteSpace($desktop)) {
+        return
+    }
+    $resolvedRoots = $TargetRoots |
+        Where-Object { ![string]::IsNullOrWhiteSpace($_) } |
+        ForEach-Object { Resolve-FullPath $_ }
+    if ($resolvedRoots.Count -eq 0) {
+        return
+    }
+
+    $shell = New-Object -ComObject WScript.Shell
+    Get-ChildItem -Path $desktop -Filter "*.lnk" -ErrorAction SilentlyContinue |
+        ForEach-Object {
+            try {
+                $shortcut = $shell.CreateShortcut($_.FullName)
+                $target = $shortcut.TargetPath
+                $workdir = $shortcut.WorkingDirectory
+                foreach ($root in $resolvedRoots) {
+                    if ($target -like "$root*" -or $workdir -like "$root*") {
+                        Remove-Item -LiteralPath $_.FullName -Force -ErrorAction SilentlyContinue
+                        return
+                    }
+                }
+            }
+            catch {
+                Write-Step "Nao foi possivel inspecionar atalho $($_.FullName): $($_.Exception.Message)"
+            }
+        }
+}
+
 function New-StartupShortcut(
     [string]$Name,
     [string]$TargetPath,
@@ -355,10 +387,8 @@ Write-Step "Criando atalhos na area de trabalho"
 Remove-DesktopShortcutsByPrefix @(
     "Movi"
 )
+Remove-DesktopShortcutsByTargetRoots $candidateInstallDirs
 New-DesktopShortcut -Name "Movi_commanda Definicoes - $packageVersion.lnk" -TargetPath (Join-Path $InstallDir "Abrir_Painel_Local.vbs") -WorkingDirectory $InstallDir
-New-DesktopShortcut -Name "Movi_commanda Status - $packageVersion.lnk" -TargetPath (Join-Path $InstallDir "Abrir_Status_Sync.vbs") -WorkingDirectory $InstallDir
-New-DesktopShortcut -Name "Movi_commanda Iniciar Servico - $packageVersion.lnk" -TargetPath (Join-Path $InstallDir "Iniciar_Movi_commanda_Windows.vbs") -WorkingDirectory $InstallDir
-New-DesktopShortcut -Name "Movi_commanda API Local - $packageVersion.lnk" -TargetPath (Join-Path $InstallDir "Abrir_API_Local.vbs") -WorkingDirectory $InstallDir
 New-DesktopShortcut -Name "Movi_commanda - $packageVersion.lnk" -TargetPath (Join-Path $InstallDir "Abrir_Comandas_Locais.vbs") -WorkingDirectory $InstallDir
 
 Write-Step "Configurando inicializacao com Windows"
