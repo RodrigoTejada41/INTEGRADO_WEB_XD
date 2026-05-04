@@ -129,6 +129,11 @@ def _read_token() -> str | None:
     return token or None
 
 
+def _is_loopback_client(request: Request) -> bool:
+    client_ip = request.client.host if request.client else ""
+    return client_ip in {"127.0.0.1", "::1", "localhost", "testclient"}
+
+
 def _require_token(x_local_token: str | None = Header(default=None, alias="X-Local-Token")) -> None:
     token = _read_token()
     if not token:
@@ -357,6 +362,16 @@ def order_app_info(_: None = Depends(_require_token)) -> LocalCommandaAppInfoRes
         version_name=_package_version(),
         version_code=_version_code(),
     )
+
+
+@app.get("/orders/local-token")
+def order_local_token(request: Request) -> dict[str, object]:
+    if not _is_loopback_client(request):
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Token local disponivel apenas no servidor.")
+    token = _read_token()
+    if not token:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Token local nao encontrado.")
+    return {"token": token}
 
 
 @app.get("/orders/settings", response_model=LocalCommandaSettingsResponse)

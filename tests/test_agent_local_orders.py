@@ -202,6 +202,8 @@ def test_local_orders_web_ui_is_available() -> None:
     assert "TRANSFERENCIA" in response.text
     assert "PAGAMENTO PARCIAL" in response.text
     assert "DESCONTO" in response.text
+    assert "/orders/local-token" in response.text
+    assert "Token local invalido" in response.text
     assert "XD" not in response.text
     assert "XD Orders" not in response.text
     assert "XDOrders" not in response.text
@@ -326,6 +328,27 @@ def test_local_commanda_database_defaults_match_local_mariadb_standard() -> None
     assert body["password_configured"] is True
     assert body["ssl_enabled"] is False
     assert "root:root" not in response.text
+
+
+def test_local_token_endpoint_only_returns_token_to_loopback_clients() -> None:
+    db_path = Path("output/test_agent_local_orders/local_token.db")
+    token_file = Path("output/test_agent_local_orders/local_token.txt")
+    db_path.parent.mkdir(parents=True, exist_ok=True)
+    if db_path.exists():
+        db_path.unlink()
+    token_file.write_text("local-token-test", encoding="ascii")
+
+    os.environ["LOCAL_ORDER_DB_PATH"] = str(db_path)
+    os.environ["LOCAL_API_TOKEN_FILE"] = str(token_file)
+    os.environ["AGENT_EMPRESA_ID"] = "12345678000199"
+    os.environ["LOCAL_ORDER_AUTO_REFRESH_CATALOG"] = "false"
+
+    local_api = _reload_local_api()
+
+    with TestClient(local_api.app) as client:
+        response = client.get("/orders/local-token")
+        assert response.status_code == 200, response.text
+        assert response.json() == {"token": "local-token-test"}
 
 
 def test_local_commanda_settings_app_info_and_license() -> None:

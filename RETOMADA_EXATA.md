@@ -2,6 +2,34 @@
 
 Data de atualizacao: 2026-05-03
 
+## Checkpoint Auto Token Local - 2026-05-03
+
+### Problema
+- Ao abrir painel de banco, aparecia:
+  - `{"detail":"Local token invalid."}`
+- O usuario confundia token local da API com credencial do banco.
+
+### Implementado
+- Endpoint novo:
+  - `GET /orders/local-token`
+- Regra:
+  - retorna token somente quando acessado do proprio servidor (`127.0.0.1`, `localhost`, `::1`);
+  - nao expõe token para celulares/tablets na rede.
+- UI:
+  - ao abrir `USUARIOS` ou `DEFINICOES` localmente, tenta preencher o token automaticamente;
+  - erro de token agora orienta usar `ACESSO_REDE_LOCAL.txt` no celular/tablet.
+
+### Release gerada
+- `release-artifacts/Movi_commanda_Installer_v2026-05-03_comandas_r13.zip`
+- Tamanho:
+  - `169953` bytes
+
+### Validacao
+- `py -3 -m pytest tests\test_agent_local_orders.py -q` -> `14 passed`
+- `py -3 -m compileall agent_local -q` -> sem erro
+- `py -3 -m pytest -q` -> `83 passed, 1 skipped`
+- ZIP validado sem `__pycache__` e sem `.pyc`
+
 ## Checkpoint Padrao Banco Local - 2026-05-03
 
 ### Implementado

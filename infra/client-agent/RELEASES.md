@@ -1,5 +1,27 @@
 # Releases - Cliente Agent
 
+## v2026-05-03_comandas_r13
+
+- Release corretiva para reduzir erro de `Local token invalid` ao configurar banco no proprio servidor.
+- API local:
+  - adiciona `GET /orders/local-token`;
+  - endpoint retorna token somente para acesso loopback (`127.0.0.1`, `localhost`, `::1`).
+- UI:
+  - ao abrir `USUARIOS` ou `DEFINICOES` pelo proprio servidor, tenta preencher automaticamente o token local;
+  - mensagem de erro de token agora orienta onde buscar o token para celulares/tablets.
+- Seguranca:
+  - token nao e exposto para clientes da rede;
+  - celulares/tablets continuam usando token de `C:\Movi_commanda\ACESSO_REDE_LOCAL.txt`.
+- ZIP de entrega:
+  - `release-artifacts/Movi_commanda_Installer_v2026-05-03_comandas_r13.zip`
+- Tamanho validado:
+  - `169953` bytes
+- Validacao:
+  - `py -3 -m pytest tests\test_agent_local_orders.py -q` com `14 passed`;
+  - `py -3 -m compileall agent_local -q` sem erro;
+  - `py -3 -m pytest -q` com `83 passed, 1 skipped`;
+  - ZIP sem `__pycache__` e sem `.pyc`.
+
 ## v2026-05-03_comandas_r12
 
 - Release com padrao de banco local ja preenchido.

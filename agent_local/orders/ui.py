@@ -437,6 +437,17 @@ function escapeHtml(value) {
   }[char]));
 }
 
+async function responseMessage(response) {
+  const text = await response.text();
+  try {
+    const data = JSON.parse(text);
+    if (data.detail === 'Local token invalid.') return 'Token local invalido. No servidor, abra por http://127.0.0.1:8765/orders/ui para preencher automaticamente. No celular, copie o token de ACESSO_REDE_LOCAL.txt.';
+    return data.detail || data.message || text;
+  } catch {
+    return text;
+  }
+}
+
 async function loadUsers() {
   const message = document.getElementById('login-message');
   const select = document.getElementById('operator-code');
@@ -460,8 +471,19 @@ async function loadAppInfo() {
   document.getElementById('app-version').textContent = `Versao ${data.version_name}`;
 }
 
-function openUsers() {
-  loadUsers();
+async function loadLocalTokenIfAvailable() {
+  const tokenInput = document.getElementById('local-token');
+  if (tokenInput.value.trim()) return;
+  if (!['127.0.0.1', 'localhost', '::1'].includes(window.location.hostname)) return;
+  const response = await fetch('/orders/local-token');
+  if (!response.ok) return;
+  const data = await response.json();
+  tokenInput.value = data.token || '';
+}
+
+async function openUsers() {
+  await loadLocalTokenIfAvailable();
+  await loadUsers();
   showScreen('login');
 }
 
@@ -474,6 +496,7 @@ function startApplication() {
 }
 
 async function openSettings() {
+  await loadLocalTokenIfAvailable();
   await loadSettings();
   await loadNetworkInfo();
   showScreen('settings');
@@ -680,7 +703,7 @@ function databasePayload() {
 
 async function testDatabaseConnection() {
   const response = await fetch('/orders/technical/database/test', {method: 'POST', headers: localHeaders(), body: JSON.stringify(databasePayload())});
-  const data = response.ok ? await response.json() : {message: await response.text()};
+  const data = response.ok ? await response.json() : {message: await responseMessage(response)};
   document.getElementById('db-message').className = response.ok && data.status === 'connected' ? 'success' : 'error';
   document.getElementById('db-message').textContent = data.message;
 }
@@ -694,7 +717,7 @@ async function saveDatabaseConfig() {
   }
   const response = await fetch('/orders/technical/database', {method: 'PUT', headers: localHeaders(), body: JSON.stringify(payload)});
   document.getElementById('db-message').className = response.ok ? 'success' : 'error';
-  document.getElementById('db-message').textContent = response.ok ? 'Configuracao salva.' : await response.text();
+  document.getElementById('db-message').textContent = response.ok ? 'Configuracao salva.' : await responseMessage(response);
 }
 
 async function login() {
