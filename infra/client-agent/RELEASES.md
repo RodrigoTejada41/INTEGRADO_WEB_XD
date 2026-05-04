@@ -5,7 +5,8 @@
 - Ao concluir qualquer ajuste funcional do cliente/comanda, gerar release versionada.
 - Usar tag incremental do pacote, exemplo: `v2026-05-04_comandas_r24`.
 - Gerar pasta com `infra/client-agent/build-release.ps1`.
-- Gerar ZIP em `release-artifacts/Movi_commanda_Installer_<tag>.zip`.
+- ZIP da API Comanda deve ficar somente em `release-artifacts/api-comanda/`.
+- ZIP da API Sync Relatorios deve ficar somente em `release-artifacts/api-sync-relatorios/`.
 - Validar ZIP sem `__pycache__`, sem `.pyc`, sem `.env` e sem `local_orders.db`.
 - Registrar neste arquivo e em `RETOMADA_EXATA.md`:
   - tag;
@@ -27,7 +28,7 @@
   - fechamento exige permissao `order.close`;
   - usuario sem permissao recebe aviso operacional.
 - ZIP de entrega:
-  - `release-artifacts/Movi_commanda_Installer_v2026-05-04_comandas_r24.zip`
+  - `release-artifacts/api-comanda/Movi_commanda_Installer_v2026-05-04_comandas_r24.zip`
 - Tamanho validado:
   - `180567` bytes
 - Validacao:
@@ -695,7 +696,11 @@
 powershell -ExecutionPolicy Bypass -File .\infra\client-agent\build-release.ps1
 ```
 
-Depois compacte a pasta gerada para `release-artifacts/Movi_commanda_Installer_<tag>.zip`, valide o conteudo e registre o resultado nesta lista.
+O script ja gera o ZIP final na pasta correta:
+- tags com `comanda` -> `release-artifacts/api-comanda/`;
+- demais tags do cliente -> `release-artifacts/api-sync-relatorios/`.
+
+Valide o conteudo e registre o resultado nesta lista.
 
 ## Proxima release
 
