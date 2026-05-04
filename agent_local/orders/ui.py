@@ -648,12 +648,12 @@ async function showConnectionIp() {
 
 async function openDatabasePanel() {
   const response = await fetch('/orders/technical/database', {headers: localHeaders(false)});
-  const config = response.ok ? await response.json() : {database_type: 'mariadb', host: '', port: 3306, database: '', username: '', password_configured: false, ssl_enabled: false};
+  const config = response.ok ? await response.json() : {database_type: 'mariadb', host: '127.0.0.1', port: 3308, database: '', username: 'root', password_configured: true, ssl_enabled: false};
   openModal('Banco de dados', `
     <div class="grid two">
       <div><label>Tipo de banco</label><input id="db-type" value="${escapeHtml(config.database_type || 'mariadb')}"></div>
       <div><label>Host/IP</label><input id="db-host" value="${escapeHtml(config.host || '')}"></div>
-      <div><label>Porta</label><input id="db-port" type="number" value="${escapeHtml(config.port || 3306)}"></div>
+      <div><label>Porta</label><input id="db-port" type="number" value="${escapeHtml(config.port || 3308)}"></div>
       <div><label>Nome do banco</label><input id="db-name" value="${escapeHtml(config.database || '')}"></div>
       <div><label>Usuario</label><input id="db-user" value="${escapeHtml(config.username || '')}"></div>
       <div><label>Senha</label><input id="db-pass" type="password" placeholder="${config.password_configured ? 'Senha configurada' : ''}"></div>

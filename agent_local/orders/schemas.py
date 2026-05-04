@@ -353,7 +353,7 @@ class LocalConnectedClientListResponse(BaseModel):
 class LocalDatabaseConfigPayload(BaseModel):
     database_type: str = Field(default="mariadb", max_length=40)
     host: str = Field(min_length=1, max_length=160)
-    port: int = Field(default=3306, ge=1, le=65535)
+    port: int = Field(default=3308, ge=1, le=65535)
     database: str = Field(min_length=1, max_length=160)
     username: str = Field(min_length=1, max_length=160)
     password: str | None = Field(default=None, max_length=300)

@@ -13,7 +13,10 @@ from fastapi.responses import HTMLResponse, PlainTextResponse
 
 from agent_local.config.database_config import (
     DEFAULT_DATABASE_TYPE,
+    DEFAULT_MARIADB_HOST,
+    DEFAULT_MARIADB_PASSWORD,
     DEFAULT_MARIADB_PORT,
+    DEFAULT_MARIADB_USERNAME,
     LocalDatabaseConfig,
     LocalDatabaseConfigService,
     parse_mariadb_url,
@@ -275,11 +278,11 @@ def _load_database_config() -> LocalDatabaseConfig:
             pass
     return LocalDatabaseConfig(
         database_type=DEFAULT_DATABASE_TYPE,
-        host="",
+        host=DEFAULT_MARIADB_HOST,
         port=DEFAULT_MARIADB_PORT,
         database="",
-        username="",
-        password="",
+        username=DEFAULT_MARIADB_USERNAME,
+        password=DEFAULT_MARIADB_PASSWORD,
     )
 
 

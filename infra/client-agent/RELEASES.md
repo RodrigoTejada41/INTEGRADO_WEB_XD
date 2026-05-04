@@ -1,5 +1,34 @@
 # Releases - Cliente Agent
 
+## v2026-05-03_comandas_r12
+
+- Release com padrao de banco local ja preenchido.
+- Defaults aplicados:
+  - host: `127.0.0.1`;
+  - porta: `3308`;
+  - usuario: `root`;
+  - senha: `root`;
+  - tipo: `mariadb`.
+- Pontos atualizados:
+  - `agent_local/config/database_config.py`;
+  - painel Tkinter de definicoes;
+  - painel web tecnico de banco;
+  - schemas da API tecnica;
+  - fallback da API local quando `AGENT_MARIADB_URL` nao existir.
+- Regra mantida:
+  - se existir `AGENT_MARIADB_URL` no `.env`, a API puxa a configuracao existente;
+  - senha nao e retornada em resposta;
+  - senha nao entra em logs.
+- ZIP de entrega:
+  - `release-artifacts/Movi_commanda_Installer_v2026-05-03_comandas_r12.zip`
+- Tamanho validado:
+  - `169530` bytes
+- Validacao:
+  - `py -3 -m pytest tests\test_agent_local_orders.py tests\test_agent_local_database_config.py -q` com `15 passed`;
+  - `py -3 -m compileall agent_local -q` sem erro;
+  - `py -3 -m pytest -q` com `82 passed, 1 skipped`;
+  - ZIP sem `__pycache__` e sem `.pyc`.
+
 ## v2026-05-03_comandas_r11
 
 - Release com separacao operacional entre comandas e sync de relatorios.

@@ -297,6 +297,37 @@ def test_local_commanda_technical_network_and_database_endpoints_do_not_expose_p
         assert check.json()["server_api"]["status"] == "connected"
 
 
+def test_local_commanda_database_defaults_match_local_mariadb_standard() -> None:
+    db_path = Path("output/test_agent_local_orders/database_defaults.db")
+    token_file = Path("output/test_agent_local_orders/database_defaults_token.txt")
+    db_path.parent.mkdir(parents=True, exist_ok=True)
+    if db_path.exists():
+        db_path.unlink()
+    token_file.write_text("local-token-test", encoding="ascii")
+
+    os.environ["LOCAL_ORDER_DB_PATH"] = str(db_path)
+    os.environ["LOCAL_API_TOKEN_FILE"] = str(token_file)
+    os.environ["AGENT_EMPRESA_ID"] = "12345678000199"
+    os.environ["LOCAL_ORDER_AUTO_REFRESH_CATALOG"] = "false"
+    os.environ.pop("AGENT_MARIADB_URL", None)
+
+    local_api = _reload_local_api()
+
+    with TestClient(local_api.app) as client:
+        headers = _order_headers(client, db_path)
+        response = client.get("/orders/technical/database", headers=headers)
+
+    assert response.status_code == 200, response.text
+    body = response.json()
+    assert body["database_type"] == "mariadb"
+    assert body["host"] == "127.0.0.1"
+    assert body["port"] == 3308
+    assert body["username"] == "root"
+    assert body["password_configured"] is True
+    assert body["ssl_enabled"] is False
+    assert "root:root" not in response.text
+
+
 def test_local_commanda_settings_app_info_and_license() -> None:
     db_path = Path("output/test_agent_local_orders/settings.db")
     token_file = Path("output/test_agent_local_orders/settings_token.txt")

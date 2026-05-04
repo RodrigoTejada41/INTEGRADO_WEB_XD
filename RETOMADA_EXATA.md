@@ -2,6 +2,34 @@
 
 Data de atualizacao: 2026-05-03
 
+## Checkpoint Padrao Banco Local - 2026-05-03
+
+### Implementado
+- Configuracao de banco agora ja abre com padrao local:
+  - tipo: `mariadb`
+  - host: `127.0.0.1`
+  - porta: `3308`
+  - usuario: `root`
+  - senha: `root`
+- Se existir `AGENT_MARIADB_URL` no `.env`, a API puxa essa configuracao.
+- Se o banco mudar, usuario pode editar pelo painel tecnico de banco.
+
+### Seguranca mantida
+- Senha do banco nao retorna na API.
+- Senha do banco nao entra nos logs.
+- Campo de senha continua mascarado na UI.
+
+### Release gerada
+- `release-artifacts/Movi_commanda_Installer_v2026-05-03_comandas_r12.zip`
+- Tamanho:
+  - `169530` bytes
+
+### Validacao
+- `py -3 -m pytest tests\test_agent_local_orders.py tests\test_agent_local_database_config.py -q` -> `15 passed`
+- `py -3 -m compileall agent_local -q` -> sem erro
+- `py -3 -m pytest -q` -> `82 passed, 1 skipped`
+- ZIP validado sem `__pycache__` e sem `.pyc`
+
 ## Checkpoint Separacao Comandas x Relatorios - 2026-05-03
 
 ### Problema
