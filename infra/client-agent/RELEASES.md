@@ -1,5 +1,37 @@
 # Releases - Cliente Agent
 
+## v2026-05-03_comandas_r9
+
+- Release para operacao em rede local com varios celulares/tablets.
+- API local:
+  - passa a escutar em `0.0.0.0:8765`;
+  - mantem acesso local em `http://127.0.0.1:8765/orders/ui`;
+  - permite acesso na rede pelo IP da maquina servidor.
+- Instalador:
+  - cria `C:\Movi_commanda\ACESSO_REDE_LOCAL.txt` com URL local, URL para celulares/tablets, porta e token local;
+  - cria regra de firewall `Movi_commanda API Local` para entrada TCP `8765` em rede privada;
+  - melhora deteccao de IP LAN, ignorando adaptadores virtuais comuns.
+- Cache local:
+  - `local_orders.db` continua como cache/controle central da operacao;
+  - SQLite configurado com `WAL`, `busy_timeout=30000` e `synchronous=NORMAL` para suportar multiplos dispositivos na rede local.
+- Autostart:
+  - usa `LOCAL_API_HOST` e `LOCAL_API_PORT` quando configurados;
+  - default de host agora e `0.0.0.0`;
+  - adicionada trava `windows-autostart.lock` para reduzir inicializacoes duplicadas.
+- Validacao nesta maquina:
+  - `http://192.168.15.4:8765/health` -> HTTP 200;
+  - arquivo atual `C:\Movi_commanda\ACESSO_REDE_LOCAL.txt` aponta para `http://192.168.15.4:8765/orders/ui`.
+- ZIP de entrega:
+  - `release-artifacts/Movi_commanda_Installer_v2026-05-03_comandas_r9.zip`
+- Tamanho validado:
+  - `164449` bytes
+- Validacao:
+  - parser PowerShell do instalador sem erro;
+  - `py -3 -m pytest tests\test_agent_local_orders.py -q` com `11 passed`;
+  - `py -3 -m compileall agent_local -q` sem erro;
+  - `py -3 -m pytest -q` com `80 passed, 1 skipped`;
+  - ZIP sem `__pycache__` e sem `.pyc`.
+
 ## v2026-05-03_comandas_r8
 
 - Release corretiva para falha de tela preta ao abrir comandas.

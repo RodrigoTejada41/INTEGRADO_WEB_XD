@@ -3,11 +3,16 @@ from __future__ import annotations
 import os
 import subprocess
 import sys
+import time
 from pathlib import Path
 
 
 ROOT_DIR = Path(__file__).resolve().parents[1]
 LOG_DIR = ROOT_DIR / "logs"
+LOCK_FILE = ROOT_DIR / "agent_local" / "data" / "windows-autostart.lock"
+DEFAULT_LOCAL_API_HOST = "0.0.0.0"
+DEFAULT_LOCAL_API_PORT = "8765"
+LOCK_TTL_SECONDS = 60
 
 
 def _creation_flags() -> int:
@@ -76,9 +81,11 @@ def _start_once(command_fragment: str, args: list[str], log_name: str) -> bool:
 
 
 def start_local_api() -> bool:
+    host = os.getenv("LOCAL_API_HOST", DEFAULT_LOCAL_API_HOST).strip() or DEFAULT_LOCAL_API_HOST
+    port = os.getenv("LOCAL_API_PORT", DEFAULT_LOCAL_API_PORT).strip() or DEFAULT_LOCAL_API_PORT
     return _start_once(
         "agent_local.local_api",
-        ["-m", "uvicorn", "agent_local.local_api:app", "--host", "127.0.0.1", "--port", "8765"],
+        ["-m", "uvicorn", "agent_local.local_api:app", "--host", host, "--port", port],
         "local-api.log",
     )
 
@@ -91,11 +98,38 @@ def start_sync() -> bool:
     return _start_once("agent_local.main", ["-m", "agent_local.main"], "agent-sync.log")
 
 
+def _acquire_startup_lock() -> bool:
+    LOCK_FILE.parent.mkdir(parents=True, exist_ok=True)
+    if LOCK_FILE.exists():
+        age = time.time() - LOCK_FILE.stat().st_mtime
+        if age < LOCK_TTL_SECONDS:
+            return False
+        LOCK_FILE.unlink(missing_ok=True)
+    try:
+        LOCK_FILE.write_text(str(os.getpid()), encoding="ascii")
+        return True
+    except OSError:
+        return False
+
+
+def _release_startup_lock() -> None:
+    try:
+        if LOCK_FILE.exists() and LOCK_FILE.read_text(encoding="ascii").strip() == str(os.getpid()):
+            LOCK_FILE.unlink(missing_ok=True)
+    except OSError:
+        return
+
+
 def main() -> int:
     os.chdir(ROOT_DIR)
-    start_local_api()
-    start_tray()
-    start_sync()
+    if not _acquire_startup_lock():
+        return 0
+    try:
+        start_local_api()
+        start_tray()
+        start_sync()
+    finally:
+        _release_startup_lock()
     return 0
 
 

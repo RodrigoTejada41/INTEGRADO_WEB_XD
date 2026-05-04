@@ -32,6 +32,18 @@ O painel local permite configurar sem editar JSON ou `.env` manualmente:
 - Atalho `Movi_commanda Definicoes` na area de trabalho
 - Atalho `Movi_commanda` na area de trabalho
 - Log em `C:\Movi_commanda\logs\agent-sync.log`
+- Arquivo de acesso em rede: `C:\Movi_commanda\ACESSO_REDE_LOCAL.txt`
+
+## Acesso em rede local
+
+O computador onde o instalador roda vira o servidor local das comandas.
+
+- A API escuta na porta `8765`.
+- Celulares e tablets devem estar no mesmo Wi-Fi/rede local.
+- O endereco para os dispositivos fica em `C:\Movi_commanda\ACESSO_REDE_LOCAL.txt`.
+- O cache operacional fica em `C:\Movi_commanda\agent_local\data\local_orders.db`.
+- O SQLite local usa WAL e timeout para suportar multiplos dispositivos gravando na mesma base local.
+- O instalador cria a regra de firewall `Movi_commanda API Local` para liberar entrada TCP na rede privada.
 
 ## Icone perto do relogio
 

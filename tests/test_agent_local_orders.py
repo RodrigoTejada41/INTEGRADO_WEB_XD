@@ -221,6 +221,10 @@ def test_client_installer_removes_old_movisync_residue() -> None:
     assert "Remove-DesktopShortcutsByTargetRoots" in installer
     assert "Invoke-CheckedCommand" in installer
     assert "import fastapi, uvicorn, pydantic, pystray, PIL" in installer
+    assert '$LocalApiPort = "8765"' in installer
+    assert "Ensure-LocalApiFirewallRule" in installer
+    assert "ACESSO_REDE_LOCAL.txt" in installer
+    assert "--host 0.0.0.0 --port $LocalApiPort" in installer
     assert "Iniciar_Movi_commanda_Windows.vbs" in installer
     assert "Movi_commanda API Local -" not in installer
     assert "Movi_commanda Status -" not in installer
@@ -229,6 +233,20 @@ def test_client_installer_removes_old_movisync_residue() -> None:
     assert "C:\\MoviSyncAgent" not in readme
     assert "psycopg2-binary==2.9.10" in requirements
     assert "psycopg2-binary==2.9.9" not in requirements
+
+
+def test_local_command_network_mode_uses_lan_api_and_sqlite_cache_controls() -> None:
+    autostart = Path("agent_local/windows_autostart.py").read_text(encoding="utf-8")
+    repository = Path("agent_local/orders/repository.py").read_text(encoding="utf-8")
+
+    assert 'DEFAULT_LOCAL_API_HOST = "0.0.0.0"' in autostart
+    assert "windows-autostart.lock" in autostart
+    assert 'os.getenv("LOCAL_API_HOST", DEFAULT_LOCAL_API_HOST)' in autostart
+    assert '"--host", host, "--port", port' in autostart
+    assert "sqlite3.connect(self.db_path, timeout=30)" in repository
+    assert "PRAGMA busy_timeout = 30000" in repository
+    assert "PRAGMA journal_mode = WAL" in repository
+    assert "PRAGMA synchronous = NORMAL" in repository
 
 
 def test_local_commanda_settings_app_info_and_license() -> None:

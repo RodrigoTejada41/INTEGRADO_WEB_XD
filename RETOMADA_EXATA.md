@@ -2,6 +2,63 @@
 
 Data de atualizacao: 2026-05-03
 
+## Checkpoint Rede Local Movi_commanda - 2026-05-03
+
+### Requisito
+- A comanda precisa funcionar em rede local para varios celulares/tablets ao mesmo tempo.
+- Deve existir controle/cache local centralizado.
+
+### Implementado
+- API local passa a escutar em:
+  - `0.0.0.0:8765`
+- Acesso local continua:
+  - `http://127.0.0.1:8765/orders/ui`
+- Acesso em celulares/tablets na mesma rede:
+  - `http://IP-DA-MAQUINA:8765/orders/ui`
+- Instalador cria:
+  - `C:\Movi_commanda\ACESSO_REDE_LOCAL.txt`
+  - regra de firewall `Movi_commanda API Local` para TCP `8765` em perfil privado.
+- Deteccao de IP LAN ignora adaptadores virtuais comuns:
+  - `vEthernet`
+  - `Virtual`
+  - `VMware`
+  - `VirtualBox`
+  - `Docker`
+  - `WSL`
+  - `Loopback`
+  - `Bluetooth`
+- Cache/controle local:
+  - `C:\Movi_commanda\agent_local\data\local_orders.db`
+  - SQLite com `WAL`
+  - `busy_timeout = 30000`
+  - `synchronous = NORMAL`
+- Autostart:
+  - usa `LOCAL_API_HOST` e `LOCAL_API_PORT` se configurados;
+  - default `LOCAL_API_HOST=0.0.0.0`;
+  - trava `windows-autostart.lock` para reduzir inicializacao duplicada.
+
+### Reparo aplicado nesta maquina
+- Arquivos copiados para `C:\Movi_commanda`.
+- `ACESSO_REDE_LOCAL.txt` gerado com:
+  - `http://192.168.15.4:8765/orders/ui`
+- Validado:
+  - `http://192.168.15.4:8765/health` -> HTTP 200
+- Observacao:
+  - criacao manual da regra de firewall fora do instalador deu `Acesso negado`;
+  - ao rodar o instalador r9 como administrador, a regra e criada automaticamente.
+
+### Release gerada
+- `release-artifacts/Movi_commanda_Installer_v2026-05-03_comandas_r9.zip`
+- Tamanho:
+  - `164449` bytes
+
+### Validacao no workspace
+- Parser PowerShell do instalador: OK
+- `py -3 -m pytest tests\test_agent_local_orders.py -q` -> `11 passed`
+- `py -3 -m compileall agent_local -q` -> sem erro
+- `py -3 -m pytest -q` -> `80 passed, 1 skipped`
+- ZIP validado sem `__pycache__` e sem `.pyc`
+
 ## Checkpoint Tela Preta Corrigida Movi_commanda - 2026-05-03
 
 ### Problema

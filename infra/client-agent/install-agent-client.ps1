@@ -6,6 +6,7 @@ param(
 
 $ErrorActionPreference = "Stop"
 $LegacyInstallDirs = @("C:\MoviSyncAgent")
+$LocalApiPort = "8765"
 $StateRelativePaths = @(
     ".env",
     "agent_local\data\agent_api_key.txt",
@@ -34,6 +35,50 @@ function Resolve-PythonLauncher() {
         }
     }
     throw "Python launcher (py) nao encontrou Python 3.11+. Instale Python 3.11 ou 3.12 antes."
+}
+
+function Resolve-LanIPv4() {
+    try {
+        $addresses = Get-NetIPConfiguration -ErrorAction Stop |
+            Where-Object {
+                $_.IPv4Address `
+                    -and $_.NetAdapter.Status -eq "Up" `
+                    -and $_.InterfaceAlias -notmatch "vEthernet|Virtual|VMware|VirtualBox|Docker|WSL|Loopback|Bluetooth" `
+                    -and $_.IPv4Address.IPAddress -notlike "127.*" `
+                    -and $_.IPv4Address.IPAddress -notlike "169.254.*"
+            } |
+            Sort-Object { if ($_.IPv4DefaultGateway) { 0 } else { 1 } } |
+            ForEach-Object { $_.IPv4Address.IPAddress }
+        if ($addresses) {
+            return ($addresses | Select-Object -First 1)
+        }
+    }
+    catch {
+        return "IP-DA-MAQUINA"
+    }
+    return "IP-DA-MAQUINA"
+}
+
+function Ensure-LocalApiFirewallRule([string]$Port) {
+    try {
+        $ruleName = "Movi_commanda API Local"
+        $existing = Get-NetFirewallRule -DisplayName $ruleName -ErrorAction SilentlyContinue
+        if ($existing) {
+            Set-NetFirewallRule -DisplayName $ruleName -Enabled True -Direction Inbound -Action Allow -Profile Private | Out-Null
+            Set-NetFirewallPortFilter -AssociatedNetFirewallRule $existing -Protocol TCP -LocalPort $Port | Out-Null
+            return
+        }
+        New-NetFirewallRule `
+            -DisplayName $ruleName `
+            -Direction Inbound `
+            -Action Allow `
+            -Protocol TCP `
+            -LocalPort $Port `
+            -Profile Private | Out-Null
+    }
+    catch {
+        Write-Step "Nao foi possivel configurar firewall automaticamente: $($_.Exception.Message)"
+    }
 }
 
 function Resolve-FullPath([string]$Path) {
@@ -303,6 +348,7 @@ else {
 Write-Step "Criando atalhos cmd"
 New-Item -ItemType Directory -Force -Path (Join-Path $InstallDir "logs") | Out-Null
 New-Item -ItemType Directory -Force -Path (Join-Path $InstallDir "agent_local\data") | Out-Null
+$lanIPv4 = Resolve-LanIPv4
 
 $localApiTokenFile = Join-Path $InstallDir "agent_local\data\local_api_token.txt"
 if (!(Test-Path $localApiTokenFile)) {
@@ -312,6 +358,18 @@ if (!(Test-Path $localApiTokenFile)) {
     ($tokenBytes | ForEach-Object { $_.ToString("x2") }) -join "" |
         Set-Content -Path $localApiTokenFile -Encoding ascii
 }
+
+Write-Step "Configurando firewall para acesso em rede local"
+Ensure-LocalApiFirewallRule $LocalApiPort
+
+Set-Content -Path (Join-Path $InstallDir "ACESSO_REDE_LOCAL.txt") -Encoding ascii -Value @(
+    "Movi_commanda - acesso em rede local"
+    "URL nesta maquina: http://127.0.0.1:$LocalApiPort/orders/ui"
+    "URL para celulares/tablets na mesma rede: http://$lanIPv4`:$LocalApiPort/orders/ui"
+    "Porta: $LocalApiPort"
+    "Token local: $((Get-Content -Path $localApiTokenFile -Raw).Trim())"
+    "Observacao: conecte os celulares/tablets no mesmo Wi-Fi da maquina servidor."
+)
 
 @'
 @echo off
@@ -367,7 +425,7 @@ $statusVbsContent | Set-Content -Path "Abrir_Status_Sync.vbs" -Encoding ascii
 $localApiVbsContent = @"
 Set shell = CreateObject("WScript.Shell")
 shell.CurrentDirectory = "$InstallDir"
-shell.Run """" & "$InstallDir\.venv\Scripts\pythonw.exe" & """ -m uvicorn agent_local.local_api:app --host 127.0.0.1 --port 8765", 0, False
+shell.Run """" & "$InstallDir\.venv\Scripts\pythonw.exe" & """ -m uvicorn agent_local.local_api:app --host 0.0.0.0 --port $LocalApiPort", 0, False
 "@
 $localApiVbsContent | Set-Content -Path "Abrir_API_Local.vbs" -Encoding ascii
 

@@ -117,7 +117,6 @@ class LocalOrderRepository:
     def initialize(self) -> None:
         self.db_path.parent.mkdir(parents=True, exist_ok=True)
         with self._connect() as connection:
-            connection.execute("PRAGMA foreign_keys = ON")
             connection.execute(
                 """
                 CREATE TABLE IF NOT EXISTS local_orders (
@@ -1390,6 +1389,10 @@ class LocalOrderRepository:
             connection.execute(f"ALTER TABLE {table_name} ADD COLUMN {column_name} {column_sql}")
 
     def _connect(self) -> sqlite3.Connection:
-        connection = sqlite3.connect(self.db_path)
+        connection = sqlite3.connect(self.db_path, timeout=30)
         connection.row_factory = sqlite3.Row
+        connection.execute("PRAGMA busy_timeout = 30000")
+        connection.execute("PRAGMA journal_mode = WAL")
+        connection.execute("PRAGMA synchronous = NORMAL")
+        connection.execute("PRAGMA foreign_keys = ON")
         return connection
