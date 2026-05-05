@@ -8,6 +8,12 @@ def render_orders_ui() -> str:
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#124f80">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Movi Comanda">
+  <link rel="manifest" href="/orders/manifest.webmanifest">
+  <link rel="icon" href="/orders/icon.svg" type="image/svg+xml">
   <title>Movi_commanda</title>
   <style>
     :root {
@@ -197,6 +203,7 @@ def render_orders_ui() -> str:
           <div class="setting-row"><div><strong>IP local automatico</strong><small>Endereco para celulares/tablets</small></div><select id="set-local-ip"></select></div>
           <div class="setting-row"><div><strong>URL de conexao</strong><small id="local-access-url">Carregando rede local</small></div><button class="secondary" type="button" onclick="copyConnectionUrl()">Copiar</button></div>
           <div class="setting-row"><div><strong>Token de pareamento</strong><small>Codigo curto para conectar celulares/tablets</small></div><button class="primary" type="button" onclick="generatePairingToken()">Gerar token</button></div>
+          <div class="setting-row"><div><strong>Atalho no celular</strong><small>Instala o acesso na tela inicial</small></div><button class="secondary" type="button" onclick="installMobileShortcut()">Criar atalho</button></div>
           <div class="setting-row"><div><strong>Carregar dados</strong><small>Atualiza usuarios, familias e produtos</small></div><button class="primary" type="button" onclick="loadServerData()">Carregar dados</button></div>
         </div>
         <div class="settings-section">
@@ -390,6 +397,10 @@ def render_orders_ui() -> str:
 </div>
 
 <script>
+const LOCAL_TOKEN_STORAGE_KEY = 'movi_commanda.local_token';
+const LAST_OPERATOR_STORAGE_KEY = 'movi_commanda.last_operator';
+let deferredInstallPrompt = null;
+
 const state = {
   sessionToken: '',
   operator: null,
@@ -405,7 +416,45 @@ const state = {
   tableLabel: 'Mesa'
 };
 
+window.addEventListener('beforeinstallprompt', event => {
+  event.preventDefault();
+  deferredInstallPrompt = event;
+});
+
+function readStoredValue(key) {
+  try {
+    return window.localStorage.getItem(key) || '';
+  } catch {
+    return '';
+  }
+}
+
+function writeStoredValue(key, value) {
+  try {
+    if (value) window.localStorage.setItem(key, value);
+    else window.localStorage.removeItem(key);
+  } catch {
+    return;
+  }
+}
+
+function restoreLocalToken() {
+  const tokenInput = document.getElementById('local-token');
+  if (!tokenInput || tokenInput.value.trim()) return false;
+  const storedToken = readStoredValue(LOCAL_TOKEN_STORAGE_KEY);
+  if (!storedToken) return false;
+  tokenInput.value = storedToken;
+  return true;
+}
+
+function persistLocalToken() {
+  const tokenInput = document.getElementById('local-token');
+  if (!tokenInput) return;
+  writeStoredValue(LOCAL_TOKEN_STORAGE_KEY, tokenInput.value.trim());
+}
+
 function localHeaders(json = true) {
+  restoreLocalToken();
   const headers = {};
   const token = document.getElementById('local-token').value.trim();
   if (json) headers['Content-Type'] = 'application/json';
@@ -479,6 +528,10 @@ async function loadUsers() {
   }
   const data = await response.json();
   select.innerHTML = data.operators.map(user => `<option value="${escapeHtml(user.code)}">${escapeHtml(user.name)}</option>`).join('');
+  const lastOperator = readStoredValue(LAST_OPERATOR_STORAGE_KEY);
+  if (lastOperator && [...select.options].some(option => option.value === lastOperator)) {
+    select.value = lastOperator;
+  }
   message.className = 'muted';
   message.textContent = data.operators.length ? 'Usuarios carregados.' : 'Nenhum usuario ativo encontrado.';
 }
@@ -496,12 +549,14 @@ function isLoopbackHost() {
 
 async function loadLocalTokenIfAvailable(force = false) {
   const tokenInput = document.getElementById('local-token');
+  restoreLocalToken();
   if (tokenInput.value.trim() && !force) return false;
   if (!isLoopbackHost()) return false;
   const response = await window.fetch('/orders/local-token');
   if (!response.ok) return false;
   const data = await response.json();
   tokenInput.value = data.token || '';
+  persistLocalToken();
   return Boolean(tokenInput.value.trim());
 }
 
@@ -626,9 +681,22 @@ async function generatePairingToken() {
     return;
   }
   document.getElementById('local-token').value = data.token;
+  persistLocalToken();
   openModal('Token de pareamento', `
     <pre>${escapeHtml(`Token: ${data.token}\nURL: ${data.url}\nDigite este codigo no celular para parear.`)}</pre>
     <button class="primary" type="button" onclick="navigator.clipboard?.writeText('${escapeHtml(data.token)}')">Copiar token</button>
+  `);
+}
+
+async function installMobileShortcut() {
+  if (deferredInstallPrompt) {
+    deferredInstallPrompt.prompt();
+    await deferredInstallPrompt.userChoice.catch(() => null);
+    deferredInstallPrompt = null;
+    return;
+  }
+  openModal('Atalho no celular', `
+    <pre>${escapeHtml('Android Chrome: toque no menu do navegador e escolha Adicionar a tela inicial ou Instalar app.\niPhone Safari: toque em Compartilhar e escolha Adicionar a Tela de Inicio.\nO token fica salvo neste navegador depois do primeiro acesso.')}</pre>
   `);
 }
 
@@ -819,6 +887,8 @@ async function login() {
   const data = await response.json();
   state.sessionToken = data.session_token;
   state.operator = data.operator;
+  persistLocalToken();
+  writeStoredValue(LAST_OPERATOR_STORAGE_KEY, data.operator?.code || payload.operator_code);
   const meResponse = await localFetch('/orders/me', {headers: localHeaders(false)});
   state.permissions = meResponse.ok ? (await meResponse.json()).permissions || {} : {};
   document.getElementById('user-badge').textContent = data.operator.name;
@@ -1227,6 +1297,15 @@ function printPrebill() {
   }
   window.open(`/orders/${uuid}/prebill`, '_blank');
 }
+
+document.addEventListener('DOMContentLoaded', () => {
+  const tokenInput = document.getElementById('local-token');
+  if (tokenInput) {
+    restoreLocalToken();
+    tokenInput.addEventListener('input', persistLocalToken);
+    tokenInput.addEventListener('change', persistLocalToken);
+  }
+});
 
 loadAppInfo();
 loadUsers();

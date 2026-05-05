@@ -784,6 +784,27 @@ def test_pairing_token_button_does_not_require_technical_login() -> None:
     assert "localFetch('/orders/pairing/token'" in function_body
 
 
+def test_mobile_ui_persists_pairing_token_and_supports_home_screen_shortcut() -> None:
+    local_api = _reload_local_api()
+
+    with TestClient(local_api.app) as client:
+        ui_response = client.get("/orders/ui")
+        manifest_response = client.get("/orders/manifest.webmanifest")
+        icon_response = client.get("/orders/icon.svg")
+
+    assert ui_response.status_code == 200
+    assert "movi_commanda.local_token" in ui_response.text
+    assert "window.localStorage.setItem" in ui_response.text
+    assert "restoreLocalToken()" in ui_response.text
+    assert "installMobileShortcut()" in ui_response.text
+    assert '<link rel="manifest" href="/orders/manifest.webmanifest">' in ui_response.text
+    assert manifest_response.status_code == 200
+    assert manifest_response.json()["start_url"] == "/orders/ui"
+    assert manifest_response.json()["display"] == "standalone"
+    assert icon_response.status_code == 200
+    assert "image/svg+xml" in icon_response.headers["content-type"]
+
+
 def test_installer_generates_short_pairing_token_for_mobile_devices() -> None:
     installer = Path("infra/client-agent/install-agent-client.ps1").read_text(encoding="utf-8")
 

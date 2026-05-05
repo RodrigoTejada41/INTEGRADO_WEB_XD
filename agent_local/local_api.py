@@ -1351,3 +1351,35 @@ def orders_ui() -> str:
     return render_orders_ui()
 
 
+@app.get("/orders/manifest.webmanifest")
+def orders_manifest() -> dict[str, object]:
+    return {
+        "name": "Movi Comanda",
+        "short_name": "Comanda",
+        "start_url": "/orders/ui",
+        "scope": "/orders/",
+        "display": "standalone",
+        "background_color": "#f5f7fa",
+        "theme_color": "#124f80",
+        "icons": [
+            {
+                "src": "/orders/icon.svg",
+                "sizes": "any",
+                "type": "image/svg+xml",
+                "purpose": "any maskable",
+            }
+        ],
+    }
+
+
+@app.get("/orders/icon.svg", response_class=PlainTextResponse)
+def orders_icon() -> PlainTextResponse:
+    svg = """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192">
+<rect width="192" height="192" rx="32" fill="#124f80"/>
+<circle cx="96" cy="78" r="40" fill="#ffffff"/>
+<path d="M50 146c10-30 82-30 92 0" fill="none" stroke="#ffffff" stroke-width="18" stroke-linecap="round"/>
+<text x="96" y="88" text-anchor="middle" font-family="Arial" font-size="42" font-weight="700" fill="#124f80">MC</text>
+</svg>"""
+    return PlainTextResponse(svg, media_type="image/svg+xml")
+
+

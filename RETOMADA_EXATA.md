@@ -2,6 +2,44 @@
 
 Data de atualizacao: 2026-05-05
 
+## Checkpoint Token Persistente Celular Comanda - 2026-05-05
+
+### Problema
+- Ao acessar a Comanda pelo celular, o token nao ficava salvo ao sair/entrar da pagina.
+- Cliente tambem precisava criar atalho na tela inicial do celular.
+
+### Implementado
+- UI da Comanda salva o token local no navegador:
+  - chave `localStorage`: `movi_commanda.local_token`.
+- Ao reabrir a pagina, o token e restaurado automaticamente.
+- Ultimo operador usado tambem fica salvo:
+  - chave `localStorage`: `movi_commanda.last_operator`.
+- Adicionado suporte PWA:
+  - `/orders/manifest.webmanifest`;
+  - `/orders/icon.svg`;
+  - meta tags mobile.
+- Tela `Definicoes` ganhou botao:
+  - `Atalho no celular`.
+
+### Validacao
+- `py -3 -m compileall agent_local -q` -> sem erro
+- `py -3 -m pytest tests\test_agent_local_orders.py -q` -> `30 passed`
+- Release gerada:
+  - `release-artifacts/api-comanda/Movi_commanda_Installer_v2026-05-05_comandas_r34.zip`
+- Tamanho:
+  - `187728` bytes
+- ZIP validado sem `__pycache__`, sem `.pyc`, sem `.env` e sem `local_orders.db`
+
+### Validacao local instalada
+- Arquivos atualizados copiados para `C:\Movi_commanda`.
+- `TestClient` em `C:\Movi_commanda` validou:
+  - `/orders/ui` contem `movi_commanda.local_token`;
+  - `/orders/manifest.webmanifest` -> `200`, `display=standalone`;
+  - `/orders/icon.svg` -> `200`, `image/svg+xml`.
+- Observacao operacional:
+  - processo atual da API Comanda na `8766`, PID `33300`, esta protegido pelo Windows e nao aceitou `taskkill`;
+  - reiniciar o Windows ou encerrar esse PID como administrador para o navegador passar a receber a UI nova.
+
 ## Checkpoint Icone Sync Relatorios - 2026-05-05
 
 ### Problema
