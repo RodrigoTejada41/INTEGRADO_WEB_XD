@@ -1,19 +1,15 @@
 param(
-    [string]$InstallDir = "C:\Movi_commanda",
+    [string]$InstallDir = "",
+    [ValidateSet("auto", "comanda", "sync-relatorios")]
+    [string]$PackageKind = "auto",
     [switch]$OpenPanel,
     [switch]$OpenOrders
 )
 
 $ErrorActionPreference = "Stop"
-$LegacyInstallDirs = @("C:\MoviSyncAgent")
+$ComandaInstallDir = "C:\Movi_commanda"
+$SyncInstallDir = "C:\MoviSyncAgent"
 $LocalApiPort = "8765"
-$StateRelativePaths = @(
-    ".env",
-    "agent_local\data\agent_api_key.txt",
-    "agent_local\data\local_api_token.txt",
-    "agent_local\data\checkpoints.json",
-    "agent_local\data\local_orders.db"
-)
 
 function Write-Step([string]$Message) {
     Write-Host "[instalador] $Message"
@@ -292,11 +288,46 @@ elseif (Test-Path $packageManifestFile) {
     }
 }
 
+if ($PackageKind -eq "auto") {
+    if ($packageVersion -like "*comanda*") {
+        $PackageKind = "comanda"
+    }
+    else {
+        $PackageKind = "sync-relatorios"
+    }
+}
+
+if ([string]::IsNullOrWhiteSpace($InstallDir)) {
+    if ($PackageKind -eq "sync-relatorios") {
+        $InstallDir = $SyncInstallDir
+    }
+    else {
+        $InstallDir = $ComandaInstallDir
+    }
+}
+
+$StateRelativePaths = @(
+    ".env",
+    "agent_local\data\agent_api_key.txt",
+    "agent_local\data\checkpoints.json"
+)
+if ($PackageKind -eq "comanda") {
+    $StateRelativePaths += @(
+        "agent_local\data\local_api_token.txt",
+        "agent_local\data\local_orders.db"
+    )
+}
+
 if (!(Test-Path $sourceAgent) -or !(Test-Path $sourceBackend) -or !(Test-Path $sourceRequirements)) {
     throw "Pacote invalido. Esperado: agent_local/, backend/ e requirements.txt ao lado do instalador."
 }
 
-$candidateInstallDirs = @($LegacyInstallDirs + @($InstallDir)) |
+$candidateInstallDirs = @(Resolve-FullPath $InstallDir)
+$stateSourceDirs = @($InstallDir)
+if ($PackageKind -eq "sync-relatorios") {
+    $stateSourceDirs += $ComandaInstallDir
+}
+$stateSourceDirs = $stateSourceDirs |
     ForEach-Object { Resolve-FullPath $_ } |
     Select-Object -Unique
 $stateBackupRoot = Join-Path ([System.IO.Path]::GetTempPath()) ("Movi_commanda_install_state_" + [System.Guid]::NewGuid().ToString("N"))
@@ -305,12 +336,10 @@ Write-Step "Parando processos antigos do aplicativo"
 Stop-MoviProcesses $candidateInstallDirs
 
 Write-Step "Preservando configuracao local e dados pendentes"
-Backup-InstallState $candidateInstallDirs $stateBackupRoot
+Backup-InstallState $stateSourceDirs $stateBackupRoot
 
 Write-Step "Removendo instalacoes antigas"
-foreach ($candidateDir in $candidateInstallDirs) {
-    Remove-InstallTree $candidateDir
-}
+Remove-InstallTree $InstallDir
 
 Write-Step "Preparando pasta de instalacao em $InstallDir"
 New-Item -ItemType Directory -Force -Path $InstallDir | Out-Null
@@ -364,10 +393,10 @@ else {
     }
 }
 $envText = Get-Content ".env" -Raw
-if ($envText -notmatch "(?im)^LOCAL_ORDER_PUSH_XD_ENABLED=") {
+if ($PackageKind -eq "comanda" -and $envText -notmatch "(?im)^LOCAL_ORDER_PUSH_XD_ENABLED=") {
     Add-Content -Path ".env" -Value "LOCAL_ORDER_PUSH_XD_ENABLED=true" -Encoding ascii
 }
-if ($envText -notmatch "(?im)^LOCAL_ORDER_XD_TERMINAL_ID=") {
+if ($PackageKind -eq "comanda" -and $envText -notmatch "(?im)^LOCAL_ORDER_XD_TERMINAL_ID=") {
     Add-Content -Path ".env" -Value "LOCAL_ORDER_XD_TERMINAL_ID=1" -Encoding ascii
 }
 
@@ -376,22 +405,24 @@ New-Item -ItemType Directory -Force -Path (Join-Path $InstallDir "logs") | Out-N
 New-Item -ItemType Directory -Force -Path (Join-Path $InstallDir "agent_local\data") | Out-Null
 $lanIPv4 = Resolve-LanIPv4
 
-$localApiTokenFile = Join-Path $InstallDir "agent_local\data\local_api_token.txt"
-if (!(Test-Path $localApiTokenFile)) {
-    New-LocalPairingToken | Set-Content -Path $localApiTokenFile -Encoding ascii
+if ($PackageKind -eq "comanda") {
+    $localApiTokenFile = Join-Path $InstallDir "agent_local\data\local_api_token.txt"
+    if (!(Test-Path $localApiTokenFile)) {
+        New-LocalPairingToken | Set-Content -Path $localApiTokenFile -Encoding ascii
+    }
+
+    Write-Step "Configurando firewall para acesso em rede local"
+    Ensure-LocalApiFirewallRule $LocalApiPort
+
+    Set-Content -Path (Join-Path $InstallDir "ACESSO_REDE_LOCAL.txt") -Encoding ascii -Value @(
+        "Movi_commanda - acesso em rede local"
+        "URL nesta maquina: http://127.0.0.1:$LocalApiPort/orders/ui"
+        "URL para celulares/tablets na mesma rede: http://$lanIPv4`:$LocalApiPort/orders/ui"
+        "Porta: $LocalApiPort"
+        "Token de pareamento: $((Get-Content -Path $localApiTokenFile -Raw).Trim())"
+        "Observacao: conecte os celulares/tablets no mesmo Wi-Fi da maquina servidor."
+    )
 }
-
-Write-Step "Configurando firewall para acesso em rede local"
-Ensure-LocalApiFirewallRule $LocalApiPort
-
-Set-Content -Path (Join-Path $InstallDir "ACESSO_REDE_LOCAL.txt") -Encoding ascii -Value @(
-    "Movi_commanda - acesso em rede local"
-    "URL nesta maquina: http://127.0.0.1:$LocalApiPort/orders/ui"
-    "URL para celulares/tablets na mesma rede: http://$lanIPv4`:$LocalApiPort/orders/ui"
-    "Porta: $LocalApiPort"
-    "Token de pareamento: $((Get-Content -Path $localApiTokenFile -Raw).Trim())"
-    "Observacao: conecte os celulares/tablets no mesmo Wi-Fi da maquina servidor."
-)
 
 @'
 @echo off
@@ -498,17 +529,50 @@ if (Test-Path ".\scripts\set-agent-manual-password.ps1") {
     powershell -NoProfile -ExecutionPolicy Bypass -File ".\scripts\set-agent-manual-password.ps1" -Password 25032015 | Out-Null
 }
 
+if ($PackageKind -eq "comanda") {
+    Remove-Item -LiteralPath "Iniciar_Relatorios_Sync.cmd" -Force -ErrorAction SilentlyContinue
+    Remove-Item -LiteralPath "Iniciar_Relatorios_Sync.vbs" -Force -ErrorAction SilentlyContinue
+    Remove-Item -LiteralPath "Iniciar_Relatorios_Sync_Debug.cmd" -Force -ErrorAction SilentlyContinue
+    Remove-Item -LiteralPath "Abrir_Status_Relatorios.cmd" -Force -ErrorAction SilentlyContinue
+    Remove-Item -LiteralPath "Abrir_Status_Relatorios.vbs" -Force -ErrorAction SilentlyContinue
+}
+else {
+    Remove-Item -LiteralPath "Abrir_API_Local.vbs" -Force -ErrorAction SilentlyContinue
+    Remove-Item -LiteralPath "Abrir_Comandas_Locais.cmd" -Force -ErrorAction SilentlyContinue
+    Remove-Item -LiteralPath "Abrir_Comandas_Locais.vbs" -Force -ErrorAction SilentlyContinue
+    Remove-Item -LiteralPath "Abrir_Icone_API.vbs" -Force -ErrorAction SilentlyContinue
+    Remove-Item -LiteralPath "Iniciar_Movi_commanda_Windows.vbs" -Force -ErrorAction SilentlyContinue
+    Remove-Item -LiteralPath "Definir_Senha_Operador_Local.cmd" -Force -ErrorAction SilentlyContinue
+    Remove-Item -LiteralPath "ACESSO_REDE_LOCAL.txt" -Force -ErrorAction SilentlyContinue
+}
+
 Write-Step "Criando atalhos na area de trabalho"
-Remove-DesktopShortcutsByPrefix @(
-    "Movi"
-)
+if ($PackageKind -eq "comanda") {
+    Remove-DesktopShortcutsByPrefix @("Movi_commanda")
+}
+else {
+    Remove-DesktopShortcutsByPrefix @("MoviSync Relatorios", "Movi_relatorios_sync")
+}
 Remove-DesktopShortcutsByTargetRoots $candidateInstallDirs
-New-DesktopShortcut -Name "Movi_commanda Definicoes - $packageVersion.lnk" -TargetPath (Join-Path $InstallDir "Abrir_Painel_Local.vbs") -WorkingDirectory $InstallDir
-New-DesktopShortcut -Name "Movi_commanda - $packageVersion.lnk" -TargetPath (Join-Path $InstallDir "Abrir_Comandas_Locais.vbs") -WorkingDirectory $InstallDir
+if ($PackageKind -eq "comanda") {
+    New-DesktopShortcut -Name "Movi_commanda Definicoes - $packageVersion.lnk" -TargetPath (Join-Path $InstallDir "Abrir_Painel_Local.vbs") -WorkingDirectory $InstallDir
+    New-DesktopShortcut -Name "Movi_commanda - $packageVersion.lnk" -TargetPath (Join-Path $InstallDir "Abrir_Comandas_Locais.vbs") -WorkingDirectory $InstallDir
+}
+else {
+    New-DesktopShortcut -Name "MoviSync Relatorios Configurar - $packageVersion.lnk" -TargetPath (Join-Path $InstallDir "Abrir_Painel_Local.vbs") -WorkingDirectory $InstallDir
+    New-DesktopShortcut -Name "MoviSync Relatorios Status - $packageVersion.lnk" -TargetPath (Join-Path $InstallDir "Abrir_Status_Relatorios.vbs") -WorkingDirectory $InstallDir
+    New-DesktopShortcut -Name "MoviSync Relatorios Iniciar - $packageVersion.lnk" -TargetPath (Join-Path $InstallDir "Iniciar_Relatorios_Sync.vbs") -WorkingDirectory $InstallDir
+}
 
 Write-Step "Configurando inicializacao com Windows"
-Remove-StartupShortcutsByPrefix @("Movi")
-New-StartupShortcut -Name "Movi_commanda AutoStart.lnk" -TargetPath (Join-Path $InstallDir "Iniciar_Movi_commanda_Windows.vbs") -WorkingDirectory $InstallDir
+if ($PackageKind -eq "comanda") {
+    Remove-StartupShortcutsByPrefix @("Movi_commanda")
+    New-StartupShortcut -Name "Movi_commanda AutoStart.lnk" -TargetPath (Join-Path $InstallDir "Iniciar_Movi_commanda_Windows.vbs") -WorkingDirectory $InstallDir
+}
+else {
+    Remove-StartupShortcutsByPrefix @("MoviSync Relatorios", "Movi_relatorios_sync")
+    New-StartupShortcut -Name "MoviSync Relatorios AutoStart.lnk" -TargetPath (Join-Path $InstallDir "Iniciar_Relatorios_Sync.vbs") -WorkingDirectory $InstallDir
+}
 
 Pop-Location
 
@@ -517,23 +581,37 @@ Write-Host ""
 Write-Host "Versao instalada: $packageVersion"
 Write-Host "Arquivo de versao: $InstallDir\VERSAO_INSTALADA.txt"
 Write-Host ""
-Write-Host "Proximos passos no painel local:"
-Write-Host "1) Informe o codigo de vinculacao."
-Write-Host "2) Configure o banco MariaDB local."
-Write-Host "3) Clique para testar e salvar."
-Write-Host "4) A API local de comandas inicia junto com o Windows."
-Write-Host "5) O sync de relatorios fica separado em Iniciar_Relatorios_Sync.cmd."
+if ($PackageKind -eq "comanda") {
+    Write-Host "API Comanda instalada em $InstallDir."
+    Write-Host "A API local de comandas inicia junto com o Windows."
+}
+else {
+    Write-Host "API Sync Relatorios instalada em $InstallDir."
+    Write-Host "O sync de relatorios inicia junto com o Windows."
+}
 
 if ($OpenPanel) {
     Write-Step "Abrindo painel local"
     Start-Process -FilePath "wscript.exe" -ArgumentList @("//nologo", (Join-Path $InstallDir "Abrir_Painel_Local.vbs")) -WorkingDirectory $InstallDir -WindowStyle Hidden
-    Write-Step "Abrindo icone de status"
-    Start-Process -FilePath "wscript.exe" -ArgumentList @("//nologo", (Join-Path $InstallDir "Iniciar_Movi_commanda_Windows.vbs")) -WorkingDirectory $InstallDir -WindowStyle Hidden
+    if ($PackageKind -eq "comanda") {
+        Write-Step "Abrindo icone de status"
+        Start-Process -FilePath "wscript.exe" -ArgumentList @("//nologo", (Join-Path $InstallDir "Iniciar_Movi_commanda_Windows.vbs")) -WorkingDirectory $InstallDir -WindowStyle Hidden
+    }
+    else {
+        Write-Step "Iniciando sync de relatorios"
+        Start-Process -FilePath "wscript.exe" -ArgumentList @("//nologo", (Join-Path $InstallDir "Iniciar_Relatorios_Sync.vbs")) -WorkingDirectory $InstallDir -WindowStyle Hidden
+    }
 }
 elseif ($OpenOrders) {
-    Write-Step "Abrindo Movi_commanda"
-    Start-Process -FilePath "wscript.exe" -ArgumentList @("//nologo", (Join-Path $InstallDir "Iniciar_Movi_commanda_Windows.vbs")) -WorkingDirectory $InstallDir -WindowStyle Hidden
-    Start-Sleep -Seconds 3
-    Start-Process -FilePath "wscript.exe" -ArgumentList @("//nologo", (Join-Path $InstallDir "Abrir_Comandas_Locais.vbs")) -WorkingDirectory $InstallDir -WindowStyle Hidden
+    if ($PackageKind -eq "comanda") {
+        Write-Step "Abrindo Movi_commanda"
+        Start-Process -FilePath "wscript.exe" -ArgumentList @("//nologo", (Join-Path $InstallDir "Iniciar_Movi_commanda_Windows.vbs")) -WorkingDirectory $InstallDir -WindowStyle Hidden
+        Start-Sleep -Seconds 3
+        Start-Process -FilePath "wscript.exe" -ArgumentList @("//nologo", (Join-Path $InstallDir "Abrir_Comandas_Locais.vbs")) -WorkingDirectory $InstallDir -WindowStyle Hidden
+    }
+    else {
+        Write-Step "Iniciando sync de relatorios"
+        Start-Process -FilePath "wscript.exe" -ArgumentList @("//nologo", (Join-Path $InstallDir "Iniciar_Relatorios_Sync.vbs")) -WorkingDirectory $InstallDir -WindowStyle Hidden
+    }
 }
 

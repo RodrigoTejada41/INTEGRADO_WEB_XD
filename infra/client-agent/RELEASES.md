@@ -650,6 +650,44 @@
   - parser PowerShell OK;
   - `py -3 -m pytest tests\test_agent_local_orders.py -q` com `7 passed`.
 
+## v2026-05-05_sync-relatorios_r2
+
+- Restaura separacao operacional da API Sync Relatorios.
+- Instalacao padrao:
+  - `C:\MoviSyncAgent`.
+- Nao remove nem sobrescreve `C:\Movi_commanda`.
+- Migra estado necessario da instalacao misturada anterior quando existir:
+  - `.env`;
+  - `agent_local\data\agent_api_key.txt`;
+  - `agent_local\data\checkpoints.json`.
+- Cria atalhos separados:
+  - `MoviSync Relatorios Configurar`;
+  - `MoviSync Relatorios Status`;
+  - `MoviSync Relatorios Iniciar`.
+- Cria autostart separado:
+  - `MoviSync Relatorios AutoStart.lnk`.
+- Validacao real local:
+  - instalado em `C:\MoviSyncAgent`;
+  - ciclo `agent_local.sync.run_once` enviou `8` registros;
+  - `/sync` e `/sync/status` retornaram `200 OK`;
+  - processo continuo iniciado com `pythonw.exe -m agent_local.main`.
+- ZIP de entrega:
+  - `release-artifacts/api-sync-relatorios/MoviSyncAgent_Installer_v2026-05-05_sync-relatorios_r2.zip`
+- Tamanho validado:
+  - `186389` bytes
+
+## v2026-05-05_comandas_r30
+
+- Atualiza instalador da API Comanda para respeitar separacao com Sync Relatorios.
+- Instalacao padrao:
+  - `C:\Movi_commanda`.
+- Nao remove nem sobrescreve `C:\MoviSyncAgent`.
+- Remove scripts operacionais do Sync Relatorios da pasta da Comanda em novas instalacoes.
+- ZIP de entrega:
+  - `release-artifacts/api-comanda/Movi_commanda_Installer_v2026-05-05_comandas_r30.zip`
+- Tamanho validado:
+  - `186381` bytes
+
 ## v2026-05-05_comandas_r29
 
 - Hotfix da tela `DEFINICOES`.

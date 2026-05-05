@@ -1,6 +1,6 @@
 @echo off
 setlocal
-title Movi_commanda - Instalador
+title MoviSys - Instalador
 cd /d "%~dp0"
 
 net session >nul 2>&1
@@ -14,7 +14,7 @@ if not "%errorlevel%"=="0" (
 )
 
 echo ============================================================
-echo              Movi_commanda - Instalador
+echo              MoviSys - Instalador
 echo ============================================================
 echo.
 if exist ".\package-version.txt" (
@@ -24,18 +24,23 @@ if exist ".\package-version.txt" (
 )
 echo Versao do pacote: %PACKAGE_VERSION%
 echo.
-echo O instalador vai remover versoes antigas e preparar o aplicativo em C:\Movi_commanda.
-echo No final, a tela Movi_commanda sera aberta automaticamente.
+echo Este pacote instala a API correta em pasta separada:
+echo  - Comanda: C:\Movi_commanda
+echo  - Sync Relatorios: C:\MoviSyncAgent
 echo.
 echo Para configurar vinculo/API ou banco MariaDB, use depois:
 echo  - Movi_commanda Definicoes
+echo  - MoviSync Relatorios Configurar
 echo.
 echo Para comandas, use:
 echo  - Movi_commanda
 echo.
+echo Para relatorios, use:
+echo  - MoviSync Relatorios Iniciar
+echo.
 pause
 
-powershell -NoProfile -ExecutionPolicy Bypass -File ".\install-agent-client.ps1" -OpenOrders
+powershell -NoProfile -ExecutionPolicy Bypass -File ".\install-agent-client.ps1" -OpenOrders -PackageKind auto
 if errorlevel 1 (
   echo.
   echo A instalacao falhou.
@@ -47,7 +52,7 @@ if errorlevel 1 (
 echo.
 echo Instalacao concluida.
 echo Versao instalada: %PACKAGE_VERSION%
-echo Se a tela nao abriu, use o atalho "Movi_commanda - %PACKAGE_VERSION%" na area de trabalho.
+echo Use os atalhos criados na area de trabalho.
 echo.
 pause
 exit /b 0

@@ -11,7 +11,7 @@ Este pacote instala somente o agente local no Windows, com painel local para ban
    - informe o codigo de vinculacao;
    - configure o banco MariaDB local;
    - clique para testar e salvar.
-5. Use o icone `Movi_commanda` perto do relogio do Windows para iniciar, parar ou reiniciar.
+5. Use os atalhos criados para a API instalada.
 
 Compatibilidade:
 - `Setup_Instalar_Cliente.bat` continua existindo, mas agora chama o fluxo guiado.
@@ -28,28 +28,37 @@ O painel local permite configurar sem editar JSON ou `.env` manualmente:
 
 ## Arquivos criados no computador do cliente
 
-- `C:\Movi_commanda`
-- Atalho `Movi_commanda Definicoes` na area de trabalho
-- Atalho `Movi_commanda` na area de trabalho
-- Log em `C:\Movi_commanda\logs\agent-sync.log`
-- Arquivo de acesso em rede: `C:\Movi_commanda\ACESSO_REDE_LOCAL.txt`
+- API Comanda:
+  - `C:\Movi_commanda`
+  - Atalho `Movi_commanda Definicoes` na area de trabalho
+  - Atalho `Movi_commanda` na area de trabalho
+  - Arquivo de acesso em rede: `C:\Movi_commanda\ACESSO_REDE_LOCAL.txt`
+- API Sync Relatorios:
+  - `C:\MoviSyncAgent`
+  - Atalho `MoviSync Relatorios Configurar` na area de trabalho
+  - Atalho `MoviSync Relatorios Status` na area de trabalho
+  - Atalho `MoviSync Relatorios Iniciar` na area de trabalho
+  - Log em `C:\MoviSyncAgent\logs\agent-sync.log`
 
 ## Separacao operacional
 
-O `Movi_commanda` inicia somente a API local de comandas.
+As duas APIs ficam em pastas separadas.
 
 - Comandas:
+  - pasta `C:\Movi_commanda`
   - `Iniciar_Movi_commanda_Windows.vbs`
   - `Abrir_Comandas_Locais.vbs`
   - rotas `/orders/*`
   - cache `agent_local\data\local_orders.db`
 - Relatorios/sync:
+  - pasta `C:\MoviSyncAgent`
   - `Iniciar_Relatorios_Sync.cmd`
   - `Abrir_Status_Relatorios.cmd`
   - processo `agent_local.main`
   - logs `logs\agent-sync.log`
 
-O sync de relatorios nao inicia mais junto com a comanda.
+O instalador da Comanda nao remove nem sobrescreve `C:\MoviSyncAgent`.
+O instalador do Sync Relatorios nao remove nem sobrescreve `C:\Movi_commanda`.
 
 ## Acesso em rede local
 

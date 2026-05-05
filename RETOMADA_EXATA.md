@@ -2,6 +2,58 @@
 
 Data de atualizacao: 2026-05-05
 
+## Checkpoint Separacao API Comanda x API Sync Relatorios - 2026-05-05
+
+### Problema
+- Instalacao da API Comanda deixou scripts/configuracoes do Sync Relatorios na mesma pasta.
+- O Sync Relatorios precisava voltar a operar como API distinta.
+
+### Implementado
+- Instalador agora detecta o tipo do pacote:
+  - `comanda`;
+  - `sync-relatorios`.
+- Destinos separados:
+  - API Comanda: `C:\Movi_commanda`;
+  - API Sync Relatorios: `C:\MoviSyncAgent`.
+- Um instalador nao remove nem sobrescreve a pasta do outro.
+- Pacote `sync-relatorios` migra apenas estado necessario vindo da instalacao misturada anterior:
+  - `.env`;
+  - `agent_local\data\agent_api_key.txt`;
+  - `agent_local\data\checkpoints.json`.
+- Pasta do Sync Relatorios fica sem artefatos operacionais da Comanda:
+  - sem `ACESSO_REDE_LOCAL.txt`;
+  - sem atalhos/scripts de comandas;
+  - sem `local_orders.db`.
+- Atalhos e autostart separados:
+  - `Movi_commanda AutoStart.lnk`;
+  - `MoviSync Relatorios AutoStart.lnk`.
+
+### Validacao real local
+- Instalado `v2026-05-05_sync-relatorios_r2` em `C:\MoviSyncAgent`.
+- `C:\Movi_commanda` preservado.
+- Ciclo real executado:
+  - `GET /admin/api/health` -> `200 OK`;
+  - `POST /admin/api/sync` -> `200 OK`;
+  - `POST /admin/api/sync/status` -> `200 OK`;
+  - `sent_count=8`;
+  - `processed_count=8`.
+- Processo continuo iniciado:
+  - `C:\MoviSyncAgent\.venv\Scripts\pythonw.exe -m agent_local.main`.
+- Confirmado sem processo `agent_local.main` em `C:\Movi_commanda`.
+
+### Validacao
+- Parser PowerShell do instalador -> OK
+- `py -3 -m pytest tests\test_agent_local_orders.py::test_client_installer_keeps_comanda_and_sync_in_separate_folders -q` -> `1 passed`
+- `py -3 -m pytest tests\test_agent_local_orders.py tests\test_release_smoke_contract.py -q` -> `28 passed, 1 skipped`
+- `py -3 -m pytest tests\test_agent_local_sales_mapping.py tests\test_xd_sales_mapper.py tests\test_sync_status_reporting.py tests\test_agent_checkpoint_reset.py -q` -> `13 passed`
+- Releases geradas:
+  - `release-artifacts/api-sync-relatorios/MoviSyncAgent_Installer_v2026-05-05_sync-relatorios_r2.zip`
+  - `release-artifacts/api-comanda/Movi_commanda_Installer_v2026-05-05_comandas_r30.zip`
+- Tamanhos:
+  - Sync Relatorios: `186389` bytes
+  - Comanda: `186381` bytes
+- ZIPs validados sem `__pycache__`, sem `.pyc`, sem `.env` e sem `local_orders.db`
+
 ## Checkpoint Nomenclatura Mesa/Comanda - 2026-05-05
 
 ### Problema

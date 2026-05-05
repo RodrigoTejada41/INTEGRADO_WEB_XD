@@ -572,14 +572,23 @@ def test_local_order_printing_uses_configured_display_label() -> None:
     assert "MESA 030" not in ticket
 
 
-def test_client_installer_removes_old_movisync_residue() -> None:
+def test_client_installer_keeps_comanda_and_sync_in_separate_folders() -> None:
     installer = Path("infra/client-agent/install-agent-client.ps1").read_text(encoding="utf-8")
     quick_start = Path("infra/client-agent/COMECE_AQUI.bat").read_text(encoding="utf-8")
     readme = Path("infra/client-agent/README.md").read_text(encoding="utf-8")
     requirements = Path("requirements.txt").read_text(encoding="utf-8")
 
-    assert '[string]$InstallDir = "C:\\Movi_commanda"' in installer
-    assert '$LegacyInstallDirs = @("C:\\MoviSyncAgent")' in installer
+    assert '[ValidateSet("auto", "comanda", "sync-relatorios")]' in installer
+    assert '$ComandaInstallDir = "C:\\Movi_commanda"' in installer
+    assert '$SyncInstallDir = "C:\\MoviSyncAgent"' in installer
+    assert '$InstallDir = $SyncInstallDir' in installer
+    assert '$InstallDir = $ComandaInstallDir' in installer
+    assert '$candidateInstallDirs = @(Resolve-FullPath $InstallDir)' in installer
+    assert '$stateSourceDirs += $ComandaInstallDir' in installer
+    assert 'Remove-InstallTree $InstallDir' in installer
+    assert 'Remove-InstallTree $candidateDir' not in installer
+    assert 'Remove-Item -LiteralPath "Iniciar_Relatorios_Sync.cmd"' in installer
+    assert 'Remove-Item -LiteralPath "Abrir_Comandas_Locais.cmd"' in installer
     assert "Backup-InstallState" in installer
     assert "Restore-InstallState" in installer
     assert "Remove-InstallTree" in installer
@@ -601,8 +610,8 @@ def test_client_installer_removes_old_movisync_residue() -> None:
     assert "Movi_commanda API Local -" not in installer
     assert "Movi_commanda Status -" not in installer
     assert "Movi_commanda Iniciar Servico -" not in installer
-    assert "MoviSync" not in quick_start
-    assert "C:\\MoviSyncAgent" not in readme
+    assert "C:\\Movi_commanda" in quick_start
+    assert "C:\\MoviSyncAgent" in readme
     assert Path("infra/client-agent/scripts/set-local-operator-password.ps1").exists()
     assert "psycopg2-binary==2.9.10" in requirements
     assert "psycopg2-binary==2.9.9" not in requirements
