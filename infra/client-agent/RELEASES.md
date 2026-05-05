@@ -650,6 +650,28 @@
   - parser PowerShell OK;
   - `py -3 -m pytest tests\test_agent_local_orders.py -q` com `7 passed`.
 
+## v2026-05-05_comandas_r28
+
+- API Comanda agora permite trocar a nomenclatura exibida entre `Mesa` e `Comanda`.
+- Mudanca restrita a textos/labels e documentos gerados:
+  - UI local;
+  - pre-conta HTML;
+  - recibo termico;
+  - tickets por grupo de produto.
+- Sem alteracao em rotas, endpoints, `command_number`, `table_reference` ou estrutura de dados.
+- Nova configuracao:
+  - `nomenclatura_mesa = Mesa | Comanda`;
+  - fallback `.env`: `LOCAL_ORDER_DISPLAY_LABEL=Mesa`.
+- ZIP de entrega:
+  - `release-artifacts/api-comanda/Movi_commanda_Installer_v2026-05-05_comandas_r28.zip`
+- Tamanho validado:
+  - `185932` bytes
+- Validacao:
+  - `py -3 -m compileall agent_local -q` sem erro;
+  - `py -3 -m pytest tests\test_agent_local_orders.py -q` com `27 passed`;
+  - `py -3 -m pytest -q` com `96 passed, 1 skipped`;
+  - ZIP sem `__pycache__`, sem `.pyc`, sem `.env` e sem `local_orders.db`.
+
 ## v2026-05-03_comandas
 
 - Pacote oficial com comandas locais separadas da API de sync de relatorios.

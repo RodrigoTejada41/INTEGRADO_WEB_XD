@@ -26,7 +26,7 @@ from agent_local.config.database_config import (
 from agent_local.db.mariadb_client import MariaDBClient
 from agent_local.db.xd_printer_queue import XDPrinterQueueWriter, XDPrintQueueJob
 from agent_local.db.xd_open_orders_writer import XDOpenOrdersWriter
-from agent_local.orders.printer import render_thermal_receipt
+from agent_local.orders.printer import normalize_order_label, render_thermal_receipt
 from agent_local.orders.repository import LocalOrderRepository
 from agent_local.orders.schemas import (
     LocalCommandaAppInfoResponse,
@@ -217,6 +217,15 @@ def _receipt_width() -> int:
         return int(raw_width)
     except ValueError:
         raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="LOCAL_ORDER_RECEIPT_WIDTH invalido.") from None
+
+
+def _order_display_label() -> str:
+    configured = _config_value("LOCAL_ORDER_DISPLAY_LABEL")
+    try:
+        configured = _order_service().get_settings().nomenclatura_mesa or configured
+    except Exception:
+        pass
+    return normalize_order_label(configured)
 
 
 def _local_api_port() -> int:
@@ -433,6 +442,7 @@ def _print_order_items_by_group(order) -> None:
             jobs_dir=_print_jobs_dir(),
             width=_receipt_width(),
             spool_enabled=not xd_queue_enabled,
+            order_label=_order_display_label(),
         )
         if xd_queue_enabled:
             _enqueue_print_jobs_to_xd(jobs)
@@ -1259,13 +1269,14 @@ def order_prebill(order_uuid: str, _: None = Depends(_require_token)) -> str:
         if payment_rows
         else ""
     )
+    order_label = _order_display_label()
     reference_label = f"Referencia {order.table_reference}" if order.table_reference else "Referencia nao informada"
     return f"""
 <!doctype html>
 <html lang="pt-BR">
 <head>
   <meta charset="utf-8">
-  <title>Pre-conta - Mesa {escape(order.command_number)}</title>
+  <title>Pre-conta - {escape(order_label)} {escape(order.command_number)}</title>
   <style>
     body {{ font-family: Arial, sans-serif; margin: 20px; color: #111827; }}
     h1 {{ font-size: 22px; margin: 0 0 8px; }}
@@ -1281,7 +1292,7 @@ def order_prebill(order_uuid: str, _: None = Depends(_require_token)) -> str:
 </head>
 <body>
   <button onclick="window.print()">Imprimir pre-conta</button>
-  <h1>Mesa {escape(order.command_number)}</h1>
+  <h1>{escape(order_label)} {escape(order.command_number)}</h1>
   <div class="meta">
     <div>{escape(reference_label)}</div>
     <div>Operador: {escape(order.operator_name or order.operator_code or 'Nao informado')}</div>
@@ -1304,7 +1315,7 @@ def order_thermal_receipt(order_uuid: str, _: None = Depends(_require_token)) ->
         order = _order_repository().get_by_uuid(empresa_id=_empresa_id(), order_uuid=order_uuid)
     except KeyError:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Comanda nao encontrada.") from None
-    return render_thermal_receipt(order, width=_receipt_width())
+    return render_thermal_receipt(order, width=_receipt_width(), order_label=_order_display_label())
 
 
 @app.post("/orders/{order_uuid}/print", response_model=LocalOrderPrintResponse)
@@ -1319,6 +1330,7 @@ def print_order(
             jobs_dir=_print_jobs_dir(),
             printer_name=_config_value("LOCAL_ORDER_PRINTER_NAME"),
             width=_receipt_width(),
+            order_label=_order_display_label(),
         )
     except Exception as exc:
         raise _handle_order_error(exc) from exc

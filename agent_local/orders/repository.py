@@ -922,6 +922,7 @@ class LocalOrderRepository:
             "usuario_logado": "",
             "versao_app": "1.0.0",
             "codigo_versao": "100",
+            "nomenclatura_mesa": "Mesa",
         }
         connection.executemany(
             """

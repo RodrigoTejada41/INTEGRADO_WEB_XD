@@ -4,6 +4,7 @@ import importlib
 import os
 import sys
 from pathlib import Path
+from decimal import Decimal
 import sqlite3
 
 from fastapi.testclient import TestClient
@@ -470,7 +471,7 @@ def test_local_orders_web_ui_is_available() -> None:
     assert "Revisar pedido" in response.text
     assert "Confirmar pedido" in response.text
     assert "Mesa identifica o pedido. Referencia e apenas apoio operacional." in response.text
-    assert "<th>Mesa</th><th>Referencia</th>" in response.text
+    assert '<th data-table-label>Mesa</th><th>Referencia</th>' in response.text
     assert "Numero da comanda" not in response.text
     assert "Lixeira" in response.text
     assert "CONTROLE POR VOZ" in response.text
@@ -494,6 +495,64 @@ def test_local_orders_web_ui_is_available() -> None:
     assert "XD" not in response.text
     assert "XD Orders" not in response.text
     assert "XDOrders" not in response.text
+
+
+def test_local_orders_ui_allows_display_label_configuration() -> None:
+    local_api = _reload_local_api()
+
+    with TestClient(local_api.app) as client:
+        response = client.get("/orders/ui")
+
+    assert response.status_code == 200
+    assert "set-nomenclatura-mesa" in response.text
+    assert "Nomenclatura exibida" in response.text
+    assert "applyTableLabel" in response.text
+
+
+def test_local_order_printing_uses_configured_display_label() -> None:
+    from agent_local.orders.printer import render_group_order_ticket, render_thermal_receipt
+    from agent_local.orders.repository import StoredOrder, StoredOrderItem
+
+    order = StoredOrder(
+        uuid="order-1",
+        empresa_id="12345678000199",
+        command_number="030",
+        people_count=None,
+        table_reference=None,
+        operator_code="OP",
+        operator_name="Operador",
+        customer_name=None,
+        status="open",
+        sync_status="pending",
+        total_amount=Decimal("10.00"),
+        payment_method=None,
+        amount_paid=None,
+        closed_at=None,
+        cancel_reason=None,
+        notes=None,
+        created_at="2026-05-05T00:00:00+00:00",
+        updated_at="2026-05-05T00:00:00+00:00",
+        items=[
+            StoredOrderItem(
+                id=1,
+                product_code="P1",
+                description="Produto",
+                quantity=Decimal("1"),
+                unit_price=Decimal("10.00"),
+                line_total=Decimal("10.00"),
+                notes=None,
+            )
+        ],
+        payments=[],
+    )
+
+    receipt = render_thermal_receipt(order, order_label="Comanda")
+    ticket = render_group_order_ticket(order, family="SUSHI", items=order.items, order_label="Comanda")
+
+    assert "COMANDA 030" in receipt
+    assert "MESA 030" not in receipt
+    assert "COMANDA 030" in ticket
+    assert "MESA 030" not in ticket
 
 
 def test_client_installer_removes_old_movisync_residue() -> None:

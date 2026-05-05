@@ -214,6 +214,7 @@ def render_orders_ui() -> str:
         </div>
         <div class="settings-section">
           <h2>Outras configuracoes</h2>
+          <div class="setting-row"><div><strong>Nomenclatura exibida</strong><small>Altera apenas textos e impressao</small></div><select id="set-nomenclatura-mesa"><option value="Mesa">Mesa</option><option value="Comanda">Comanda</option></select></div>
           <div class="setting-row"><div><strong>Interface</strong><small>Tema visual</small></div><input id="set-tema-interface"></div>
           <div class="setting-row"><div><strong>Aplicativo</strong><small>Usuario logado</small></div><input id="set-usuario-logado"></div>
         </div>
@@ -279,7 +280,7 @@ def render_orders_ui() -> str:
       <div class="surface stack">
         <div class="grid two">
           <div>
-            <label>Mesa</label>
+            <label data-table-label>Mesa</label>
             <input id="command-number" inputmode="numeric" autocomplete="off">
           </div>
           <div>
@@ -295,7 +296,7 @@ def render_orders_ui() -> str:
           <button class="primary" type="button" onclick="goProducts()">Selecionar produtos</button>
           <button class="secondary" type="button" onclick="showScreen('menu')">Voltar</button>
         </div>
-        <div class="muted">Mesa identifica o pedido. Referencia e apenas apoio operacional.</div>
+        <div id="table-label-help" class="muted">Mesa identifica o pedido. Referencia e apenas apoio operacional.</div>
       </div>
     </section>
 
@@ -346,7 +347,7 @@ def render_orders_ui() -> str:
             <input id="consult-table" autocomplete="off">
           </div>
           <div>
-            <label>Mesa</label>
+            <label data-table-label>Mesa</label>
             <input id="consult-command" autocomplete="off">
           </div>
         </div>
@@ -357,7 +358,7 @@ def render_orders_ui() -> str:
       </div>
       <div class="surface" style="margin-top:12px; overflow:auto;">
         <table class="table-list">
-          <thead><tr><th>Mesa</th><th>Referencia</th><th>Status</th><th>Total</th><th></th></tr></thead>
+          <thead><tr><th data-table-label>Mesa</th><th>Referencia</th><th>Status</th><th>Total</th><th></th></tr></thead>
           <tbody id="orders"></tbody>
         </table>
       </div>
@@ -366,7 +367,7 @@ def render_orders_ui() -> str:
     <section id="screen-print" class="screen">
       <div class="surface stack">
         <div>
-          <label>Mesa para pre-conta</label>
+          <label><span data-table-label>Mesa</span> para pre-conta</label>
           <select id="print-order"></select>
         </div>
         <div class="actions">
@@ -400,7 +401,8 @@ const state = {
   activeOrderUuid: '',
   activeCommandNumber: '',
   networkInfo: null,
-  searchTimer: null
+  searchTimer: null,
+  tableLabel: 'Mesa'
 };
 
 function localHeaders(json = true) {
@@ -437,6 +439,19 @@ function escapeHtml(value) {
   return String(value ?? '').replace(/[&<>"']/g, char => ({
     '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
   }[char]));
+}
+
+function tableLabel() {
+  return state.tableLabel;
+}
+
+function applyTableLabel(value) {
+  state.tableLabel = value === 'Comanda' ? 'Comanda' : 'Mesa';
+  document.querySelectorAll('[data-table-label]').forEach(el => {
+    el.textContent = state.tableLabel;
+  });
+  const help = document.getElementById('table-label-help');
+  if (help) help.textContent = `${state.tableLabel} identifica o pedido. Referencia e apenas apoio operacional.`;
 }
 
 async function responseMessage(response) {
@@ -554,7 +569,8 @@ function settingsPayload() {
     tema_interface: document.getElementById('set-tema-interface').value,
     usuario_logado: document.getElementById('set-usuario-logado').value,
     versao_app: document.getElementById('set-versao-app').value,
-    codigo_versao: document.getElementById('set-codigo-versao').value
+    codigo_versao: document.getElementById('set-codigo-versao').value,
+    nomenclatura_mesa: document.getElementById('set-nomenclatura-mesa').value
   };
 }
 
@@ -571,6 +587,8 @@ function fillSettings(settings) {
   document.getElementById('set-usuario-logado').value = settings.usuario_logado || '';
   document.getElementById('set-versao-app').value = settings.versao_app || '';
   document.getElementById('set-codigo-versao').value = settings.codigo_versao || '';
+  document.getElementById('set-nomenclatura-mesa').value = settings.nomenclatura_mesa || 'Mesa';
+  applyTableLabel(settings.nomenclatura_mesa || 'Mesa');
 }
 
 async function loadNetworkInfo() {
@@ -641,6 +659,7 @@ async function saveSettings() {
   });
   message.className = response.ok ? 'success' : 'error';
   message.textContent = response.ok ? 'Definicoes salvas.' : await response.text();
+  if (response.ok) applyTableLabel(payload.nomenclatura_mesa);
 }
 
 async function testConnection() {
@@ -838,7 +857,7 @@ async function goProducts() {
   const command = document.getElementById('command-number').value.trim();
   const table = document.getElementById('table-reference').value.trim();
   if (!command) {
-    alert('Informe a mesa.');
+    alert(`Informe a ${tableLabel().toLowerCase()}.`);
     return;
   }
   await loadProducts();
@@ -970,7 +989,7 @@ function showReview() {
   }
   const command = document.getElementById('command-number').value.trim();
   const table = document.getElementById('table-reference').value.trim();
-  document.getElementById('review-header').textContent = `Mesa ${command}`;
+  document.getElementById('review-header').textContent = `${tableLabel()} ${command}`;
   document.getElementById('review-meta').textContent = `Referencia ${table || '-'} | Pessoas ${document.getElementById('people-count').value || '-'}`;
   renderCart();
   showScreen('review');
@@ -1040,7 +1059,7 @@ async function loadOrders() {
     </tr>
   `).join('');
   document.getElementById('print-order').innerHTML = orders.map(order => `
-    <option value="${escapeHtml(order.uuid)}">Mesa ${escapeHtml(order.command_number)} - Ref ${escapeHtml(order.table_reference || '-')}</option>
+    <option value="${escapeHtml(order.uuid)}">${tableLabel()} ${escapeHtml(order.command_number)} - Ref ${escapeHtml(order.table_reference || '-')}</option>
   `).join('');
 }
 
@@ -1055,7 +1074,7 @@ function closeModal() {
 }
 
 function activeCommand() {
-  return state.activeCommandNumber || document.getElementById('command-number').value.trim() || prompt('Numero da mesa') || '';
+  return state.activeCommandNumber || document.getElementById('command-number').value.trim() || prompt(`Numero da ${tableLabel().toLowerCase()}`) || '';
 }
 
 function renderSummary(payload) {
@@ -1070,7 +1089,7 @@ function renderSummary(payload) {
     </tr>
   `).join('');
   return `
-    <div class="muted">Mesa ${escapeHtml(order.command_number)} | Referencia ${escapeHtml(order.table_reference || '-')} | Pessoas ${escapeHtml(order.people_count || '-')}</div>
+    <div class="muted">${tableLabel()} ${escapeHtml(order.command_number)} | Referencia ${escapeHtml(order.table_reference || '-')} | Pessoas ${escapeHtml(order.people_count || '-')}</div>
     <table class="table-list">
       <thead><tr><th>Item</th><th>Qtd</th><th>Unit.</th><th>Total</th></tr></thead>
       <tbody>${items}</tbody>
@@ -1191,7 +1210,7 @@ function openOtherMenu() {
   openModal('Outros', `
     <button class="secondary" type="button" onclick="closeModal(); document.getElementById('product-search').value=''; showScreen('products')">Consultar produto</button>
     <button class="secondary" type="button" onclick="closeModal(); openPrint()">Reimprimir pedido</button>
-    <button class="secondary" type="button" onclick="closeModal(); openConsult()">Consultar mesa</button>
+    <button class="secondary" type="button" onclick="closeModal(); openConsult()">Consultar ${tableLabel().toLowerCase()}</button>
     <button class="secondary" type="button" onclick="openModal('Abrir gaveta', '<pre>Integracao com gaveta ainda nao configurada neste pacote local.</pre>')">Abrir gaveta</button>
   `);
 }

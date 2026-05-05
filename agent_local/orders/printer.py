@@ -11,6 +11,7 @@ from agent_local.orders.repository import StoredOrder, StoredOrderItem
 
 
 DEFAULT_RECEIPT_WIDTH = 32
+DEFAULT_ORDER_LABEL = "Mesa"
 
 
 @dataclass(frozen=True)
@@ -65,13 +66,23 @@ def _separator(width: int) -> str:
     return "-" * width
 
 
-def render_thermal_receipt(order: StoredOrder, *, width: int = DEFAULT_RECEIPT_WIDTH) -> str:
+def normalize_order_label(value: str | None) -> str:
+    return "Comanda" if (value or "").strip().lower() == "comanda" else DEFAULT_ORDER_LABEL
+
+
+def render_thermal_receipt(
+    order: StoredOrder,
+    *,
+    width: int = DEFAULT_RECEIPT_WIDTH,
+    order_label: str = DEFAULT_ORDER_LABEL,
+) -> str:
     width = max(24, min(width, 48))
+    display_label = normalize_order_label(order_label).upper()
     reference_label = f"Referencia {order.table_reference}" if order.table_reference else "Referencia nao informada"
     operator = order.operator_name or order.operator_code or "Nao informado"
     lines = [
         _center("PRE-CONTA", width),
-        _center(f"MESA {order.command_number}", width),
+        _center(f"{display_label} {order.command_number}", width),
         _separator(width),
         _line(reference_label, order.status.upper(), width),
         _fit(f"Operador: {operator}", width),
@@ -102,13 +113,15 @@ def render_group_order_ticket(
     family: str,
     items: list[StoredOrderItem],
     width: int = DEFAULT_RECEIPT_WIDTH,
+    order_label: str = DEFAULT_ORDER_LABEL,
 ) -> str:
     width = max(24, min(width, 48))
+    display_label = normalize_order_label(order_label).upper()
     reference_label = f"Referencia {order.table_reference}" if order.table_reference else "Referencia nao informada"
     lines = [
         _center("PEDIDO", width),
         _center(_clean_text(family).upper(), width),
-        _center(f"MESA {order.command_number}", width),
+        _center(f"{display_label} {order.command_number}", width),
         _separator(width),
         _fit(reference_label, width),
         _fit(f"Operador: {order.operator_name or order.operator_code or 'Nao informado'}", width),
@@ -134,6 +147,7 @@ class LocalOrderPrinter:
         terminal_id: int | None = None,
         copies: int = 1,
         spool_enabled: bool = True,
+        order_label: str = DEFAULT_ORDER_LABEL,
     ):
         self.jobs_dir = Path(jobs_dir)
         self.printer_name = self._validate_printer_name(printer_name)
@@ -142,10 +156,11 @@ class LocalOrderPrinter:
         self.terminal_id = terminal_id
         self.copies = max(int(copies or 1), 1)
         self.spool_enabled = spool_enabled
+        self.order_label = normalize_order_label(order_label)
 
     def create_job(self, order: StoredOrder) -> LocalPrintJob:
         self.jobs_dir.mkdir(parents=True, exist_ok=True)
-        content = render_thermal_receipt(order, width=self.width)
+        content = render_thermal_receipt(order, width=self.width, order_label=self.order_label)
         created_at = datetime.now(UTC).strftime("%Y%m%d_%H%M%S")
         command_number = _safe_filename_part(order.command_number)
         job_path = self.jobs_dir / f"order_{command_number}_{created_at}.txt"
@@ -179,7 +194,7 @@ class LocalOrderPrinter:
         items: list[StoredOrderItem],
     ) -> LocalPrintJob:
         self.jobs_dir.mkdir(parents=True, exist_ok=True)
-        content = render_group_order_ticket(order, family=family, items=items, width=self.width)
+        content = render_group_order_ticket(order, family=family, items=items, width=self.width, order_label=self.order_label)
         created_at = datetime.now(UTC).strftime("%Y%m%d_%H%M%S")
         command_number = _safe_filename_part(order.command_number)
         family_name = _safe_filename_part(family)

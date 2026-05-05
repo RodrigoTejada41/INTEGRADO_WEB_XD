@@ -117,9 +117,22 @@ class LocalOrderService:
     def list_outbox(self) -> list[dict[str, object]]:
         return self.repository.list_outbox()
 
-    def print_order(self, order_uuid: str, *, jobs_dir: str | Path, printer_name: str | None, width: int):
+    def print_order(
+        self,
+        order_uuid: str,
+        *,
+        jobs_dir: str | Path,
+        printer_name: str | None,
+        width: int,
+        order_label: str = "Mesa",
+    ):
         order = self.repository.get_by_uuid(empresa_id=self.empresa_id, order_uuid=order_uuid)
-        return LocalOrderPrinter(jobs_dir=jobs_dir, printer_name=printer_name, width=width).create_job(order)
+        return LocalOrderPrinter(
+            jobs_dir=jobs_dir,
+            printer_name=printer_name,
+            width=width,
+            order_label=order_label,
+        ).create_job(order)
 
     def print_order_by_group(
         self,
@@ -128,6 +141,7 @@ class LocalOrderService:
         jobs_dir: str | Path,
         width: int,
         spool_enabled: bool = True,
+        order_label: str = "Mesa",
     ) -> list[LocalPrintJob]:
         jobs: list[LocalPrintJob] = []
         for group in self.repository.order_print_groups(order=order):
@@ -139,6 +153,7 @@ class LocalOrderService:
                 terminal_id=group.terminal_id,
                 copies=group.copies,
                 spool_enabled=spool_enabled,
+                order_label=order_label,
             ).create_group_job(order, family=group.family, items=group.items)
             jobs.append(job)
         return jobs

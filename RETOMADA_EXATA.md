@@ -1,6 +1,32 @@
 # RETOMADA EXATA - INTEGRADO_WEB_XD
 
-Data de atualizacao: 2026-05-04
+Data de atualizacao: 2026-05-05
+
+## Checkpoint Nomenclatura Mesa/Comanda - 2026-05-05
+
+### Problema
+- Cliente precisa alternar textos exibidos entre `Mesa` e `Comanda`.
+- A mudanca nao pode alterar `command_number`, rotas, endpoints ou estrutura de dados.
+
+### Implementado
+- Nova configuracao local:
+  - `nomenclatura_mesa = Mesa | Comanda`.
+- Tela `DEFINICOES` ganhou seletor `Nomenclatura exibida`.
+- UI atualiza labels de operacao conforme configuracao.
+- Pre-conta HTML, recibo termico e tickets por grupo usam a nomenclatura configurada.
+- Lógica interna continua usando `command_number` e `table_reference`.
+- Fallback opcional por ambiente:
+  - `LOCAL_ORDER_DISPLAY_LABEL=Mesa`.
+
+### Validacao
+- `py -3 -m compileall agent_local -q` -> sem erro
+- `py -3 -m pytest tests\test_agent_local_orders.py -q` -> `27 passed`
+- `py -3 -m pytest -q` -> `96 passed, 1 skipped`
+- Release gerada:
+  - `release-artifacts/api-comanda/Movi_commanda_Installer_v2026-05-05_comandas_r28.zip`
+- Tamanho:
+  - `185932` bytes
+- ZIP validado sem `__pycache__`, sem `.pyc`, sem `.env` e sem `local_orders.db`
 
 ## Checkpoint Fila de Impressao XD - 2026-05-04
 

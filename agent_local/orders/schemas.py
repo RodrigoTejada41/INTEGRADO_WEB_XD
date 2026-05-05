@@ -162,6 +162,7 @@ class LocalCommandaSettings(BaseModel):
     usuario_logado: str | None = Field(default=None, max_length=80)
     versao_app: str | None = Field(default=None, max_length=40)
     codigo_versao: str | None = Field(default=None, max_length=80)
+    nomenclatura_mesa: str = Field(default="Mesa", pattern="^(Mesa|Comanda)$")
 
     @field_validator(
         "ip_servidor",
