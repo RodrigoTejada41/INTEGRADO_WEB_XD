@@ -14,6 +14,24 @@
   - tamanho;
   - validacoes executadas.
 
+## v2026-05-05_sync-relatorios_r4
+
+- Release para corrigir atalho `MoviSync Relatorios Iniciar`.
+- Instalador:
+  - `Iniciar_Relatorios_Sync.vbs` agora inicia o sincronizador e abre o icone de status no mesmo fluxo;
+  - usa `pythonw.exe`, sem tela preta persistente;
+  - mantem o menu do icone para iniciar/parar/reiniciar, abrir painel e abrir log.
+- ZIP de entrega:
+  - `release-artifacts/api-sync-relatorios/MoviSyncAgent_Installer_v2026-05-05_sync-relatorios_r4.zip`
+- Tamanho validado:
+  - `186461` bytes
+- Validacao:
+  - `py -3 -m pytest tests\test_agent_local_orders.py -q` com `29 passed`;
+  - ZIP validado sem `__pycache__`, sem `.pyc`, sem `.env` e sem `local_orders.db`;
+  - hotfix aplicado em `C:\MoviSyncAgent\Iniciar_Relatorios_Sync.vbs`;
+  - sync executou ciclo com `sent_count=8` e `processed_count=8`;
+  - processo do icone iniciado via `agent_local.tray_app`.
+
 ## v2026-05-05_sync-relatorios_r3
 
 - Release para corrigir inicio do Sync Relatorios pelo atalho/autostart.

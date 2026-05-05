@@ -2,6 +2,38 @@
 
 Data de atualizacao: 2026-05-05
 
+## Checkpoint Icone Sync Relatorios - 2026-05-05
+
+### Problema
+- Ao clicar em iniciar o Sync Relatorios, abria tela preta/sem icone.
+- O atalho `Iniciar` subia apenas o sincronizador; o icone ficava dependente do atalho separado `Status`.
+
+### Implementado
+- `Iniciar_Relatorios_Sync.vbs` passa a:
+  - iniciar o sincronizador;
+  - abrir o icone de status no tray;
+  - usar `pythonw.exe`, sem console persistente.
+- Hotfix aplicado em `C:\MoviSyncAgent\Iniciar_Relatorios_Sync.vbs`.
+
+### Validacao
+- `py -3 -m pytest tests\test_agent_local_orders.py -q` -> `29 passed`
+- Release gerada:
+  - `release-artifacts/api-sync-relatorios/MoviSyncAgent_Installer_v2026-05-05_sync-relatorios_r4.zip`
+- Tamanho:
+  - `186461` bytes
+- ZIP validado sem `__pycache__`, sem `.pyc`, sem `.env` e sem `local_orders.db`
+
+### Validacao local instalada
+- Versao local atualizada para `v2026-05-05_sync-relatorios_r4`.
+- Atalho `Iniciar_Relatorios_Sync.vbs` iniciou:
+  - processo do sincronizador;
+  - processo do icone `agent_local.tray_app`.
+- Ciclo real executado:
+  - `sent_count=8`;
+  - `processed_count=8`;
+  - `POST /admin/api/sync` -> `200 OK`;
+  - `POST /admin/api/sync/status` -> `200 OK`.
+
 ## Checkpoint Inicio API Sync Relatorios - 2026-05-05
 
 ### Problema

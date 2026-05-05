@@ -601,7 +601,7 @@ def test_client_installer_keeps_comanda_and_sync_in_separate_folders() -> None:
     assert "--host 0.0.0.0 --port $LocalApiPort" in installer
     assert "Iniciar_Relatorios_Sync.cmd" in installer
     assert "Abrir_Status_Relatorios.cmd" in installer
-    assert "from agent_local.tray_app import start_agent; start_agent()" in installer
+    assert "from agent_local.tray_app import start_agent, main; start_agent(); main()" in installer
     assert "Abrir_Icone_API.vbs" in installer
     assert "agent_local.api_tray" in installer
     assert "Definir_Senha_Operador_Local.cmd" in installer

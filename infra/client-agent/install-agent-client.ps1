@@ -485,7 +485,7 @@ $localApiVbsContent | Set-Content -Path "Abrir_API_Local.vbs" -Encoding ascii
 $agentVbsContent = @"
 Set shell = CreateObject("WScript.Shell")
 shell.CurrentDirectory = "$InstallDir"
-shell.Run """" & "$InstallDir\.venv\Scripts\pythonw.exe" & """ -c ""from agent_local.tray_app import start_agent; start_agent()""", 0, False
+shell.Run """" & "$InstallDir\.venv\Scripts\pythonw.exe" & """ -c ""from agent_local.tray_app import start_agent, main; start_agent(); main()""", 0, False
 "@
 $agentVbsContent | Set-Content -Path "Iniciar_Relatorios_Sync.vbs" -Encoding ascii
 
