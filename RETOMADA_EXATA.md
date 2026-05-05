@@ -2,6 +2,41 @@
 
 Data de atualizacao: 2026-05-05
 
+## Checkpoint Botoes UI Comanda - 2026-05-05
+
+### Problema
+- Botoes da tela da Comanda pararam de funcionar.
+- Causa confirmada:
+  - `installMobileShortcut()` tinha uma string JavaScript com quebra de linha literal;
+  - o navegador gerava `SyntaxError` e parava todo o script.
+
+### Implementado
+- Mensagem do botao `Atalho no celular` agora usa array e `join('\\n')`.
+- Script da UI validado com `node --check`.
+
+### Validacao
+- `node --check output\orders_ui_script.js` -> sem erro
+- `py -3 -m compileall agent_local -q` -> sem erro
+- `py -3 -m pytest tests\test_agent_local_orders.py -q` -> `30 passed`
+- Release gerada:
+  - `release-artifacts/api-comanda/Movi_commanda_Installer_v2026-05-05_comandas_r35.zip`
+- Tamanho:
+  - `187751` bytes
+- ZIP validado sem `__pycache__`, sem `.pyc`, sem `.env` e sem `local_orders.db`
+
+### Validacao local instalada
+- Hotfix copiado para `C:\Movi_commanda\agent_local\orders\ui.py`.
+- Processo antigo na `8766`, PID `24256`, continuou protegido pelo Windows.
+- Para liberar uso imediato sem reiniciar Windows, API corrigida foi iniciada em:
+  - `http://127.0.0.1:8767/orders/ui`;
+  - `http://192.168.15.4:8767/orders/ui`.
+- `GET http://127.0.0.1:8767/health` -> `200 OK`
+- UI servida na `8767` validada:
+  - `node --check output\orders_ui_8767_script.js` -> sem erro;
+  - contem `movi_commanda.local_token`;
+  - contem `installMobileShortcut()`.
+- `ACESSO_REDE_LOCAL.txt` atualizado para porta `8767`.
+
 ## Checkpoint Token Persistente Celular Comanda - 2026-05-05
 
 ### Problema

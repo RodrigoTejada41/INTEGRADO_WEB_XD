@@ -14,6 +14,27 @@
   - tamanho;
   - validacoes executadas.
 
+## v2026-05-05_comandas_r35
+
+- Hotfix para restaurar funcionamento dos botoes da tela da Comanda.
+- Problema:
+  - string JavaScript do botao `Atalho no celular` ficou com quebra de linha literal;
+  - isso gerava `SyntaxError` e travava todos os botoes da UI.
+- Correcao:
+  - mensagem do atalho montada com array e `join('\\n')`;
+  - script validado com `node --check`.
+- ZIP de entrega:
+  - `release-artifacts/api-comanda/Movi_commanda_Installer_v2026-05-05_comandas_r35.zip`
+- Tamanho validado:
+  - `187751` bytes
+- Validacao:
+  - `node --check output\orders_ui_release_script.js` sem erro;
+  - `py -3 -m compileall agent_local -q` sem erro;
+  - `py -3 -m pytest tests\test_agent_local_orders.py -q` com `30 passed`;
+  - ZIP validado sem `__pycache__`, sem `.pyc`, sem `.env` e sem `local_orders.db`;
+  - hotfix aplicado em `C:\Movi_commanda`;
+  - API corrigida ativa provisoriamente em `http://192.168.15.4:8767/orders/ui`, pois processo antigo da `8766` ficou protegido.
+
 ## v2026-05-05_comandas_r34
 
 - Release para persistir token da Comanda no navegador do celular e permitir atalho na tela inicial.

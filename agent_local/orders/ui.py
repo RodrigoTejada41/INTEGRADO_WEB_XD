@@ -695,8 +695,13 @@ async function installMobileShortcut() {
     deferredInstallPrompt = null;
     return;
   }
+  const message = [
+    'Android Chrome: toque no menu do navegador e escolha Adicionar a tela inicial ou Instalar app.',
+    'iPhone Safari: toque em Compartilhar e escolha Adicionar a Tela de Inicio.',
+    'O token fica salvo neste navegador depois do primeiro acesso.'
+  ].join('\\n');
   openModal('Atalho no celular', `
-    <pre>${escapeHtml('Android Chrome: toque no menu do navegador e escolha Adicionar a tela inicial ou Instalar app.\niPhone Safari: toque em Compartilhar e escolha Adicionar a Tela de Inicio.\nO token fica salvo neste navegador depois do primeiro acesso.')}</pre>
+    <pre>${escapeHtml(message)}</pre>
   `);
 }
 
