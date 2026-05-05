@@ -1,4 +1,4 @@
-# Cliente local - Instalador 1 clique
+﻿# Cliente local - Instalador 1 clique
 
 Este pacote instala somente o agente local no Windows, com painel local para banco, vinculacao e sincronizacao.
 
@@ -11,7 +11,7 @@ Este pacote instala somente o agente local no Windows, com painel local para ban
    - informe o codigo de vinculacao;
    - configure o banco MariaDB local;
    - clique para testar e salvar.
-5. Use o icone `MoviSync` perto do relogio do Windows para iniciar, parar ou reiniciar.
+5. Use os atalhos criados para a API instalada.
 
 Compatibilidade:
 - `Setup_Instalar_Cliente.bat` continua existindo, mas agora chama o fluxo guiado.
@@ -28,15 +28,53 @@ O painel local permite configurar sem editar JSON ou `.env` manualmente:
 
 ## Arquivos criados no computador do cliente
 
-- `C:\MoviSyncAgent`
-- Atalho `MoviSync Painel Local` na area de trabalho
-- Atalho `MoviSync Status do Sync` na area de trabalho
-- Atalho `MoviSync Iniciar Agente` na area de trabalho
-- Log em `C:\MoviSyncAgent\logs\agent-sync.log`
+- API Comanda:
+  - `C:\Movi_commanda`
+  - Atalho `Movi_commanda Definicoes` na area de trabalho
+  - Atalho `Movi_commanda` na area de trabalho
+  - Arquivo de acesso em rede: `C:\Movi_commanda\ACESSO_REDE_LOCAL.txt`
+- API Sync Relatorios:
+  - `C:\MoviSyncAgent`
+  - Atalho `MoviSync Relatorios Configurar` na area de trabalho
+  - Atalho `MoviSync Relatorios Status` na area de trabalho
+  - Atalho `MoviSync Relatorios Iniciar` na area de trabalho
+  - Log em `C:\MoviSyncAgent\logs\agent-sync.log`
+
+## Separacao operacional
+
+As duas APIs ficam em pastas separadas.
+
+- Comandas:
+  - pasta `C:\Movi_commanda`
+  - `Iniciar_Movi_commanda_Windows.vbs`
+  - `Abrir_Comandas_Locais.vbs`
+  - rotas `/orders/*`
+  - cache `agent_local\data\local_orders.db`
+- Relatorios/sync:
+  - pasta `C:\MoviSyncAgent`
+  - `Iniciar_Relatorios_Sync.cmd`
+  - `Abrir_Status_Relatorios.cmd`
+  - processo `agent_local.main`
+  - logs `logs\agent-sync.log`
+
+O instalador da Comanda nao remove nem sobrescreve `C:\MoviSyncAgent`.
+O instalador do Sync Relatorios nao remove nem sobrescreve `C:\Movi_commanda`.
+
+## Acesso em rede local
+
+O computador onde o instalador roda vira o servidor local das comandas.
+
+- A API Comanda escuta na porta `8767`.
+- A porta `8765` fica reservada para o Sync Relatorios/instalacoes antigas.
+- Celulares e tablets devem estar no mesmo Wi-Fi/rede local.
+- O endereco para os dispositivos fica em `C:\Movi_commanda\ACESSO_REDE_LOCAL.txt`.
+- O cache operacional fica em `C:\Movi_commanda\agent_local\data\local_orders.db`.
+- O SQLite local usa WAL e timeout para suportar multiplos dispositivos gravando na mesma base local.
+- O instalador cria a regra de firewall `Movi_commanda API Local` para liberar entrada TCP na rede privada.
 
 ## Icone perto do relogio
 
-O icone `MoviSync` fica na bandeja do Windows:
+O icone `Movi_commanda` fica na bandeja do Windows:
 
 - verde: sincronizador ativo;
 - vermelho: sincronizador parado.
@@ -61,7 +99,7 @@ Isso cria uma pasta em `infra/client-agent/releases/vYYYY-MM-DD_HHMM` com todo o
 
 ## Resultado esperado
 
-- Instalacao em `C:\MoviSyncAgent`
+- Instalacao em `C:\Movi_commanda`
 - Virtualenv local com dependencias
 - `.env` criado automaticamente
 - Icone de status perto do relogio do Windows

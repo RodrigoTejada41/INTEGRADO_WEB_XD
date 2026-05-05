@@ -1,6 +1,6 @@
 @echo off
 setlocal
-title MoviSync - Instalador do Cliente
+title MoviSys - Instalador
 cd /d "%~dp0"
 
 net session >nul 2>&1
@@ -14,20 +14,33 @@ if not "%errorlevel%"=="0" (
 )
 
 echo ============================================================
-echo              MoviSync - Instalador do Cliente
+echo              MoviSys - Instalador
 echo ============================================================
 echo.
-echo O instalador vai preparar o agente local em C:\MoviSyncAgent.
-echo No final, o painel local sera aberto automaticamente.
+if exist ".\package-version.txt" (
+  set /p PACKAGE_VERSION=<".\package-version.txt"
+) else (
+  set PACKAGE_VERSION=dev-local
+)
+echo Versao do pacote: %PACKAGE_VERSION%
 echo.
-echo No painel, preencha:
-echo  1. Codigo de vinculacao fornecido pelo suporte
-echo  2. Dados do banco MariaDB local
-echo  3. Botao para testar e salvar
+echo Este pacote instala a API correta em pasta separada:
+echo  - Comanda: C:\Movi_commanda
+echo  - Sync Relatorios: C:\MoviSyncAgent
+echo.
+echo Para configurar vinculo/API ou banco MariaDB, use depois:
+echo  - Movi_commanda Definicoes
+echo  - MoviSync Relatorios Configurar
+echo.
+echo Para comandas, use:
+echo  - Movi_commanda
+echo.
+echo Para relatorios, use:
+echo  - MoviSync Relatorios Iniciar
 echo.
 pause
 
-powershell -NoProfile -ExecutionPolicy Bypass -File ".\install-agent-client.ps1" -OpenPanel
+powershell -NoProfile -ExecutionPolicy Bypass -File ".\install-agent-client.ps1" -OpenOrders -PackageKind auto
 if errorlevel 1 (
   echo.
   echo A instalacao falhou.
@@ -38,7 +51,8 @@ if errorlevel 1 (
 
 echo.
 echo Instalacao concluida.
-echo Se o painel nao abriu, use o atalho "MoviSync Painel Local" na area de trabalho.
+echo Versao instalada: %PACKAGE_VERSION%
+echo Use os atalhos criados na area de trabalho.
 echo.
 pause
 exit /b 0

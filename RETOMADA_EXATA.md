@@ -1,6 +1,1770 @@
 # RETOMADA EXATA - INTEGRADO_WEB_XD
 
-Data de atualizacao: 2026-05-02
+Data de atualizacao: 2026-05-05
+
+## Checkpoint Login Comanda Pelo IP Servidor - 2026-05-05
+
+### Problema
+- Pelo IP do servidor/celular, a tela carregava usuarios normalmente.
+- Ao informar senha correta, o login falhava.
+- Causa:
+  - senhas importadas do XD podem precisar ser aprendidas/normalizadas localmente;
+  - esse fallback existia apenas para acesso `127.0.0.1`, nao para IP privado da LAN.
+
+### Implementado
+- `POST /orders/login` agora permite bootstrap de senha para clientes em rede privada:
+  - `192.168.x.x`;
+  - `10.x.x.x`;
+  - `172.16.x.x` a `172.31.x.x`.
+- A exigencia de `X-Local-Token` permanece.
+- Porta padrao da Comanda consolidada em `8767`.
+- Botao `Atalho no celular` mantido na tela `Definicoes`.
+
+### Validacao
+- `py -3 -m compileall agent_local -q` -> sem erro
+- `py -3 -m pytest tests\test_agent_local_orders.py -q` -> `31 passed`
+- `node --check output\orders_ui_script.js` -> sem erro
+- Release gerada:
+  - `release-artifacts/api-comanda/Movi_commanda_Installer_v2026-05-05_comandas_r36.zip`
+- Tamanho:
+  - `187909` bytes
+- ZIP validado sem `__pycache__`, sem `.pyc`, sem `.env` e sem `local_orders.db`
+
+### Validacao local instalada
+- Hotfix copiado para `C:\Movi_commanda`.
+- `.env` local ajustado:
+  - `LOCAL_API_PORT=8767`.
+- Login por cliente LAN simulado:
+  - cliente `192.168.15.50`;
+  - `POST /orders/login` -> `200 OK`.
+- Health pelo IP real:
+  - `GET http://192.168.15.4:8767/health` -> `200 OK`.
+- URL atual para celular:
+  - `http://192.168.15.4:8767/orders/ui`.
+
+## Checkpoint Botoes UI Comanda - 2026-05-05
+
+### Problema
+- Botoes da tela da Comanda pararam de funcionar.
+- Causa confirmada:
+  - `installMobileShortcut()` tinha uma string JavaScript com quebra de linha literal;
+  - o navegador gerava `SyntaxError` e parava todo o script.
+
+### Implementado
+- Mensagem do botao `Atalho no celular` agora usa array e `join('\\n')`.
+- Script da UI validado com `node --check`.
+
+### Validacao
+- `node --check output\orders_ui_script.js` -> sem erro
+- `py -3 -m compileall agent_local -q` -> sem erro
+- `py -3 -m pytest tests\test_agent_local_orders.py -q` -> `30 passed`
+- Release gerada:
+  - `release-artifacts/api-comanda/Movi_commanda_Installer_v2026-05-05_comandas_r35.zip`
+- Tamanho:
+  - `187751` bytes
+- ZIP validado sem `__pycache__`, sem `.pyc`, sem `.env` e sem `local_orders.db`
+
+### Validacao local instalada
+- Hotfix copiado para `C:\Movi_commanda\agent_local\orders\ui.py`.
+- Processo antigo na `8766`, PID `24256`, continuou protegido pelo Windows.
+- Para liberar uso imediato sem reiniciar Windows, API corrigida foi iniciada em:
+  - `http://127.0.0.1:8767/orders/ui`;
+  - `http://192.168.15.4:8767/orders/ui`.
+- `GET http://127.0.0.1:8767/health` -> `200 OK`
+- UI servida na `8767` validada:
+  - `node --check output\orders_ui_8767_script.js` -> sem erro;
+  - contem `movi_commanda.local_token`;
+  - contem `installMobileShortcut()`.
+- `ACESSO_REDE_LOCAL.txt` atualizado para porta `8767`.
+
+## Checkpoint Token Persistente Celular Comanda - 2026-05-05
+
+### Problema
+- Ao acessar a Comanda pelo celular, o token nao ficava salvo ao sair/entrar da pagina.
+- Cliente tambem precisava criar atalho na tela inicial do celular.
+
+### Implementado
+- UI da Comanda salva o token local no navegador:
+  - chave `localStorage`: `movi_commanda.local_token`.
+- Ao reabrir a pagina, o token e restaurado automaticamente.
+- Ultimo operador usado tambem fica salvo:
+  - chave `localStorage`: `movi_commanda.last_operator`.
+- Adicionado suporte PWA:
+  - `/orders/manifest.webmanifest`;
+  - `/orders/icon.svg`;
+  - meta tags mobile.
+- Tela `Definicoes` ganhou botao:
+  - `Atalho no celular`.
+
+### Validacao
+- `py -3 -m compileall agent_local -q` -> sem erro
+- `py -3 -m pytest tests\test_agent_local_orders.py -q` -> `30 passed`
+- Release gerada:
+  - `release-artifacts/api-comanda/Movi_commanda_Installer_v2026-05-05_comandas_r34.zip`
+- Tamanho:
+  - `187728` bytes
+- ZIP validado sem `__pycache__`, sem `.pyc`, sem `.env` e sem `local_orders.db`
+
+### Validacao local instalada
+- Arquivos atualizados copiados para `C:\Movi_commanda`.
+- `TestClient` em `C:\Movi_commanda` validou:
+  - `/orders/ui` contem `movi_commanda.local_token`;
+  - `/orders/manifest.webmanifest` -> `200`, `display=standalone`;
+  - `/orders/icon.svg` -> `200`, `image/svg+xml`.
+- Observacao operacional:
+  - processo atual da API Comanda na `8766`, PID `33300`, esta protegido pelo Windows e nao aceitou `taskkill`;
+  - reiniciar o Windows ou encerrar esse PID como administrador para o navegador passar a receber a UI nova.
+
+## Checkpoint Icone Sync Relatorios - 2026-05-05
+
+### Problema
+- Ao clicar em iniciar o Sync Relatorios, abria tela preta/sem icone.
+- O atalho `Iniciar` subia apenas o sincronizador; o icone ficava dependente do atalho separado `Status`.
+
+### Implementado
+- `Iniciar_Relatorios_Sync.vbs` passa a:
+  - iniciar o sincronizador;
+  - abrir o icone de status no tray;
+  - usar `pythonw.exe`, sem console persistente.
+- Hotfix aplicado em `C:\MoviSyncAgent\Iniciar_Relatorios_Sync.vbs`.
+
+### Validacao
+- `py -3 -m pytest tests\test_agent_local_orders.py -q` -> `29 passed`
+- Release gerada:
+  - `release-artifacts/api-sync-relatorios/MoviSyncAgent_Installer_v2026-05-05_sync-relatorios_r4.zip`
+- Tamanho:
+  - `186461` bytes
+- ZIP validado sem `__pycache__`, sem `.pyc`, sem `.env` e sem `local_orders.db`
+
+### Validacao local instalada
+- Versao local atualizada para `v2026-05-05_sync-relatorios_r4`.
+- Atalho `Iniciar_Relatorios_Sync.vbs` iniciou:
+  - processo do sincronizador;
+  - processo do icone `agent_local.tray_app`.
+- Ciclo real executado:
+  - `sent_count=8`;
+  - `processed_count=8`;
+  - `POST /admin/api/sync` -> `200 OK`;
+  - `POST /admin/api/sync/status` -> `200 OK`.
+
+## Checkpoint Inicio API Sync Relatorios - 2026-05-05
+
+### Problema
+- Atalho/autostart do Sync Relatorios chamava `agent_local.main` direto.
+- Isso podia iniciar sem PID/log controlado e o painel/status interpretar como parado.
+
+### Implementado
+- `Iniciar_Relatorios_Sync.vbs` agora chama `agent_local.tray_app.start_agent()`.
+- O start passa pelo controlador do Sync:
+  - cria `agent_local\data\agent-sync.pid`;
+  - grava `logs\agent-sync.log`;
+  - evita duplicidade quando ja existe processo ativo.
+
+### Validacao
+- `py -3 -m compileall agent_local -q` -> sem erro
+- `py -3 -m pytest tests\test_agent_local_orders.py -q` -> `29 passed`
+- Release gerada:
+  - `release-artifacts/api-sync-relatorios/MoviSyncAgent_Installer_v2026-05-05_sync-relatorios_r3.zip`
+- Tamanho:
+  - `186453` bytes
+- ZIP validado sem `__pycache__`, sem `.pyc`, sem `.env` e sem `local_orders.db`
+
+### Validacao local instalada
+- Hotfix aplicado em `C:\MoviSyncAgent\Iniciar_Relatorios_Sync.vbs`.
+- Sync ativo:
+  - PID `26284`;
+  - processo `C:\MoviSyncAgent\.venv\Scripts\python.exe`;
+  - comando controlado por `agent_local.tray_app.start_agent()`.
+- Ciclo validado:
+  - `GET https://movisystecnologia.com.br/admin/api/health` -> `200 OK`;
+  - `POST https://movisystecnologia.com.br/admin/api/sync/status` -> `200 OK`;
+  - resultado local: `status=ok`, `processed_count=0` porque nao havia registros novos.
+
+## Checkpoint Porta API Comanda Separada - 2026-05-05
+
+### Problema
+- API Comanda estava usando a mesma porta operacional do Sync Relatorios/instalacao antiga.
+- Processo antigo na `8765` podia bloquear a subida da Comanda corrigida.
+
+### Implementado
+- Porta padrao da API Comanda alterada para `8766`.
+- Atalhos, autostart, UI, defaults locais e README da Comanda atualizados para `8766`.
+- Autostart da Comanda passa a procurar processo por porta:
+  - evita bloquear a subida da `8766` quando um processo antigo ainda existe na `8765`.
+- API Sync Relatorios mantida separada e sem alteracao funcional.
+
+### Validacao
+- `py -3 -m compileall agent_local -q` -> sem erro
+- `py -3 -m pytest tests\test_agent_local_orders.py -q` -> `29 passed`
+- Release gerada:
+  - `release-artifacts/api-comanda/Movi_commanda_Installer_v2026-05-05_comandas_r33.zip`
+- Tamanho:
+  - `186423` bytes
+- ZIP validado sem `__pycache__`, sem `.pyc`, sem `.env` e sem `local_orders.db`
+
+### Validacao local instalada
+- Hotfix aplicado em `C:\Movi_commanda`.
+- API Comanda ativa em:
+  - `http://127.0.0.1:8766/orders/ui`;
+  - `http://192.168.15.4:8766/orders/ui`.
+- `GET http://127.0.0.1:8766/health` -> `200 OK`
+- `GET http://192.168.15.4:8766/health` -> `200 OK`
+- `POST /orders/pairing/token` na `8766` -> `200 OK`
+- Token atual em `C:\Movi_commanda\ACESSO_REDE_LOCAL.txt`:
+  - `3Q2A86`
+- Processo antigo na `8765` ainda pode ficar ativo ate reiniciar/encerrar como administrador, mas nao bloqueia mais a Comanda na `8766`.
+
+## Checkpoint Separacao API Comanda x API Sync Relatorios - 2026-05-05
+
+### Problema
+- Instalacao da API Comanda deixou scripts/configuracoes do Sync Relatorios na mesma pasta.
+- O Sync Relatorios precisava voltar a operar como API distinta.
+
+### Implementado
+- Instalador agora detecta o tipo do pacote:
+  - `comanda`;
+  - `sync-relatorios`.
+- Destinos separados:
+  - API Comanda: `C:\Movi_commanda`;
+  - API Sync Relatorios: `C:\MoviSyncAgent`.
+- Um instalador nao remove nem sobrescreve a pasta do outro.
+- Pacote `sync-relatorios` migra apenas estado necessario vindo da instalacao misturada anterior:
+  - `.env`;
+  - `agent_local\data\agent_api_key.txt`;
+  - `agent_local\data\checkpoints.json`.
+- Pasta do Sync Relatorios fica sem artefatos operacionais da Comanda:
+  - sem `ACESSO_REDE_LOCAL.txt`;
+  - sem atalhos/scripts de comandas;
+  - sem `local_orders.db`.
+- Atalhos e autostart separados:
+  - `Movi_commanda AutoStart.lnk`;
+  - `MoviSync Relatorios AutoStart.lnk`.
+
+### Validacao real local
+- Instalado `v2026-05-05_sync-relatorios_r2` em `C:\MoviSyncAgent`.
+- `C:\Movi_commanda` preservado.
+- Ciclo real executado:
+  - `GET /admin/api/health` -> `200 OK`;
+  - `POST /admin/api/sync` -> `200 OK`;
+  - `POST /admin/api/sync/status` -> `200 OK`;
+  - `sent_count=8`;
+  - `processed_count=8`.
+- Processo continuo iniciado:
+  - `C:\MoviSyncAgent\.venv\Scripts\pythonw.exe -m agent_local.main`.
+- Confirmado sem processo `agent_local.main` em `C:\Movi_commanda`.
+
+### Validacao
+- Parser PowerShell do instalador -> OK
+- `py -3 -m pytest tests\test_agent_local_orders.py::test_client_installer_keeps_comanda_and_sync_in_separate_folders -q` -> `1 passed`
+- `py -3 -m pytest tests\test_agent_local_orders.py tests\test_release_smoke_contract.py -q` -> `28 passed, 1 skipped`
+- `py -3 -m pytest tests\test_agent_local_sales_mapping.py tests\test_xd_sales_mapper.py tests\test_sync_status_reporting.py tests\test_agent_checkpoint_reset.py -q` -> `13 passed`
+- Releases geradas:
+  - `release-artifacts/api-sync-relatorios/MoviSyncAgent_Installer_v2026-05-05_sync-relatorios_r2.zip`
+  - `release-artifacts/api-comanda/Movi_commanda_Installer_v2026-05-05_comandas_r30.zip`
+- Tamanhos:
+  - Sync Relatorios: `186389` bytes
+  - Comanda: `186381` bytes
+- ZIPs validados sem `__pycache__`, sem `.pyc`, sem `.env` e sem `local_orders.db`
+
+## Checkpoint Token Pareamento Sem Login Tecnico - 2026-05-05
+
+### Problema
+- Botao `Gerar token` na API Comanda abria modal `Login tecnico`.
+- Isso bloqueava o pareamento de celular/tablet quando ainda nao havia usuario logado.
+
+### Implementado
+- `generatePairingToken()` nao chama mais `requireTechnicalSession()`.
+- Endpoint `POST /orders/pairing/token` exige apenas `X-Local-Token`.
+- Demais botoes tecnicos continuam exigindo sessao/permissao tecnica.
+
+### Validacao
+- `py -3 -m compileall agent_local -q` -> sem erro
+- `py -3 -m pytest tests\test_agent_local_orders.py -q` -> `29 passed`
+- Release gerada:
+  - `release-artifacts/api-comanda/Movi_commanda_Installer_v2026-05-05_comandas_r31.zip`
+- Tamanho:
+  - `186368` bytes
+- ZIP validado sem `__pycache__`, sem `.pyc`, sem `.env` e sem `local_orders.db`
+
+### Validacao local instalada
+- Arquivos corrigidos copiados para `C:\Movi_commanda`.
+- Dependencias da venv reparadas com `pip install -r requirements.txt`.
+- Teste direto com `TestClient` em `C:\Movi_commanda`:
+  - `POST /orders/pairing/token` com `X-Local-Token` -> `200`.
+- Observacao:
+  - processo antigo na porta `8765`, PID `26944`, esta protegido pelo Windows e nao aceitou `Stop-Process`/`taskkill`;
+  - para a tela do navegador carregar o hotfix, reiniciar o Windows ou encerrar esse PID como administrador.
+
+## Checkpoint Nomenclatura Mesa/Comanda - 2026-05-05
+
+### Problema
+- Cliente precisa alternar textos exibidos entre `Mesa` e `Comanda`.
+- A mudanca nao pode alterar `command_number`, rotas, endpoints ou estrutura de dados.
+
+### Implementado
+- Nova configuracao local:
+  - `nomenclatura_mesa = Mesa | Comanda`.
+- Tela `DEFINICOES` ganhou seletor `Nomenclatura exibida`.
+- UI atualiza labels de operacao conforme configuracao.
+- Pre-conta HTML, recibo termico e tickets por grupo usam a nomenclatura configurada.
+- Lógica interna continua usando `command_number` e `table_reference`.
+- Fallback opcional por ambiente:
+  - `LOCAL_ORDER_DISPLAY_LABEL=Mesa`.
+
+### Validacao
+- `py -3 -m compileall agent_local -q` -> sem erro
+- `py -3 -m pytest tests\test_agent_local_orders.py -q` -> `27 passed`
+- `py -3 -m pytest -q` -> `96 passed, 1 skipped`
+- Release gerada:
+  - `release-artifacts/api-comanda/Movi_commanda_Installer_v2026-05-05_comandas_r28.zip`
+- Tamanho:
+  - `185932` bytes
+- ZIP validado sem `__pycache__`, sem `.pyc`, sem `.env` e sem `local_orders.db`
+
+### Hotfix r29
+- Corrigido erro ao salvar definicoes apos instalacao:
+  - `versao_app` recebia o conteudo inteiro de `VERSAO_INSTALADA.txt`;
+  - agora `_package_version()` extrai apenas a linha `version=...`.
+- Validacao:
+  - `py -3 -m compileall agent_local -q` -> sem erro
+  - `py -3 -m pytest tests\test_agent_local_orders.py -q` -> `28 passed`
+- Release gerada:
+  - `release-artifacts/api-comanda/Movi_commanda_Installer_v2026-05-05_comandas_r29.zip`
+- Tamanho:
+  - `186013` bytes
+- ZIP validado sem `__pycache__`, sem `.pyc`, sem `.env` e sem `local_orders.db`
+
+## Checkpoint Fila de Impressao XD - 2026-05-04
+
+### Problema
+- API Comanda gerava tickets em `agent_local\data\print_jobs`, mas nao inseria ordens em `printerorder/printerqueue`.
+- O XD nao recebia a ordem de impressao da comanda.
+
+### Implementado
+- Criado writer para fila de impressao XD:
+  - `printerorder`;
+  - `printerqueue`.
+- Mapa de impressao importado agora inclui:
+  - `xconfigprinters.Id` como `PrinterId`;
+  - `Terminal`;
+  - `NumberCopies`.
+- Ao registrar pedido, cada ticket de producao passa a ser gravado na fila do XD.
+- `LOCAL_ORDER_XD_PRINT_QUEUE_ENABLED=true` controla o uso da fila XD.
+
+### Validacao
+- `py -3 -m compileall agent_local -q` -> sem erro
+- `py -3 -m pytest tests\test_agent_local_orders.py -q` -> `25 passed`
+- `py -3 -m pytest -q` -> `94 passed, 1 skipped`
+- Release gerada:
+  - `release-artifacts/api-comanda/Movi_commanda_Installer_v2026-05-04_comandas_r27.zip`
+- Tamanho:
+  - `185225` bytes
+- ZIP validado sem `__pycache__`, sem `.pyc`, sem `.env` e sem `local_orders.db`
+
+## Checkpoint Pareamento por Token Curto - 2026-05-04
+
+### Problema
+- Token local era longo e dificil para digitar em celular/tablet.
+- Interface nao tinha botao para gerar novo token de conexao.
+
+### Implementado
+- Instalador passa a gerar token curto de 6 caracteres em `agent_local\data\local_api_token.txt`.
+- `ACESSO_REDE_LOCAL.txt` passa a exibir `Token de pareamento`.
+- Novo endpoint tecnico:
+  - `POST /orders/pairing/token`
+- Novo endpoint para celular validar o codigo:
+  - `POST /orders/pairing/validate`
+- Tela `DEFINICOES` ganhou botao `Gerar token`.
+- Ao validar o token, a API confirma pareamento e atualiza dados locais do banco antes da operacao.
+
+### Validacao
+- `py -3 -m compileall agent_local -q` -> sem erro
+- `py -3 -m pytest tests\test_agent_local_orders.py -q` -> `24 passed`
+- `py -3 -m pytest -q` -> `93 passed, 1 skipped`
+- Release gerada:
+  - `release-artifacts/api-comanda/Movi_commanda_Installer_v2026-05-04_comandas_r26.zip`
+- Tamanho:
+  - `183452` bytes
+- ZIP validado sem `__pycache__`, sem `.pyc`, sem `.env` e sem `local_orders.db`
+
+## Checkpoint Impressao XD por Mapa Impressao - 2026-05-04
+
+### Problema
+- API Comanda nao usava o cadastro de impressoras do XD mostrado em `Imp.Producao`.
+- O envio anterior dependia de cadastro manual em `local_order_group_printers`.
+
+### Implementado
+- Catalogo local agora importa o mapa real do XD:
+  - `items.Printer1..Printer20`;
+  - `itemsgroups.Printer1..Printer20` como fallback;
+  - `xconfig.Printer1..Printer20`;
+  - `xconfigprinters.Port`, `ReportConfiguration`, `UsePrinter` e `Terminal`.
+- Ao registrar pedido por `/orders` ou `/orders/confirm`, a API atualiza o catalogo do XD e envia cada item para a impressora configurada no menu da foto.
+- Mantido fallback manual por familia quando o produto nao tiver mapa XD.
+
+### Validacao
+- `py -3 -m compileall agent_local -q` -> sem erro
+- `py -3 -m pytest tests\test_agent_local_orders.py -q` -> `22 passed`
+- `py -3 -m pytest -q` -> `91 passed, 1 skipped`
+- Release gerada:
+  - `release-artifacts/api-comanda/Movi_commanda_Installer_v2026-05-04_comandas_r25.zip`
+- Tamanho:
+  - `182503` bytes
+- ZIP validado sem `__pycache__`, sem `.pyc`, sem `.env` e sem `local_orders.db`
+
+## Checkpoint Impressao por Grupo de Produto - 2026-05-04
+
+### Problema
+- Pedido registrado pela comanda precisava encaminhar itens automaticamente para a impressora do grupo.
+- A regra tinha que valer tambem para pedidos recebidos via API.
+
+### Implementado
+- Criada tabela local `local_order_group_printers`.
+- Criados endpoints tecnicos:
+  - `GET /orders/technical/printers/groups`
+  - `PUT /orders/technical/printers/groups`
+- Registro via `/orders` e `/orders/confirm` agora gera tickets por grupo de produto.
+- Cada ticket contem apenas os itens do grupo correspondente.
+- Se a impressora estiver configurada e o sistema estiver no Windows, o envio usa `Out-Printer`.
+- Se o envio nao for possivel, o ticket fica em arquivo local de job, sem perder o pedido.
+
+### Validacao
+- `py -3 -m compileall agent_local -q` -> sem erro
+- `py -3 -m pytest tests\test_agent_local_orders.py -q` -> `20 passed`
+- `py -3 -m pytest -q` -> `89 passed, 1 skipped`
+- Release gerada:
+  - `release-artifacts/api-comanda/Movi_commanda_Installer_v2026-05-04_comandas_r24.zip`
+- Tamanho:
+  - `180567` bytes
+- ZIP validado sem `__pycache__`, sem `.pyc`, sem `.env` e sem `local_orders.db`
+
+### Procedimento permanente registrado
+- Ao concluir qualquer ajuste funcional do cliente/comanda, gerar release versionada.
+- ZIP da API Comanda deve ficar em `release-artifacts/api-comanda/`.
+- ZIP da API Sync Relatorios deve ficar em `release-artifacts/api-sync-relatorios/`.
+- Registrar tag, ZIP, tamanho e validacoes em `infra/client-agent/RELEASES.md` e `RETOMADA_EXATA.md`.
+
+## Checkpoint Permissao Fechar Conta Comanda - 2026-05-04
+
+### Problema
+- Botao `CONTA` deveria operar como `FECHAR CONTA`.
+- Fechamento/consulta de conta nao tinha permissao especifica.
+
+### Implementado
+- UI renomeada para `FECHAR CONTA`.
+- Nova permissao `order.close`.
+- `/orders/account` e `/orders/{uuid}/close` agora negam acesso sem `order.close`.
+- UI mostra `Nao tem permissao para fechar conta.` quando o usuario logado nao tem permissao.
+
+### Validacao
+- `py -3 -m compileall agent_local -q` -> sem erro
+- `py -3 -m pytest tests\test_agent_local_orders.py -q` -> `19 passed`
+
+## Checkpoint Botoes Tecnicos API Comanda - 2026-05-04
+
+### Problema
+- Botoes tecnicos em `DEFINICOES` pareciam nao funcionar.
+- Causa: `Reiniciar`, `Conexao`, `Clientes` e `Banco` chamavam endpoints protegidos por sessao de usuario e permissao `technical.admin`, mas a tela podia ser aberta apenas com token local.
+
+### Implementado
+- `agent_local/orders/ui.py` agora bloqueia a chamada tecnica quando nao ha sessao.
+- A UI abre modal de login tecnico e direciona para `USUARIOS`.
+- Erros de sessao expirada/obrigatoria passam a mostrar mensagem operacional clara.
+- `Banco` nao renderiza painel falso quando a API retorna erro de autenticacao.
+
+### Validacao
+- `py -3 -m pytest tests\test_agent_local_orders.py -q` -> `18 passed`
+- `py -3 -m compileall agent_local -q` -> sem erro
+- `py -3 -m pytest -q` -> `87 passed, 1 skipped`
+
+## Checkpoint Cor Visual Mesa Ocupada XD - 2026-05-04
+
+### Problema
+- A comanda existia e abria ao digitar/clicar na mesa.
+- Porem a mesa continuava verde no painel.
+- So ficava vermelha depois de clicar na mesa e reenviar pelo XD.
+
+### Causa
+- `tmpdocumentstables` guarda os itens.
+- A cor do painel depende tambem de `xconfigsalezonesareaobjects`.
+- Campos relevantes:
+  - `Status = 1`
+  - `Total > 0`
+  - `LoginDate`
+  - `LogoutDate = 0001-01-01`
+- Mesa `100` nem tinha registro visual em `xconfigsalezonesareaobjects`.
+
+### Implementado
+- `XDOpenOrdersWriter` agora:
+  - atualiza `xconfigsalezonesareaobjects` ao sincronizar a comanda;
+  - cria o registro visual da mesa se ele nao existir;
+  - calcula `Total` visual com taxa de servico quando `UsingServiceTax` estiver ativo;
+  - limpa o estado visual quando a comanda for fechada/cancelada e nao houver mais itens.
+
+### Validacao real local
+- Mesa `3`:
+  - `Status=1`
+  - `Total=1752.300`
+- Mesa `100`:
+  - registro visual criado;
+  - `Status=1`
+  - `Total=298.100`
+- Ambas prontas para aparecer como ocupadas/vermelhas no painel do XD.
+
+### Validacao
+- `py -3 -m pytest tests\test_agent_local_orders.py -q` -> `18 passed`
+- `py -3 -m compileall agent_local -q` -> sem erro
+- `py -3 -m pytest -q` -> `87 passed, 1 skipped`
+- Release gerada:
+  - `release-artifacts/Movi_commanda_Installer_v2026-05-04_comandas_r23.zip`
+- Tamanho:
+  - `179123` bytes
+- ZIP validado sem `__pycache__`, sem `.pyc`, sem `.env` e sem `local_orders.db`
+
+## Checkpoint Ponte Comandas -> XD tmpdocumentstables - 2026-05-04
+
+### Problema
+- Pedido criado na UI local gravava em `local_orders` e `local_order_outbox`.
+- Nao aparecia na tela de comandas do XD.
+- Diagnostico real:
+  - `local_orders` tinha pedidos `pending`;
+  - `local_order_items` tinha itens;
+  - `local_order_outbox` estava `pending`;
+  - a tela do XD usa `tmpdocumentstables`, com `SaleZoneAreaObjectId` como mesa/comanda.
+
+### Implementado
+- Novo writer `agent_local/db/xd_open_orders_writer.py`.
+- Sincronizacao para `tmpdocumentstables` apos criar/alterar/cancelar/fechar pedido.
+- `ParentGuid` recebe o UUID local para regravar sem duplicar linhas.
+- `local_order_xd_sync` guarda `SaleZoneAreaObjectId` e `OrderNumber` do XD.
+- Endpoint de recuperacao:
+  - `POST /orders/sync-xd`
+- Instalador agora define:
+  - `LOCAL_ORDER_PUSH_XD_ENABLED=true`
+  - `LOCAL_ORDER_XD_TERMINAL_ID=1`
+
+### Validacao real local
+- Sincronizados no banco XD:
+  - mesa `3`, pedido XD `190`, `29` itens, total `1239.00`;
+  - mesa `100`, pedido XD `189`, `7` itens, total `271.00`.
+- Query validou as linhas em `tmpdocumentstables`.
+- Processo atual da API em `8765` nao reiniciou por `Acesso negado`; proxima criacao automatica exige reiniciar a API/Windows para carregar o codigo novo.
+
+### Validacao
+- `py -3 -m pytest tests\test_agent_local_orders.py -q` -> `18 passed`
+- `py -3 -m compileall agent_local -q` -> sem erro
+- `py -3 -m pytest -q` -> `87 passed, 1 skipped`
+- Release gerada:
+  - `release-artifacts/Movi_commanda_Installer_v2026-05-04_comandas_r22.zip`
+- Tamanho:
+  - `178424` bytes
+- ZIP validado sem `__pycache__`, sem `.pyc`, sem `.env` e sem `local_orders.db`
+
+## Checkpoint Nomenclatura Mesa/Referencia XD - 2026-05-04
+
+### Problema
+- No XD, `COMANDA` foi substituida por `MESA`.
+- Portanto `Mesa` e `command_number` sao o mesmo identificador operacional.
+- O campo antigo `Mesa` deve virar somente `Referencia`.
+- UI local exigia `Numero da comanda` + `Mesa`, causando registro fora do fluxo esperado do caixa.
+
+### Implementado
+- UI:
+  - `Numero da comanda` virou `Mesa`;
+  - `Mesa` virou `Referencia`;
+  - `Referencia` deixou de ser obrigatoria;
+  - consulta/listagem mostram `Mesa` e `Referencia`;
+  - pre-conta mostra `Mesa` e `Referencia`.
+- API:
+  - se payload legado vier com `table_reference` e sem `command_number`, promove `table_reference` para `command_number`.
+- Impressao:
+  - recibo termico imprime `MESA <numero>`;
+  - referencia aparece como `Referencia <valor>`.
+
+### Validacao
+- `py -3 -m pytest tests\test_agent_local_orders.py -q` -> `18 passed`
+- `py -3 -m compileall agent_local -q` -> sem erro
+- `py -3 -m pytest -q` -> `87 passed, 1 skipped`
+- Release gerada:
+  - `release-artifacts/Movi_commanda_Installer_v2026-05-04_comandas_r21.zip`
+- Tamanho:
+  - `174396` bytes
+- ZIP validado sem `__pycache__` e sem `.pyc`
+- Arquivos copiados para `C:\Movi_commanda`.
+- API instalada nao reiniciou porque PID atual na porta `8765` retornou `Acesso negado` ao `taskkill`.
+
+## Checkpoint Senha Local Operador XD - 2026-05-04
+
+### Problema
+- Senha do usuario ainda nao autenticava.
+- Verificacao real:
+  - `local_order_operators.password_hash` existia para ADM e demais usuarios;
+  - MariaDB `users.Password` tem 64 caracteres hexadecimais;
+  - nao e senha em texto;
+  - processo antigo da API na porta `8765` nao carregava a correcao nova;
+  - `taskkill`/`Stop-Process` retornaram `Acesso negado` para o PID atual.
+
+### Implementado
+- Suporte a hash importado `xd_sha256$...` no repositorio.
+- Fallback operacional no servidor:
+  - se login falhar no servidor local, grava PBKDF2 da senha digitada e autentica.
+- Utilitario local criado:
+  - `C:\Movi_commanda\Definir_Senha_Operador_Local.cmd`
+  - `C:\Movi_commanda\scripts\set-local-operator-password.ps1`
+- O utilitario lista usuarios, pede codigo/nome e senha local sem expor senha no chat.
+
+### Validacao
+- `py -3 -m pytest tests\test_agent_local_orders.py -q` -> `18 passed`
+- `py -3 -m compileall agent_local -q` -> sem erro
+- `py -3 -m pytest -q` -> `87 passed, 1 skipped`
+- Release gerada:
+  - `release-artifacts/Movi_commanda_Installer_v2026-05-04_comandas_r20.zip`
+- Tamanho:
+  - `174366` bytes
+- ZIP validado sem `__pycache__` e sem `.pyc`
+
+## Checkpoint Auto Recuperacao Token Local UI - 2026-05-04
+
+### Problema
+- Tela podia manter token antigo no campo `TOKEN LOCAL`.
+- Ao chamar endpoints protegidos, aparecia:
+  - `Token local invalido. No servidor, abra por http://127.0.0.1:8765/orders/ui...`
+- O token real estava valido no arquivo e em `/orders/local-token`, mas a UI nao repetia a chamada automaticamente.
+
+### Implementado
+- UI agora usa `localFetch`.
+- Se resposta for `401` com `Local token invalid.` e a tela estiver em `127.0.0.1`/`localhost`:
+  - busca token atual em `/orders/local-token`;
+  - atualiza o campo `TOKEN LOCAL`;
+  - repete a chamada uma vez.
+- Celular/tablet continua sem receber token automaticamente por seguranca.
+
+### Validacao
+- `py -3 -m pytest tests\test_agent_local_orders.py -q` -> `16 passed`
+- `py -3 -m compileall agent_local -q` -> sem erro
+- `py -3 -m pytest -q` -> `85 passed, 1 skipped`
+- Release gerada:
+  - `release-artifacts/Movi_commanda_Installer_v2026-05-04_comandas_r19.zip`
+- Tamanho:
+  - `172974` bytes
+- ZIP validado sem `__pycache__` e sem `.pyc`
+- Hotfix copiado para `C:\Movi_commanda\agent_local\orders\ui.py`.
+- API local reiniciada:
+  - PID antigo `27840` finalizado;
+  - novo processo na porta `8765`: PID `34360`.
+- `GET /orders/ui` servido pela API instalada contem:
+  - `localFetch(url, options = {}, retried = false)`
+  - `loadLocalTokenIfAvailable(true)`
+- `GET /orders/local-token` retornou o token atual com sucesso.
+
+## Checkpoint Status IP e Clientes Web no Tray - 2026-05-04
+
+### Implementado
+- `GET /orders/technical/status` agora retorna:
+  - `clients_count`: total visto pela API;
+  - `web_clients_count`: somente clientes de rede, excluindo localhost/testclient.
+- Icone `Movi_commanda API` agora mostra no menu:
+  - status da API;
+  - IP/URL do servidor;
+  - quantidade de clientes web conectados.
+- Menu recebeu botao:
+  - `Ver clientes conectados`
+- O botao atualiza o status e notifica:
+  - URL do servidor;
+  - total de clientes web conectados.
+- Timeout do tray para status tecnico ajustado para 15s.
+- Atualizacao automatica do tray ajustada para 30s para evitar consulta pesada de rede a cada 5s.
+
+### Validacao
+- `py -3 -m pytest tests\test_agent_local_orders.py -q` -> `16 passed`
+- `py -3 -m compileall agent_local -q` -> sem erro
+- `py -3 -m pytest -q` -> `85 passed, 1 skipped`
+- Release gerada:
+  - `release-artifacts/Movi_commanda_Installer_v2026-05-04_comandas_r18.zip`
+- Tamanho:
+  - `172736` bytes
+- ZIP validado sem `__pycache__` e sem `.pyc`
+- Hotfix copiado para `C:\Movi_commanda`.
+- Icone reiniciado com PID `9408`.
+- API local atual respondeu `/orders/technical/status`, mas ainda sem `web_clients_count` porque o processo antigo da API nao foi encerrado.
+- Tentativa de parar PID `20988` na porta `8765` retornou `Acesso negado`.
+- O campo `web_clients_count` entra em vigor apos reiniciar o Windows ou parar a API como administrador.
+
+## Checkpoint Icone API Bandeja Windows - 2026-05-04
+
+### Implementado
+- Novo tray dedicado:
+  - `agent_local/api_tray.py`
+  - nome: `Movi_commanda API`
+  - icone verde quando `/health` responde;
+  - icone vermelho quando API local nao responde.
+- Menu do icone perto do relogio:
+  - abrir comandas;
+  - abrir configuracoes;
+  - iniciar API local;
+  - reiniciar API local;
+  - abrir log da API;
+  - fechar icone.
+- `agent_local/windows_autostart.py` agora inicia:
+  - API local de comandas;
+  - icone de status da API.
+- Mantida separacao:
+  - autostart nao inicia `agent_local.main`;
+  - autostart nao inicia `agent_local.tray_app` de relatorios.
+- Instalador gera:
+  - `Abrir_Icone_API.vbs`
+
+### Release gerada
+- `release-artifacts/Movi_commanda_Installer_v2026-05-04_comandas_r16.zip`
+- Tamanho:
+  - `172171` bytes
+
+### Validacao
+- `py -3 -m pytest tests\test_agent_local_orders.py -q` -> `15 passed`
+- `py -3 -m compileall agent_local -q` -> sem erro
+- `py -3 -m pytest -q` -> `84 passed, 1 skipped`
+- ZIP validado sem `__pycache__` e sem `.pyc`
+- Hotfix copiado para `C:\Movi_commanda`.
+- `agent_local.api_tray` ativo em `C:\Movi_commanda` com PID `21420`.
+- API local respondeu `GET /health` com `{"status":"ok"}`.
+
+## Checkpoint Senha Operador Comandas - 2026-05-04
+
+### Problema
+- `GET /orders/users` carregava usuarios reais do MariaDB.
+- `POST /orders/login` falhava com `Usuario ou senha invalido.`
+- Causa: importacao de operadores trazia `code` e `name`, mas nao trazia senha; `local_order_operators.password_hash` ficava vazio.
+
+### Implementado
+- Descoberta de operadores agora procura coluna de senha em:
+  - `Password`
+  - `PassWord`
+  - `Senha`
+  - `Pass`
+  - `Pwd`
+  - `UserPassword`
+- A senha importada e gravada apenas como hash PBKDF2 no SQLite local.
+- Reimportacao sem senha nao apaga hash ja existente.
+- Instalador ajustado para nao matar o proprio processo ao parar processos antigos.
+
+### Release gerada
+- `release-artifacts/Movi_commanda_Installer_v2026-05-04_comandas_r15.zip`
+- Tamanho:
+  - `170150` bytes
+
+### Validacao
+- `py -3 -m pytest tests\test_agent_local_orders.py -q` -> `15 passed`
+- `py -3 -m compileall agent_local -q` -> sem erro
+- `py -3 -m pytest -q` -> `84 passed, 1 skipped`
+- ZIP validado sem `__pycache__` e sem `.pyc`
+- Arquivos corrigidos copiados para `C:\Movi_commanda`.
+- API local atual respondeu `GET /health` com `{"status":"ok"}`.
+
+### Observacao operacional
+- A reinstalacao completa em `C:\Movi_commanda` foi bloqueada por `C:\Movi_commanda\.venv\Lib\site-packages\bcrypt\_bcrypt.pyd` travado por `pythonw.exe`.
+- `Stop-Process` e `taskkill` retornaram `Acesso negado`.
+- Para carregar o codigo novo no processo em execucao, reiniciar o servico/app como administrador ou reiniciar o Windows.
+
+## Checkpoint Auto Token Local - 2026-05-03
+
+### Problema
+- Ao abrir painel de banco, aparecia:
+  - `{"detail":"Local token invalid."}`
+- O usuario confundia token local da API com credencial do banco.
+
+### Implementado
+- Endpoint novo:
+  - `GET /orders/local-token`
+- Regra:
+  - retorna token somente quando acessado do proprio servidor (`127.0.0.1`, `localhost`, `::1`);
+  - nao expõe token para celulares/tablets na rede.
+- UI:
+  - ao abrir `USUARIOS` ou `DEFINICOES` localmente, tenta preencher o token automaticamente;
+  - erro de token agora orienta usar `ACESSO_REDE_LOCAL.txt` no celular/tablet.
+
+### Release gerada
+- `release-artifacts/Movi_commanda_Installer_v2026-05-03_comandas_r13.zip`
+- Tamanho:
+  - `169953` bytes
+
+### Validacao
+- `py -3 -m pytest tests\test_agent_local_orders.py -q` -> `14 passed`
+- `py -3 -m compileall agent_local -q` -> sem erro
+- `py -3 -m pytest -q` -> `83 passed, 1 skipped`
+- ZIP validado sem `__pycache__` e sem `.pyc`
+
+## Checkpoint Padrao Banco Local - 2026-05-03
+
+### Implementado
+- Configuracao de banco agora ja abre com padrao local:
+  - tipo: `mariadb`
+  - host: `127.0.0.1`
+  - porta: `3308`
+  - usuario: `root`
+  - senha: `root`
+- Se existir `AGENT_MARIADB_URL` no `.env`, a API puxa essa configuracao.
+- Se o banco mudar, usuario pode editar pelo painel tecnico de banco.
+
+### Seguranca mantida
+- Senha do banco nao retorna na API.
+- Senha do banco nao entra nos logs.
+- Campo de senha continua mascarado na UI.
+
+### Release gerada
+- `release-artifacts/Movi_commanda_Installer_v2026-05-03_comandas_r12.zip`
+- Tamanho:
+  - `169530` bytes
+
+### Validacao
+- `py -3 -m pytest tests\test_agent_local_orders.py tests\test_agent_local_database_config.py -q` -> `15 passed`
+- `py -3 -m compileall agent_local -q` -> sem erro
+- `py -3 -m pytest -q` -> `82 passed, 1 skipped`
+- ZIP validado sem `__pycache__` e sem `.pyc`
+
+## Checkpoint Separacao Comandas x Relatorios - 2026-05-03
+
+### Problema
+- A mesma inicializacao local subia a API de comandas e o sync de relatorios.
+- Isso nao misturava rotas, mas confundia operacao e manutencao.
+
+### Implementado
+- `Movi_commanda AutoStart` agora inicia somente:
+  - API local de comandas;
+  - `agent_local.local_api`;
+  - `/orders/*`;
+  - `/orders/ui`.
+- `agent_local.windows_autostart` nao inicia mais:
+  - `agent_local.main`;
+  - `agent_local.tray_app`.
+- Sync de relatorios separado em scripts proprios:
+  - `Iniciar_Relatorios_Sync.cmd`
+  - `Iniciar_Relatorios_Sync.vbs`
+  - `Abrir_Status_Relatorios.cmd`
+  - `Abrir_Status_Relatorios.vbs`
+  - `Iniciar_Relatorios_Sync_Debug.cmd`
+- Tray do sync renomeado para:
+  - `Movi_relatorios_sync`
+
+### Decisao tecnica
+- Mantido mesmo pacote fisico para reaproveitar runtime/configuracao.
+- Separados processos, atalhos e inicializacao.
+- A comanda nao depende mais de iniciar o sync de relatorios.
+
+### Release gerada
+- `release-artifacts/Movi_commanda_Installer_v2026-05-03_comandas_r11.zip`
+- Tamanho:
+  - `169418` bytes
+
+### Validacao no workspace
+- `py -3 -m pytest tests\test_agent_local_orders.py -q` -> `12 passed`
+- `py -3 -m compileall agent_local -q` -> sem erro
+- `py -3 -m pytest -q` -> `81 passed, 1 skipped`
+- ZIP validado sem `__pycache__` e sem `.pyc`
+- `windows_autostart.py` da release validado sem `agent_local.main` e sem `agent_local.tray_app`
+
+## Checkpoint Manutencao Tecnica Movi_commanda - 2026-05-03
+
+### Implementado
+- Tela `Definicoes` recebeu area tecnica responsiva para celular/tablet.
+- Recursos adicionados:
+  - deteccao automatica de IP local;
+  - lista de IPs locais para escolha;
+  - exibicao da URL de conexao;
+  - copia da URL para area de transferencia;
+  - barra inferior de manutencao.
+
+### Botoes inferiores adicionados
+- Reiniciar servico
+- Verificar conexao
+- Clientes conectados
+- IP de conexao
+- Banco de dados
+
+### Endpoints adicionados
+- `GET /orders/technical/network`
+- `POST /orders/technical/check`
+- `GET /orders/technical/clients`
+- `GET /orders/technical/status`
+- `POST /orders/technical/restart-service`
+- `GET /orders/technical/database`
+- `POST /orders/technical/database/test`
+- `PUT /orders/technical/database`
+
+### Banco de dados
+- Painel criado com campos:
+  - tipo de banco;
+  - host/IP;
+  - porta;
+  - nome do banco;
+  - usuario;
+  - senha;
+  - testar conexao;
+  - salvar configuracao.
+- Senha:
+  - nao e exibida em resposta da API;
+  - nao e registrada em log;
+  - campo fica mascarado na UI.
+- Salvar configuracao exige teste de conexao com sucesso.
+
+### Seguranca
+- Endpoints tecnicos sensiveis exigem:
+  - `X-Local-Token`;
+  - `X-Order-Session`;
+  - permissao `technical.admin`.
+- Permissao default local adicionada:
+  - `technical.admin`
+
+### Clientes conectados
+- Rastreamento local por request:
+  - IP;
+  - nome do dispositivo quando enviado;
+  - user agent;
+  - usuario logado quando houver sessao;
+  - ultimo acesso;
+  - status online/offline.
+
+### Release gerada
+- `release-artifacts/Movi_commanda_Installer_v2026-05-03_comandas_r10.zip`
+- Tamanho:
+  - `169346` bytes
+
+### Validacao no workspace
+- `py -3 -m pytest tests\test_agent_local_orders.py -q` -> `12 passed`
+- `py -3 -m compileall agent_local -q` -> sem erro
+- `py -3 -m pytest -q` -> `81 passed, 1 skipped`
+- ZIP validado sem `__pycache__` e sem `.pyc`
+
+## Checkpoint Rede Local Movi_commanda - 2026-05-03
+
+### Requisito
+- A comanda precisa funcionar em rede local para varios celulares/tablets ao mesmo tempo.
+- Deve existir controle/cache local centralizado.
+
+### Implementado
+- API local passa a escutar em:
+  - `0.0.0.0:8765`
+- Acesso local continua:
+  - `http://127.0.0.1:8765/orders/ui`
+- Acesso em celulares/tablets na mesma rede:
+  - `http://IP-DA-MAQUINA:8765/orders/ui`
+- Instalador cria:
+  - `C:\Movi_commanda\ACESSO_REDE_LOCAL.txt`
+  - regra de firewall `Movi_commanda API Local` para TCP `8765` em perfil privado.
+- Deteccao de IP LAN ignora adaptadores virtuais comuns:
+  - `vEthernet`
+  - `Virtual`
+  - `VMware`
+  - `VirtualBox`
+  - `Docker`
+  - `WSL`
+  - `Loopback`
+  - `Bluetooth`
+- Cache/controle local:
+  - `C:\Movi_commanda\agent_local\data\local_orders.db`
+  - SQLite com `WAL`
+  - `busy_timeout = 30000`
+  - `synchronous = NORMAL`
+- Autostart:
+  - usa `LOCAL_API_HOST` e `LOCAL_API_PORT` se configurados;
+  - default `LOCAL_API_HOST=0.0.0.0`;
+  - trava `windows-autostart.lock` para reduzir inicializacao duplicada.
+
+### Reparo aplicado nesta maquina
+- Arquivos copiados para `C:\Movi_commanda`.
+- `ACESSO_REDE_LOCAL.txt` gerado com:
+  - `http://192.168.15.4:8765/orders/ui`
+- Validado:
+  - `http://192.168.15.4:8765/health` -> HTTP 200
+- Observacao:
+  - criacao manual da regra de firewall fora do instalador deu `Acesso negado`;
+  - ao rodar o instalador r9 como administrador, a regra e criada automaticamente.
+
+### Release gerada
+- `release-artifacts/Movi_commanda_Installer_v2026-05-03_comandas_r9.zip`
+- Tamanho:
+  - `164449` bytes
+
+### Validacao no workspace
+- Parser PowerShell do instalador: OK
+- `py -3 -m pytest tests\test_agent_local_orders.py -q` -> `11 passed`
+- `py -3 -m compileall agent_local -q` -> sem erro
+- `py -3 -m pytest -q` -> `80 passed, 1 skipped`
+- ZIP validado sem `__pycache__` e sem `.pyc`
+
+## Checkpoint Tela Preta Corrigida Movi_commanda - 2026-05-03
+
+### Problema
+- Ao abrir a comanda, ficava uma tela preta e a UI nao iniciava.
+
+### Causa raiz
+- A API local nao subia.
+- Logs em `C:\Movi_commanda\logs` mostraram:
+  - `No module named uvicorn`
+  - `No module named 'pystray'`
+  - `No module named 'pydantic'`
+- A venv estava praticamente vazia porque `pip install -r requirements.txt` falhou.
+- A falha veio de `psycopg2-binary==2.9.9` no Python 3.13:
+  - sem wheel compativel;
+  - tentativa de build local;
+  - erro por falta de `pg_config`.
+- PowerShell nao interrompia automaticamente o instalador quando comando externo retornava erro, entao os atalhos eram criados mesmo com instalacao incompleta.
+
+### Implementado
+- `requirements.txt` atualizado:
+  - `psycopg2-binary==2.9.10`
+- Instalador atualizado:
+  - `Invoke-CheckedCommand` valida `$LASTEXITCODE`;
+  - falha imediatamente se venv, pip ou dependencias falharem;
+  - prefere Python `3.12`, depois `3.11`, depois `3`;
+  - valida importacao de `fastapi`, `uvicorn`, `pydantic`, `pystray` e `PIL` apos instalar.
+
+### Reparo aplicado nesta maquina
+- Ajustado `C:\Movi_commanda\requirements.txt`.
+- Executado `pip install -r requirements.txt` na venv instalada.
+- Validado:
+  - `http://127.0.0.1:8765/health` -> `{"status":"ok"}`
+  - `http://127.0.0.1:8765/orders/ui` -> HTTP 200
+
+### Release gerada
+- `release-artifacts/Movi_commanda_Installer_v2026-05-03_comandas_r8.zip`
+- Tamanho:
+  - `163103` bytes
+
+### Validacao no workspace
+- Parser PowerShell do instalador: OK
+- `py -3 -m pytest tests\test_agent_local_orders.py -q` -> `10 passed`
+- `py -3 -m compileall agent_local -q` -> sem erro
+- `py -3 -m pytest -q` -> `79 passed, 1 skipped`
+- ZIP validado sem `__pycache__` e sem `.pyc`
+
+## Checkpoint Desktop Limpo Movi_commanda - 2026-05-03
+
+### Implementado
+- Instalador ajustado para nao criar varios atalhos na area de trabalho.
+- A partir da release r7, o desktop recebe somente:
+  - `Movi_commanda`
+  - `Movi_commanda Definicoes`
+- Atalhos tecnicos removidos do desktop:
+  - API Local
+  - Status
+  - Iniciar Servico
+- Limpeza robusta adicionada:
+  - remove atalhos por prefixo `Movi`;
+  - remove atalhos cujo destino ou pasta de trabalho apontem para `C:\MoviSyncAgent` ou `C:\Movi_commanda`.
+
+### Limpeza executada nesta maquina
+- Atalhos antigos movidos para:
+  - `C:\Users\Rodrigo Tejada\Desktop\Movi_commanda_residuos_20260503_213155`
+- `config.json` nao foi removido:
+  - conteudo aponta para Steam (`steam_config_path`, `depot_cache_path`);
+  - nao foi identificado como arquivo gerado pelo Movi_commanda.
+
+### Release gerada
+- `release-artifacts/Movi_commanda_Installer_v2026-05-03_comandas_r7.zip`
+- Tamanho:
+  - `162799` bytes
+
+### Validacao no workspace
+- Parser PowerShell do instalador: OK
+- `py -3 -m pytest tests\test_agent_local_orders.py -q` -> `10 passed`
+- `py -3 -m compileall agent_local -q` -> sem erro
+- `py -3 -m pytest -q` -> `79 passed, 1 skipped`
+- ZIP validado sem `__pycache__` e sem `.pyc`
+
+## Checkpoint Instalador Limpo Movi_commanda - 2026-05-03
+
+### Implementado
+- Instalador atualizado para desinstalar/remover residuos da versao antiga antes de instalar a nova.
+- Pasta padrao nova:
+  - `C:\Movi_commanda`
+- Pasta antiga removida quando existir:
+  - `C:\MoviSyncAgent`
+- Antes da remocao, o instalador preserva:
+  - `.env`
+  - `agent_local\data\agent_api_key.txt`
+  - `agent_local\data\local_api_token.txt`
+  - `agent_local\data\checkpoints.json`
+  - `agent_local\data\local_orders.db`
+- O instalador para processos antigos do proprio app por caminho de instalacao antes de apagar arquivos.
+- Atalhos antigos `Movi*` da area de trabalho e inicializacao sao removidos.
+- Atalhos novos ficam apenas como `Movi_commanda`.
+- Script de inicializacao renomeado para:
+  - `Iniciar_Movi_commanda_Windows.vbs`
+- Painel Tkinter:
+  - titulo `Movi_commanda - Definicoes`
+  - banco padrao visual vazio, sem exibir `xd` automaticamente.
+
+### Release gerada
+- `release-artifacts/Movi_commanda_Installer_v2026-05-03_comandas_r6.zip`
+- Tamanho:
+  - `162686` bytes
+
+### Validacao no workspace
+- Parser PowerShell do instalador: OK
+- `py -3 -m pytest tests\test_agent_local_orders.py -q` -> `10 passed`
+- `py -3 -m compileall agent_local -q` -> sem erro
+- `py -3 -m pytest -q` -> `79 passed, 1 skipped`
+- ZIP validado sem `__pycache__` e sem `.pyc`
+
+## Checkpoint Menu Inicial Movi_commanda - 2026-05-03
+
+### Implementado
+- Identidade visual da UI/API local de comandas trocada para `Movi_commanda`.
+- Removidas referencias visuais antigas na UI/API local:
+  - `XD`
+  - `XD Orders`
+  - `XDOrders`
+  - `Comandas Locais`
+  - `MoviSync`
+- Menu inicial mobile criado:
+  - marca `Movi_commanda`;
+  - visual institucional azul/azul esverdeado;
+  - versao do sistema;
+  - botoes grandes `USUARIOS`, `DEFINICOES`, `INICIAR`.
+- Tela `DEFINICOES` criada com secoes:
+  - Servidor;
+  - Impressora Bluetooth;
+  - Outras configuracoes;
+  - Ajuda;
+  - Sobre.
+- Configuracoes persistidas no SQLite local:
+  - `ip_servidor`;
+  - `porta_servidor`;
+  - `licenca`;
+  - `ssid_wifi`;
+  - `impressora_bluetooth`;
+  - `dpi_impressora`;
+  - `largura_impressora`;
+  - `caracteres_por_linha`;
+  - `tema_interface`;
+  - `usuario_logado`;
+  - `versao_app`;
+  - `codigo_versao`.
+
+### API local adicionada
+- `GET /orders/app-info`
+- `GET /orders/settings`
+- `PUT /orders/settings`
+- `POST /orders/settings/test-connection`
+- `POST /orders/settings/load-server-data`
+- `GET /orders/license`
+- `POST /orders/license/validate`
+
+### Banco/configuracao local
+- Tabela nova:
+  - `local_commanda_settings`
+- Versao padrao:
+  - `1.0.0`
+- Codigo de versao padrao:
+  - `100`
+
+### Referencias de tabelas do banco encontradas no projeto
+- Fonte principal:
+  - `agent_local/db/mariadb_client.py`
+  - `agent_local/db/xd_sales_mapper.py`
+- Tabelas externas ja mapeadas para catalogo/relatorios:
+  - `items`
+  - `itemsgroups`
+  - `operators`
+  - `xconfigoperators`
+  - `Documentsbodys`
+  - `Documentsheaders`
+  - `salesdocumentsreportview`
+- Nao foi encontrado contrato externo consolidado para tabelas reais de comanda/pedido. Por isso a operacao de comandas permanece em SQLite local, usando o banco externo para catalogo de usuarios/produtos quando disponivel.
+
+### Validacao no workspace
+- `py -3 -m pytest tests\test_agent_local_orders.py -q` -> `9 passed`
+- `py -3 -m compileall agent_local -q` -> sem erro
+- `py -3 -m pytest -q` -> `78 passed, 1 skipped`
+- Busca direcionada em `agent_local/orders/ui.py` e `agent_local/local_api.py` nao encontrou nomes antigos.
+
+## Checkpoint tela principal operacional de comandas - 2026-05-03
+
+### Implementado
+- Tela principal `/orders/ui` ajustada no estilo do print:
+  - fundo em degrade azul/roxo;
+  - avatar do operador logado;
+  - nome/perfil do usuario;
+  - botoes `CAIXA DE SAIDA` e `MENSAGENS`;
+  - botao central `CONTROLE POR VOZ`;
+  - grade 3x3 com botoes grandes: `PEDIR`, `ANULAR`, `SUBTOTAL`, `CONTA`, `TRANSFERENCIA`, `PAGAMENTO PARCIAL`, `OUTROS`, `DESCONTO`, `MENU INICIAL`.
+- Botoes ligados a fluxos reais:
+  - `PEDIR` abre o fluxo comanda/pessoas/mesa/produtos/revisao;
+  - `ANULAR` registra anulacao e log;
+  - `SUBTOTAL` consulta itens e total parcial;
+  - `CONTA` consulta subtotal, descontos, pagamentos parciais, total e saldo;
+  - `TRANSFERENCIA` registra transferencia e atualiza mesa/comanda quando aplicavel;
+  - `PAGAMENTO PARCIAL` registra pagamento sem fechar a comanda;
+  - `DESCONTO` registra desconto fixo ou percentual;
+  - `MENSAGENS` e `CAIXA DE SAIDA` consultam tabelas locais;
+  - `CONTROLE POR VOZ` tem endpoint preparado com status `planned`.
+
+### API local adicionada
+- `GET /orders/me`
+- `GET /orders/current`
+- `GET /orders/subtotal`
+- `GET /orders/account`
+- `POST /orders/void`
+- `POST /orders/transfer`
+- `POST /orders/partial-payment`
+- `POST /orders/discount`
+- `GET /orders/messages`
+- `GET /orders/outbox`
+- `POST /orders/voice-command`
+
+### Banco local
+- `local_order_operator_permissions`
+- `local_order_operation_logs`
+- `local_order_messages`
+- `local_order_partial_payments`
+- `local_order_discounts`
+- `local_order_voids`
+- `local_order_transfers`
+
+### Validacao no workspace
+- `py -3 -m pytest tests\test_agent_local_orders.py -q` -> `8 passed`
+- `py -3 -m compileall agent_local -q` -> sem erro
+- `py -3 -m pytest -q` -> `77 passed, 1 skipped`
+
+### Proximo passo recomendado
+1. Instalar release r4 no cliente.
+2. Validar visualmente em tablet/celular.
+3. Popular permissoes reais dos operadores em `local_order_operator_permissions` quando houver perfis definidos.
+
+## Checkpoint fluxo completo mobile de comandas - 2026-05-03
+
+### Implementado
+- API local de comandas mantida separada da API de sync de relatorios.
+- Tela `/orders/ui` reescrita para fluxo mobile/tablet:
+  - login por usuario carregado do banco local;
+  - senha validada por hash PBKDF2;
+  - menu principal com `Pedido`, `Consultar comanda`, `Imprimir pre-conta` e `Sair`;
+  - abertura de pedido com comanda, quantidade de pessoas e mesa;
+  - selecao de familias e produtos em layout responsivo;
+  - busca por nome ou codigo;
+  - carrinho temporario na tela antes da confirmacao;
+  - revisao com `+`, `-`, exclusao individual, observacao por item, lixeira geral e totais;
+  - confirmacao envia o pedido para a API local.
+
+### API local adicionada/ajustada
+- `GET /orders/users`
+- `POST /orders/login`
+- `POST /orders/confirm`
+- `DELETE /orders/{order_uuid}/items`
+- `GET /orders/products?q=...`
+- Mutacoes de comanda agora aceitam sessao local por `X-Order-Session`.
+
+### Banco local
+- `local_order_operators.password_hash`
+- `local_order_sessions`
+- `local_orders.people_count`
+- Produtos duplicados no mesmo pedido passam a somar quantidade quando codigo e observacao coincidem.
+
+### Arquivos alterados
+- `agent_local/orders/repository.py`
+- `agent_local/orders/schemas.py`
+- `agent_local/orders/service.py`
+- `agent_local/orders/ui.py`
+- `agent_local/local_api.py`
+- `tests/test_agent_local_orders.py`
+
+### Validacao no workspace
+- `py -3 -m pytest tests\test_agent_local_orders.py -q` -> `7 passed`
+- `py -3 -m compileall agent_local -q` -> sem erro
+- `py -3 -m pytest -q` -> `76 passed, 1 skipped`
+
+### Proximo passo recomendado
+1. Gerar release versionada `v2026-05-03_comandas_r3`.
+2. Instalar no cliente e conferir `C:\MoviSyncAgent\VERSAO_INSTALADA.txt`.
+3. Validar no tablet/celular `http://127.0.0.1:8765/orders/ui`.
+4. Configurar/importar senha hash dos operadores reais antes do uso operacional.
+
+## Checkpoint UI produtos por familia - 2026-05-03
+
+### Implementado
+- Tela local de produtos ajustada para operar como a referencia XD:
+  - abas horizontais por familia no topo;
+  - primeira familia carrega automaticamente;
+  - produtos em grade de 3 colunas;
+  - botoes grandes com nome do produto em caixa alta;
+  - barra inferior com `VER CONTEUDO DA MESA` e `CONCLUIR`.
+- Clique no produto:
+  - preenche codigo, descricao, preco e quantidade;
+  - adiciona direto na comanda selecionada;
+  - se nao houver comanda selecionada, bloqueia e mostra aviso.
+
+### Aplicado no cliente instalado
+- Backup:
+  - `C:\MoviSyncAgent\backup_product_family_ui_20260503_003902`
+- Arquivo atualizado:
+  - `C:\MoviSyncAgent\agent_local\local_api.py`
+- API local reiniciada:
+  - `http://127.0.0.1:8765`
+
+### Validacao real no instalado
+- `GET /health` -> `{"status":"ok"}`
+- `GET /orders/ui` -> HTTP 200
+- Tela instalada contem:
+  - `product-family-tabs`
+  - `product-tile`
+  - `VER CONTEUDO DA MESA`
+  - `CONCLUIR`
+- Familias reais carregadas:
+  - `ALCOOLICOS`
+  - `BEBIDAS`
+  - `BIFUM`
+  - `CARE`
+  - `DIVERSOS`
+  - `ENTRADAS`
+  - `FRIOS`
+  - `Geral`
+  - `LAMEN`
+  - `SOBA`
+  - `SOBREMESA`
+  - `SUSHI`
+  - `TEISHOKU`
+  - `UDON`
+  - `YAKISOBA`
+
+### Validacao no workspace
+- `py -3 -m pytest tests\test_agent_local_orders.py tests\test_agent_local_sales_mapping.py tests\test_source_connectors.py -q` -> `15 passed`
+- `py -3 -m compileall agent_local -q` -> sem erro
+
+### Proximo passo recomendado
+1. Validar visualmente no celular/tablet a tela `http://127.0.0.1:8765/orders/ui`.
+2. Selecionar uma comanda aberta e tocar em produtos de familias diferentes.
+3. Se necessario, ajustar altura das celulas para o tamanho real da tela usada no restaurante.
+
+## Checkpoint impressao termica local - 2026-05-02
+
+### Implementado
+- Renderizacao de cupom termico local para comandas:
+  - `GET /orders/{uuid}/thermal-receipt`
+  - texto 32 colunas por default
+  - inclui comanda, mesa, operador, status, itens, observacoes, total e pagamentos.
+- Geracao de job local de impressao:
+  - `POST /orders/{uuid}/print`
+  - grava arquivo `.txt` em `LOCAL_ORDER_PRINT_JOBS_DIR`
+  - retorna `queued` quando impressora fisica nao esta configurada
+  - retorna `sent` quando `LOCAL_ORDER_PRINTER_NAME` esta configurado e o Windows aceita o envio via spool.
+- Configuracoes adicionadas:
+  - `LOCAL_ORDER_PRINT_JOBS_DIR=agent_local/data/print_jobs`
+  - `LOCAL_ORDER_RECEIPT_WIDTH=32`
+  - `LOCAL_ORDER_PRINTER_NAME=`
+- UI local ajustada:
+  - texto do botao `PAGAMENTO PARCIAL` corrigido para manter contrato validado por teste.
+
+### Decisao tecnica
+- A API nao recebe nome de impressora por requisicao.
+- Nome da impressora fica somente em configuracao local.
+- Isso reduz risco de execucao indevida e evita acoplamento entre UI e spool do Windows.
+- Se a impressora nao estiver definida, o sistema nao perde a impressao: o job fica persistido em arquivo.
+
+### Arquivos alterados
+- `agent_local/orders/printer.py`
+- `agent_local/orders/service.py`
+- `agent_local/orders/schemas.py`
+- `agent_local/local_api.py`
+- `agent_local/.env.example`
+- `tests/test_agent_local_orders.py`
+
+### Validacao no workspace
+- `py -3 -m pytest tests\test_agent_local_orders.py tests\test_agent_local_sales_mapping.py tests\test_source_connectors.py -q` -> `15 passed`
+- `py -3 -m compileall agent_local -q` -> sem erro
+
+### Proximo passo recomendado
+1. Configurar `LOCAL_ORDER_PRINTER_NAME` no cliente instalado com o nome exato da impressora termica do Windows.
+2. Aplicar os arquivos no `C:\MoviSyncAgent`.
+3. Reiniciar API local.
+4. Criar comanda teste e validar `POST /orders/{uuid}/print`.
+5. Se houver cozinha/bar, evoluir para impressao de producao por familia/impressora.
+
+## Checkpoint pagamento dividido local - 2026-05-02
+
+### Implementado
+- Fechamento de comanda com pagamento dividido.
+- Compatibilidade mantida com pagamento unico antigo:
+  - `payment_method`
+  - `amount_paid`
+- Novo formato aceito em `POST /orders/{uuid}/close`:
+  - `payments: [{ payment_method, amount }]`
+- Persistencia local:
+  - tabela `local_order_payments`
+  - cada pagamento fica vinculado ao `order_uuid`
+- Regras:
+  - soma dos pagamentos precisa ser maior ou igual ao total da comanda;
+  - pagamento com valor zero nao e aceito;
+  - comanda fechada nao pode receber novos itens;
+  - `payment_method` consolidado fica como `dinheiro + pix`, por exemplo.
+- Pre-conta:
+  - passa a listar as formas de pagamento quando a comanda ja estiver fechada.
+- UI local:
+  - fechamento aceita entrada no formato:
+    - `dinheiro=30,pix=40`
+
+### Aplicado no cliente instalado
+- Backup:
+  - `C:\MoviSyncAgent\backup_split_payments_20260502_222529`
+- Arquivos atualizados:
+  - `C:\MoviSyncAgent\agent_local\local_api.py`
+  - `C:\MoviSyncAgent\agent_local\orders\*.py`
+- API local reiniciada:
+  - `http://127.0.0.1:8765`
+
+### Validacao real no instalado
+- Criada e fechada comanda teste:
+  - `command_number=TESTE-PAG-DIV`
+  - `uuid=4f419aff-e111-4cc0-8249-e33b4dacd967`
+  - total `16.00`
+  - pagamentos:
+    - `dinheiro=6.00`
+    - `pix=10.00`
+  - status final `closed`
+  - `payment_method=dinheiro + pix`
+  - `amount_paid=16.00`
+  - pre-conta validada com dinheiro + pix
+- Status final:
+  - `GET /status` -> `sync_running=true`
+
+### Validacao no workspace
+- `py -3 -m pytest tests\test_agent_local_orders.py tests\test_agent_local_sales_mapping.py tests\test_source_connectors.py -q` -> `14 passed`
+- `py -3 -m compileall agent_local -q` -> sem erro
+
+### Proximo passo recomendado
+1. Implementar impressao termica local.
+2. Se houver cozinha/bar, separar impressao de producao por familia/impressora.
+3. Depois avaliar se comanda fechada precisa virar pre-venda/orcamento no XD.
+
+## Checkpoint preco automatico de produtos nas comandas - 2026-05-02
+
+### Problema
+- Produtos do catalogo local estavam vindo do XD com `unit_price=0`.
+- Causa:
+  - detector procurava campos genericos como `SalePrice`, `UnitPrice`, `Price`, `Pvp`;
+  - tabela real `items` usa `RetailPrice1`;
+  - `salesdocumentsreportview` usa `RetailPrice`.
+
+### Correcao aplicada
+- `agent_local/db/mariadb_client.py` agora prioriza:
+  - `RetailPrice1`
+  - `RetailPrice`
+  - `SalePrice`
+  - `UnitPrice`
+  - `Price`
+  - `Pvp`
+  - `NetPrice1`
+  - `AskingPrice`
+- Fallback por historico de venda tambem usa `RetailPrice` quando disponivel.
+
+### Aplicado no cliente instalado
+- Backup:
+  - `C:\MoviSyncAgent\backup_price_catalog_20260502_220714`
+- Arquivo atualizado:
+  - `C:\MoviSyncAgent\agent_local\db\mariadb_client.py`
+- API local reiniciada:
+  - `http://127.0.0.1:8765`
+
+### Validacao real no instalado
+- `GET /health` -> `{"status":"ok"}`
+- `GET /orders/products?family=BEBIDAS` retornou precos reais:
+  - `AGUA = 8.000000`
+  - `COCA COLA 350ml = 8.000000`
+  - `SUCO LARANJA = 14.000000`
+- Criada e cancelada comanda teste:
+  - `command_number=TESTE-PRECO-CODEX`
+  - `uuid=f5378239-0fd0-4ec4-9d9b-644c66d4f95c`
+  - item `AGUA`
+  - quantidade `2`
+  - preco unitario `8.000000`
+  - total `16.00`
+  - status final `cancelled`
+
+### Validacao no workspace
+- `py -3 -m pytest tests\test_agent_local_orders.py tests\test_agent_local_sales_mapping.py tests\test_source_connectors.py -q` -> `13 passed`
+- `py -3 -m compileall agent_local -q` -> sem erro
+
+### Proximo passo recomendado
+1. Validar manualmente na tela se todos os grupos principais trazem preco.
+2. Implementar pagamento dividido.
+3. Implementar impressao termica local, se houver impressora definida.
+
+## Checkpoint operacao de comanda aberta - 2026-05-02
+
+### Implementado
+- Edicao de comanda aberta:
+  - `POST /orders/{uuid}/items`
+  - `PATCH /orders/{uuid}/items/{item_id}`
+  - `DELETE /orders/{uuid}/items/{item_id}`
+- Fechamento local:
+  - `POST /orders/{uuid}/close`
+  - salva `payment_method`, `amount_paid`, `closed_at`
+  - bloqueia fechamento com valor pago menor que o total.
+- Cancelamento local:
+  - `POST /orders/{uuid}/cancel`
+  - salva `cancel_reason`.
+- Bloqueio operacional:
+  - comanda `closed` ou `cancelled` nao aceita novo item, alteracao ou remocao.
+- Recalculo de total:
+  - total recalculado no servidor local apos adicionar, alterar ou remover item.
+- UI local atualizada:
+  - seleciona comanda aberta;
+  - adiciona item na comanda selecionada;
+  - altera quantidade/observacao por item;
+  - remove item;
+  - fecha comanda;
+  - cancela comanda;
+  - imprime pre-conta.
+
+### Aplicado no cliente instalado
+- Backup:
+  - `C:\MoviSyncAgent\backup_comanda_ops_20260502_203914`
+- Arquivos atualizados:
+  - `C:\MoviSyncAgent\agent_local\local_api.py`
+  - `C:\MoviSyncAgent\agent_local\db\mariadb_client.py`
+  - `C:\MoviSyncAgent\agent_local\orders\*.py`
+- API local reiniciada em:
+  - `http://127.0.0.1:8765`
+
+### Validacao real no instalado
+- Criada comanda teste:
+  - `command_number=TESTE-CODEX`
+  - `table_reference=999`
+  - `uuid=4ba4bd73-ed6f-49c1-b0cd-7489ae4b4bc6`
+- Fluxo validado:
+  - criar comanda -> `status=draft`
+  - adicionar item -> total `5.00`
+  - alterar quantidade/observacao -> total `7.00`
+  - pre-conta -> `prebill=ok`
+  - cancelar comanda -> `status=cancelled`
+- Status final:
+  - `GET /status` -> `sync_running=true`
+
+### Validacao no workspace
+- `py -3 -m pytest tests\test_agent_local_orders.py tests\test_agent_local_sales_mapping.py tests\test_source_connectors.py -q` -> `12 passed`
+- `py -3 -m compileall agent_local -q` -> sem erro
+
+### Proximo passo recomendado
+1. Testar manualmente a tela com uma comanda real curta.
+2. Melhorar preco automatico dos produtos, pois alguns itens do XD ainda retornam `unit_price=0`.
+3. Adicionar fluxo de pagamento com multiplas formas se o restaurante usar pagamento dividido.
+4. Adicionar impressao em impressora termica local se necessario.
+
+## Checkpoint comandas locais para restaurante - 2026-05-02
+
+### Decisao tecnica
+- A API de comandas continua somente local.
+- Nao depende de licenca.
+- Nao cria endpoint online.
+- Nao mistura com relatorios centrais.
+- Mesa e apenas referencia.
+- Comanda e a entidade operacional principal.
+
+### Implementado
+- Abertura de comanda com:
+  - `command_number`
+  - `table_reference`
+  - `operator_code`
+  - `operator_name`
+  - `status`
+  - itens proprios
+  - total proprio
+- Permite mais de uma comanda na mesma mesa:
+  - exemplo: mesa `10` pode ter comandas `001`, `002`, `003`.
+- Operadores:
+  - `GET /orders/operators`
+  - busca automatica no banco XD quando `AGENT_MARIADB_URL` estiver configurado;
+  - cache local em `local_order_operators`;
+  - fallback local se XD estiver indisponivel.
+- Familias/produtos:
+  - `GET /orders/product-families`
+  - `GET /orders/products?family=...`
+  - busca automatica no banco XD quando possivel;
+  - cache local em `local_order_products`;
+  - tela exibe familias em carrossel e produtos por familia.
+- Observacao por item:
+  - campo `notes` em `local_order_items`.
+- Pre-conta:
+  - `GET /orders/{uuid}/prebill`
+  - HTML imprimivel com botao de impressao.
+  - inclui comanda, mesa, operador, itens, quantidades, valores, subtotal, total e observacoes.
+- Tela local:
+  - `http://127.0.0.1:8765/orders/ui`
+  - titulo `Comandas Locais`
+  - fluxo touch/balcao com seletor de operador, comanda, mesa, carrossel de familias e lista de produtos.
+
+### Aplicado no cliente instalado
+- Backup:
+  - `C:\MoviSyncAgent\backup_comandas_20260502_193835`
+- Arquivos atualizados:
+  - `C:\MoviSyncAgent\agent_local\local_api.py`
+  - `C:\MoviSyncAgent\agent_local\db\mariadb_client.py`
+  - `C:\MoviSyncAgent\agent_local\orders\*.py`
+- API local reiniciada em:
+  - `http://127.0.0.1:8765`
+
+### Validacao no instalado
+- `GET /health` -> `{"status":"ok"}`
+- `GET /orders/ui` -> `orders-ui=ok`
+- `GET /orders/operators` retornou operadores reais:
+  - `ADM`
+  - `LAY`
+  - `LUCIANO`
+  - `MARIA`
+  - `SUPORTE`
+  - `TAINARA`
+- `GET /orders/product-families` retornou familias reais:
+  - `ALCOOLICOS`
+  - `BEBIDAS`
+  - `BIFUM`
+  - `CARE`
+  - `DIVERSOS`
+  - `ENTRADAS`
+  - `FRIOS`
+  - `LAMEN`
+  - `SOBA`
+  - `SOBREMESA`
+  - `SUSHI`
+  - `TEISHOKU`
+  - `UDON`
+  - `YAKISOBA`
+- `GET /orders/products?family=BEBIDAS` retornou produtos reais.
+- `GET /status` -> `sync_running=true`
+- Banco local de comandas:
+  - `C:\MoviSyncAgent\agent_local\data\local_orders.db`
+
+### Validacao no workspace
+- `py -3 -m pytest tests\test_agent_local_orders.py tests\test_agent_local_sales_mapping.py tests\test_source_connectors.py -q` -> `11 passed`
+- `py -3 -m compileall agent_local -q` -> sem erro
+
+### Limites atuais
+- Ainda nao grava comanda no banco XD.
+- Ainda nao baixa estoque.
+- Ainda nao tem fechamento/pagamento.
+- Alguns produtos podem vir com `unit_price=0` quando a tabela XD de produtos nao expuser preco direto; a tela permite editar o valor antes de salvar.
+
+### Proximo passo recomendado
+1. Validar criacao real de uma comanda teste na tela local.
+2. Implementar edicao de comanda aberta:
+   - adicionar item;
+   - remover item;
+   - alterar quantidade;
+   - cancelar comanda.
+3. Implementar fechamento/pagamento local.
+4. Definir se a comanda sera apenas local ou se futuramente entra como pre-venda/orcamento no XD.
+
+## Checkpoint pedidos locais offline iniciados - 2026-05-02
+
+### Decisao tecnica
+- Pedidos ficam somente locais nesta etapa.
+- Nao foi criada API online de pedidos.
+- Relatorios web centrais continuam separados.
+- A nova frente usa a API local do agente em `http://127.0.0.1:8765`.
+
+### Implementado
+- Novo modulo local:
+  - `agent_local/orders/`
+- Storage local:
+  - SQLite em `agent_local/data/local_orders.db`
+  - configuravel por `LOCAL_ORDER_DB_PATH`
+- Rotas locais:
+  - `POST /orders`
+  - `GET /orders`
+  - `GET /orders/ui`
+- Tela web local:
+  - `http://127.0.0.1:8765/orders/ui`
+- Seguranca local:
+  - usa `X-Local-Token` quando existir token em `LOCAL_API_TOKEN_FILE`
+  - default: `agent_local/data/local_api_token.txt`
+- Pedido criado com:
+  - `uuid`
+  - `empresa_id`
+  - `status=draft`
+  - `sync_status=pending`
+  - total calculado no servidor local
+  - itens separados
+  - registro em `local_order_outbox`
+- Atalho operacional:
+  - `scripts/open-local-orders.ps1`
+
+### Validacao executada
+- `py -3 -m pytest tests\test_agent_local_orders.py -q` -> `2 passed`
+- `py -3 -m compileall agent_local -q` -> sem erro
+- Aplicado tambem no agente instalado:
+  - backup: `C:\MoviSyncAgent\backup_local_orders_20260502_190924`
+  - arquivos copiados para `C:\MoviSyncAgent\agent_local\orders`
+  - `C:\MoviSyncAgent\agent_local\local_api.py` atualizado
+  - atalho criado: `C:\MoviSyncAgent\Abrir_Pedidos_Locais.cmd`
+- Validacao no instalado:
+  - `GET http://127.0.0.1:8765/health` -> `{"status":"ok"}`
+  - `GET http://127.0.0.1:8765/orders/ui` -> tela carregada
+  - `GET http://127.0.0.1:8765/orders` com `X-Local-Token` -> `{"total":0,"orders":[]}`
+  - banco local criado: `C:\MoviSyncAgent\agent_local\data\local_orders.db`
+  - `GET http://127.0.0.1:8765/status` -> `sync_running=true`
+
+### Limite atual
+- Ainda nao grava pedido no XD.
+- Ainda nao sincroniza pedido para o servidor.
+- Ainda nao tem login local por usuario.
+- Ainda nao tem edicao/cancelamento/status do pedido.
+
+### Proximo passo recomendado
+1. Abrir `C:\MoviSyncAgent\Abrir_Pedidos_Locais.cmd` ou `http://127.0.0.1:8765/orders/ui`.
+2. Informar o token local no campo da tela se a API exigir autenticacao.
+3. Criar pedido teste local.
+4. Depois evoluir status, usuario local e impressao/retirada.
+
+## Checkpoint reprocessamento historico concluido - 2026-05-02
+
+### Estado atual validado
+- Branch local atual:
+  - `main`
+- Git local:
+  - limpo antes da atualizacao deste checkpoint.
+- Producao:
+  - `https://movisystecnologia.com.br/healthz` -> `ok`
+  - `https://movisystecnologia.com.br/admin/api/health/ready` -> `ready`
+- Agente instalado:
+  - caminho real: `C:\MoviSyncAgent`
+  - API local ativa em `http://127.0.0.1:8765/status`
+  - `sync_running=true`
+  - checkpoint instalado final:
+    - `12345678000199:vendas = 2026-03-28T15:36:02+00:00`
+
+### Reprocessamento executado
+- Ambiente usado:
+  - `C:\MoviSyncAgent`
+  - `C:\MoviSyncAgent\.venv\Scripts\python.exe`
+- Backup criado antes do reset:
+  - `C:\MoviSyncAgent\backup_reprocess_20260502_113800\checkpoints.before_reprocess.json`
+- Checkpoint instalado resetado para:
+  - `12345678000199:vendas = 1970-01-01T00:00:00+00:00`
+- Lotes executados ate zerar:
+  - total aproximado processado: `48901` vendas
+  - ultimo lote util: `processed_count=63`
+  - lote final: `processed_count=0`
+- Sync normal religado depois do reprocessamento.
+- Status final local:
+  - `curl.exe -sS http://127.0.0.1:8765/status`
+  - retorno validado:
+    - `status=running`
+    - `sync_running=true`
+
+### Observacao tecnica
+- O `start_agent()`/runtime instalado sobe mais de um PID `agent_local.main`.
+- O criterio operacional validado foi o status oficial da API local:
+  - `sync_running=true`
+- Nao foi feita alteracao de codigo nesta etapa.
+
+### Proximo ponto exato
+1. Validar visualmente os relatorios em producao:
+   - `Hoje`
+   - `Mes`
+   - `Semestre`
+   - `Ano`
+   - detalhe por forma de pagamento
+   - faturamento total
+   - exportacoes PDF/Excel/CSV no mesmo periodo.
+2. Se os totais ainda parecerem incorretos, investigar dado fonte no servidor por `empresa_id`, `uuid`, `data`, `data_atualizacao` e `forma_pagamento`, sem alterar novamente o mapper antes dessa prova.
 
 ## Checkpoint relatorios por periodo e reprocessamento pendente - 2026-05-02
 
@@ -1780,3 +3544,272 @@ Este arquivo e o ponto de entrada para retomar o projeto sem redescobrir context
 - Suite completa:
   - `py -3 -m pytest -q`
   - `40 passed, 1 skipped`
+
+## Checkpoint: diagnostico de travamento da suite local - 2026-05-03
+
+### Problema
+- A retomada travou durante reexecucao de testes.
+- Processo `pytest` ficou ativo apos interrupcao manual:
+  - `py.exe -3 -m pytest tests\test_sync_admin_rbac.py::test_sync_admin_role_based_access -q`
+  - `python.exe -m pytest tests\test_sync_admin_rbac.py::test_sync_admin_role_based_access -q`
+- O processo preso manteve arquivo SQLite de teste em uso:
+  - `output/test_sync_admin_rbac.db`
+
+### Causa raiz
+- `test_sync_admin_rbac.py` acessava `/settings` e `/dashboard` sem mockar chamadas externas do `ControlService`.
+- `/settings` aguardava timeouts em:
+  - fontes de sync;
+  - destinos;
+  - auditoria remota;
+  - server settings;
+  - produto DE/PARA.
+- `test_sync_admin_sync_cockpit.py` nao mockava `fetch_report_filter_options`; o dashboard tentava API real, caia no fallback zerado e falhava em `commercial_snapshot.total_records`.
+- O teste de cockpit dependia implicitamente do mes atual; em maio/2026 a comparacao esperada de abril deixou de ser deterministica.
+- O `RemoteAgentService.background_loop` podia atrasar shutdown do `TestClient` quando havia ciclo remoto em andamento.
+
+### Correcao aplicada
+- Encerrados apenas processos `pytest` presos.
+- `sync-admin/app/main.py` agora cancela `remote_task` no shutdown apos setar o stop event.
+- `tests/test_sync_admin_sync_cockpit.py` agora mocka:
+  - `fetch_report_filter_options`;
+  - `_current_month_range` fixo em `2026-04-01` ate `2026-04-26`.
+- `tests/test_sync_admin_rbac.py` agora isola chamadas externas no teste de RBAC:
+  - `REMOTE_COMMAND_PULL_ENABLED=false`;
+  - mocks de `ControlService` para summary, fontes, jobs, destinos, auditoria, server settings e produto DE/PARA.
+- `agent_local/orders/printer.py` sanitiza `command_number` antes de usar em nome de arquivo de job.
+- `agent_local/orders/schemas.py` usa `Field(default_factory=list)` em `payments`.
+
+### Validacao
+- `py -3 -m pytest tests\test_agent_local_orders.py -q`
+  - `7 passed`
+- `py -3 -m pytest tests\test_sync_admin_sync_cockpit.py::test_sync_admin_dashboard_exposes_source_cycle_cockpit -q`
+  - `1 passed`
+- `py -3 -m pytest tests\test_sync_admin_rbac.py::test_sync_admin_role_based_access -q`
+  - `1 passed`
+- `py -3 -m pytest -q`
+  - `76 passed, 1 skipped`
+
+### Proximo passo seguro
+- Revisar diff final da frente de comandas locais.
+- Se aprovado, commitar entrega local.
+- Depois gerar release/instalador versionado do agente com tela de comandas.
+
+## Checkpoint de retomada exata: comandas locais + suite estabilizada - 2026-05-03
+
+### Estado do workspace
+- Branch atual:
+  - `main`
+  - tracking: `origin/main`
+- Existem alteracoes locais ainda nao commitadas.
+- Nao ha teste `pytest` preso ativo apos a correcao.
+- Suite completa validada antes deste checkpoint:
+  - `py -3 -m pytest -q`
+  - resultado: `76 passed, 1 skipped`
+
+### Arquivos modificados rastreados
+- `RETOMADA_EXATA.md`
+- `agent_local/.env.example`
+- `agent_local/db/mariadb_client.py`
+- `agent_local/local_api.py`
+- `cerebro_vivo/estado_atual.md`
+- `sync-admin/app/main.py`
+- `tests/test_sync_admin_rbac.py`
+- `tests/test_sync_admin_sync_cockpit.py`
+
+### Arquivos novos ainda nao rastreados
+- `agent_local/orders/__init__.py`
+- `agent_local/orders/printer.py`
+- `agent_local/orders/repository.py`
+- `agent_local/orders/schemas.py`
+- `agent_local/orders/service.py`
+- `scripts/open-local-orders.cmd`
+- `scripts/open-local-orders.ps1`
+- `tests/test_agent_local_orders.py`
+- pasta `licensa lic/`
+
+### Entrega funcional em andamento
+- Frente principal:
+  - comandas locais no agente.
+- Separacao arquitetural obrigatoria:
+  - esta API de comandas locais e uma API operacional separada.
+  - nao e a mesma API do sync de relatorios.
+  - nao deve reaproveitar contrato `/sync` nem tabelas centrais de relatorio para comandas.
+  - sync de relatorios continua com responsabilidade exclusiva de envio de vendas/dados canonicos para BI.
+  - comandas locais devem ficar isoladas em modulo proprio, banco local proprio e endpoints `/orders`.
+  - se no futuro houver integracao entre comandas e relatorios, deve ser por contrato explicito de eventos/exportacao, nao por mistura direta das responsabilidades.
+- API local adicionada:
+  - `POST /orders`
+  - `GET /orders`
+  - `POST /orders/{order_uuid}/items`
+  - `PATCH /orders/{order_uuid}/items/{item_id}`
+  - `DELETE /orders/{order_uuid}/items/{item_id}`
+  - `POST /orders/{order_uuid}/close`
+  - `POST /orders/{order_uuid}/cancel`
+  - `GET /orders/operators`
+  - `GET /orders/product-families`
+  - `GET /orders/products`
+  - `GET /orders/{order_uuid}/prebill`
+  - `GET /orders/{order_uuid}/thermal-receipt`
+  - `POST /orders/{order_uuid}/print`
+  - `GET /orders/ui`
+- Persistencia local:
+  - SQLite em `LOCAL_ORDER_DB_PATH`
+  - tabelas de comandas, itens, pagamentos, operadores, produtos e outbox.
+- Catalogo:
+  - descoberta automatica no MariaDB XD quando `LOCAL_ORDER_AUTO_REFRESH_CATALOG=true`.
+  - produtos a partir de `items` ou fallback `salesdocumentsreportview`.
+  - operadores a partir de `xconfigoperators`, `operators`, `employees`, `users` ou fallback em `documentsheaders`.
+- Impressao:
+  - recibo termico texto.
+  - job local em `LOCAL_ORDER_PRINT_JOBS_DIR`.
+  - envio ao spool Windows somente quando `LOCAL_ORDER_PRINTER_NAME` estiver configurado.
+
+### Correcoes de estabilidade ja aplicadas
+- `sync-admin/app/main.py`
+  - cancela `remote_task` no shutdown do lifespan.
+- `tests/test_sync_admin_rbac.py`
+  - isola chamadas externas de `/settings` e `/dashboard`.
+  - define `REMOTE_COMMAND_PULL_ENABLED=false`.
+- `tests/test_sync_admin_sync_cockpit.py`
+  - mocka `fetch_report_filter_options`.
+  - fixa `_current_month_range` em abril/2026 para teste deterministico.
+- `agent_local/orders/printer.py`
+  - sanitiza `command_number` usado em filename.
+- `agent_local/orders/schemas.py`
+  - evita lista mutavel default em `payments`.
+
+### Comandos ja validados
+- `py -3 -m pytest tests\test_agent_local_orders.py -q`
+  - `7 passed`
+- `py -3 -m pytest tests\test_sync_admin_sync_cockpit.py::test_sync_admin_dashboard_exposes_source_cycle_cockpit -q`
+  - `1 passed`
+- `py -3 -m pytest tests\test_sync_admin_rbac.py::test_sync_admin_role_based_access -q`
+  - `1 passed`
+- `py -3 -m compileall agent_local -q`
+  - OK
+- `py -3 -m pytest -q`
+  - `76 passed, 1 skipped`
+
+### Riscos pendentes antes de commit
+- Revisar se a UI embutida em `agent_local/local_api.py` deve continuar inline ou ser separada futuramente.
+- Garantir que a API de comandas locais nao seja documentada nem tratada como API de sync de relatorios.
+- Conferir se `licensa lic/` faz parte desta entrega antes de incluir no commit.
+- Validar manualmente `/orders/ui` no agente instalado se a proxima etapa for gerar release.
+- Nao commitar arquivos runtime:
+  - bancos SQLite em `output/`;
+  - tokens locais;
+  - jobs de impressao gerados.
+
+### Proximo passo operacional
+1. Rodar `git diff --stat`.
+2. Revisar arquivos novos em `agent_local/orders/`.
+3. Decidir se `licensa lic/` entra no commit ou fica fora.
+4. Se o diff estiver coerente:
+   - commitar a entrega de comandas locais;
+   - gerar release/instalador versionado do agente;
+   - validar `http://127.0.0.1:8765/orders/ui` no ambiente instalado.
+
+## Checkpoint: release oficial do agente com comandas locais - 2026-05-03
+
+### Commits locais
+- `0b1fd1d` - `feat: adicionar comandas locais no agente`
+- Branch `main` esta `ahead 1` antes do commit do instalador/release.
+
+### Separacao arquitetural reforcada
+- API de comandas locais e operacional.
+- Nao e a API de sync de relatorios.
+- Contrato `/orders` permanece separado de `/sync`.
+- Banco local de comandas permanece separado do BI/relatorios.
+
+### Instalador ajustado
+- Arquivo:
+  - `infra/client-agent/install-agent-client.ps1`
+- Agora cria no cliente instalado:
+  - `Abrir_Comandas_Locais.cmd`
+  - `Abrir_Comandas_Locais.vbs`
+  - atalho Desktop `MoviSync Comandas Locais.lnk`
+- O atalho valida `http://127.0.0.1:8765/health` antes de abrir:
+  - `http://127.0.0.1:8765/orders/ui`
+
+### Release gerada
+- Pasta:
+  - `infra/client-agent/releases/v2026-05-03_comandas`
+- ZIP:
+  - `release-artifacts/MoviSyncAgent_Installer_v2026-05-03_comandas.zip`
+- Tamanho:
+  - `150527` bytes
+- Conteudo validado:
+  - `agent_local/orders/*.py`
+  - `install-agent-client.ps1`
+  - `requirements.txt`
+  - sem `__pycache__`
+  - sem `.pyc`
+
+### Validacao executada
+- `py -3 -m pytest -q`
+  - `76 passed, 1 skipped`
+- `py -3 -m pytest tests\test_agent_local_orders.py tests\test_sync_admin_rbac.py::test_sync_admin_role_based_access tests\test_sync_admin_sync_cockpit.py::test_sync_admin_dashboard_exposes_source_cycle_cockpit -q`
+  - `9 passed`
+- `py -3 -m compileall agent_local sync-admin\app -q`
+  - OK
+- `py -3 -m compileall infra\client-agent\releases\v2026-05-03_comandas\agent_local infra\client-agent\releases\v2026-05-03_comandas\backend -q`
+  - OK
+- Parser PowerShell:
+  - `infra/client-agent/install-agent-client.ps1`
+  - `parse-ok`
+
+### Proximo passo seguro
+- Commitar alteracoes do instalador e `RELEASES.md`.
+- Depois, se for distribuir:
+  - usar `release-artifacts/MoviSyncAgent_Installer_v2026-05-03_comandas.zip`.
+- Para validacao real instalada:
+  - instalar/atualizar em `C:\MoviSyncAgent`;
+  - abrir `MoviSync Comandas Locais.lnk`;
+  - confirmar `/orders/ui`;
+  - criar comanda teste;
+  - validar pre-conta e job de impressao.
+
+## Checkpoint: versao explicita para nao misturar releases - 2026-05-03
+
+### Problema
+- O pacote anterior podia confundir porque atalhos e instalacao mantinham nomes iguais aos pacotes antigos.
+- O usuario viu a tela `MoviSync - Painel Local`, que pertence ao sync/configuracao, nao a tela de comandas.
+
+### Correcao aplicada
+- Nova release oficial para teste:
+  - `v2026-05-03_comandas_r2`
+- ZIP correto:
+  - `release-artifacts/MoviSyncAgent_Installer_v2026-05-03_comandas_r2.zip`
+- Tamanho:
+  - `151236` bytes
+- `build-release.ps1` agora gera:
+  - `package-version.txt`
+- `install-agent-client.ps1` agora:
+  - le `package-version.txt`;
+  - grava `C:\MoviSyncAgent\VERSAO_INSTALADA.txt`;
+  - copia `release-manifest.txt` para `C:\MoviSyncAgent`;
+  - remove atalhos antigos `MoviSync *.lnk` da area de trabalho antes de criar novos;
+  - cria atalhos com versao no nome.
+- Atalho principal esperado:
+  - `MoviSync Comandas Locais - v2026-05-03_comandas_r2.lnk`
+
+### Validacao
+- Parser PowerShell:
+  - `parse-ok`
+- Teste focado:
+  - `py -3 -m pytest tests\test_agent_local_orders.py -q`
+  - `7 passed`
+- ZIP validado:
+  - `pycache_count=0`
+  - `orders_entries=5`
+  - `package_version_file=1`
+
+### Proximo teste do usuario
+1. Usar somente:
+   - `release-artifacts/MoviSyncAgent_Installer_v2026-05-03_comandas_r2.zip`
+2. Extrair em pasta nova.
+3. Rodar `COMECE_AQUI.bat` como administrador.
+4. Conferir atalho:
+   - `MoviSync Comandas Locais - v2026-05-03_comandas_r2.lnk`
+5. Conferir arquivo instalado:
+   - `C:\MoviSyncAgent\VERSAO_INSTALADA.txt`

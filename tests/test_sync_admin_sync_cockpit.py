@@ -29,6 +29,8 @@ def _prepare_sync_admin() -> None:
 
 
 def _patch_commercial_reports(monkeypatch, control_service_cls) -> None:
+    from app.web.routes import pages
+
     def fake_fetch_report_overview(
         self,
         *,
@@ -125,11 +127,25 @@ def _patch_commercial_reports(monkeypatch, control_service_cls) -> None:
             ]
         }
 
+    def fake_fetch_report_filter_options(self, **_: object):
+        return {
+            "branches": [],
+            "terminals": [],
+            "families": ["bebidas", "lanches"],
+            "payment_methods": ["pix", "cartao"],
+            "card_brands": [],
+            "operators": [],
+            "customers": [],
+            "statuses": [],
+        }
+
+    monkeypatch.setattr(pages, "_current_month_range", lambda: ("2026-04-01", "2026-04-26"))
     monkeypatch.setattr(control_service_cls, "fetch_report_overview", fake_fetch_report_overview)
     monkeypatch.setattr(control_service_cls, "fetch_report_daily_sales", fake_fetch_report_daily_sales)
     monkeypatch.setattr(control_service_cls, "fetch_report_top_products", fake_fetch_report_top_products)
     monkeypatch.setattr(control_service_cls, "fetch_report_breakdown", fake_fetch_report_breakdown)
     monkeypatch.setattr(control_service_cls, "fetch_report_recent_sales", fake_fetch_report_recent_sales)
+    monkeypatch.setattr(control_service_cls, "fetch_report_filter_options", fake_fetch_report_filter_options)
 
 
 def test_sync_admin_dashboard_exposes_source_cycle_cockpit(monkeypatch) -> None:

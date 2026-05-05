@@ -10,7 +10,10 @@ from agent_local.db.xd_sales_mapper import AUTO_SOURCE_QUERY
 from agent_local.pairing.env_store import EnvStore
 
 
-DEFAULT_MARIADB_PORT = 3306
+DEFAULT_MARIADB_HOST = "127.0.0.1"
+DEFAULT_MARIADB_PORT = 3308
+DEFAULT_MARIADB_USERNAME = "root"
+DEFAULT_MARIADB_PASSWORD = "root"
 DEFAULT_DATABASE_TYPE = "mariadb"
 
 

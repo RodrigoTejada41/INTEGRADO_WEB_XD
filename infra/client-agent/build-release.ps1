@@ -1,6 +1,9 @@
 param(
     [string]$VersionTag = "",
-    [string]$OutputRoot = ""
+    [string]$OutputRoot = "",
+    [string]$ArtifactRoot = "",
+    [ValidateSet("auto", "comanda", "sync-relatorios")]
+    [string]$PackageKind = "auto"
 )
 
 $ErrorActionPreference = "Stop"
@@ -16,8 +19,21 @@ if ([string]::IsNullOrWhiteSpace($OutputRoot)) {
     $OutputRoot = Join-Path $clientRoot "releases"
 }
 
+if ([string]::IsNullOrWhiteSpace($ArtifactRoot)) {
+    $ArtifactRoot = Join-Path $repoRoot "release-artifacts"
+}
+
 if ([string]::IsNullOrWhiteSpace($VersionTag)) {
     $VersionTag = "v" + (Get-Date -Format "yyyy-MM-dd_HHmm")
+}
+
+if ($PackageKind -eq "auto") {
+    if ($VersionTag -like "*comanda*") {
+        $PackageKind = "comanda"
+    }
+    else {
+        $PackageKind = "sync-relatorios"
+    }
 }
 
 $releaseDir = Join-Path $OutputRoot $VersionTag
@@ -33,6 +49,7 @@ Copy-Item -Path (Join-Path $clientRoot "COMECE_AQUI.bat") -Destination $releaseD
 Copy-Item -Path (Join-Path $clientRoot "install-agent-client.ps1") -Destination $releaseDir -Force
 Copy-Item -Path (Join-Path $clientRoot "Setup_Instalar_Cliente.bat") -Destination $releaseDir -Force
 Copy-Item -Path (Join-Path $clientRoot "README.md") -Destination $releaseDir -Force
+Set-Content -Path (Join-Path $releaseDir "package-version.txt") -Encoding ascii -Value $VersionTag
 
 Write-Step "Copiando scripts do pacote"
 Copy-Item -Path (Join-Path $clientRoot "scripts") -Destination $releaseDir -Recurse -Force
@@ -58,9 +75,31 @@ $manifestPath = Join-Path $releaseDir "release-manifest.txt"
     "version=$VersionTag"
     "created_at=$(Get-Date -Format s)"
     "source_repo=$repoRoot"
-    "contents=COMECE_AQUI.bat,install-agent-client.ps1,Setup_Instalar_Cliente.bat,README.md,scripts/,agent_local/,backend/,requirements.txt"
+    "contents=COMECE_AQUI.bat,install-agent-client.ps1,Setup_Instalar_Cliente.bat,README.md,package-version.txt,scripts/,agent_local/,backend/,requirements.txt"
 ) | Set-Content -Path $manifestPath -Encoding ascii
 
 Write-Step "Release pronta."
 Write-Host "Version: $VersionTag"
 Write-Host "Path: $releaseDir"
+
+if ($PackageKind -eq "comanda") {
+    $artifactDir = Join-Path $ArtifactRoot "api-comanda"
+    $zipName = "Movi_commanda_Installer_$VersionTag.zip"
+}
+else {
+    $artifactDir = Join-Path $ArtifactRoot "api-sync-relatorios"
+    $zipName = "MoviSyncAgent_Installer_$VersionTag.zip"
+}
+
+New-Item -ItemType Directory -Path $artifactDir -Force | Out-Null
+$zipPath = Join-Path $artifactDir $zipName
+if (Test-Path $zipPath) {
+    Remove-Item -LiteralPath $zipPath -Force
+}
+
+Write-Step "Gerando ZIP em $zipPath"
+Compress-Archive -Path (Join-Path $releaseDir "*") -DestinationPath $zipPath -Force
+
+Write-Host "PackageKind: $PackageKind"
+Write-Host "Zip: $zipPath"
+Write-Host "ZipSize: $((Get-Item $zipPath).Length)"
