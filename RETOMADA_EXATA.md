@@ -2,6 +2,40 @@
 
 Data de atualizacao: 2026-05-05
 
+## Checkpoint Porta API Comanda Separada - 2026-05-05
+
+### Problema
+- API Comanda estava usando a mesma porta operacional do Sync Relatorios/instalacao antiga.
+- Processo antigo na `8765` podia bloquear a subida da Comanda corrigida.
+
+### Implementado
+- Porta padrao da API Comanda alterada para `8766`.
+- Atalhos, autostart, UI, defaults locais e README da Comanda atualizados para `8766`.
+- Autostart da Comanda passa a procurar processo por porta:
+  - evita bloquear a subida da `8766` quando um processo antigo ainda existe na `8765`.
+- API Sync Relatorios mantida separada e sem alteracao funcional.
+
+### Validacao
+- `py -3 -m compileall agent_local -q` -> sem erro
+- `py -3 -m pytest tests\test_agent_local_orders.py -q` -> `29 passed`
+- Release gerada:
+  - `release-artifacts/api-comanda/Movi_commanda_Installer_v2026-05-05_comandas_r33.zip`
+- Tamanho:
+  - `186423` bytes
+- ZIP validado sem `__pycache__`, sem `.pyc`, sem `.env` e sem `local_orders.db`
+
+### Validacao local instalada
+- Hotfix aplicado em `C:\Movi_commanda`.
+- API Comanda ativa em:
+  - `http://127.0.0.1:8766/orders/ui`;
+  - `http://192.168.15.4:8766/orders/ui`.
+- `GET http://127.0.0.1:8766/health` -> `200 OK`
+- `GET http://192.168.15.4:8766/health` -> `200 OK`
+- `POST /orders/pairing/token` na `8766` -> `200 OK`
+- Token atual em `C:\Movi_commanda\ACESSO_REDE_LOCAL.txt`:
+  - `3Q2A86`
+- Processo antigo na `8765` ainda pode ficar ativo ate reiniciar/encerrar como administrador, mas nao bloqueia mais a Comanda na `8766`.
+
 ## Checkpoint Separacao API Comanda x API Sync Relatorios - 2026-05-05
 
 ### Problema

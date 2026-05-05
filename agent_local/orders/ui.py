@@ -458,7 +458,7 @@ async function responseMessage(response) {
   const text = await response.text();
   try {
     const data = JSON.parse(text);
-    if (data.detail === 'Local token invalid.') return 'Token local invalido. No servidor, abra por http://127.0.0.1:8765/orders/ui para preencher automaticamente. No celular, copie o token de ACESSO_REDE_LOCAL.txt.';
+    if (data.detail === 'Local token invalid.') return 'Token local invalido. No servidor, abra por http://127.0.0.1:8766/orders/ui para preencher automaticamente. No celular, copie o token de ACESSO_REDE_LOCAL.txt.';
     if (data.detail === 'Sessao de usuario obrigatoria.') return 'Entre em USUARIOS com operador tecnico antes de usar esta funcao.';
     if (data.detail === 'Sessao de usuario invalida ou expirada.') return 'Sessao expirada. Entre novamente em USUARIOS.';
     return data.detail || data.message || text;

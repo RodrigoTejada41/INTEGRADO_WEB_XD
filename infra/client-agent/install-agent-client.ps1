@@ -9,7 +9,7 @@ param(
 $ErrorActionPreference = "Stop"
 $ComandaInstallDir = "C:\Movi_commanda"
 $SyncInstallDir = "C:\MoviSyncAgent"
-$LocalApiPort = "8765"
+$LocalApiPort = "8766"
 
 function Write-Step([string]$Message) {
     Write-Host "[instalador] $Message"
@@ -436,11 +436,11 @@ cd /d %~dp0
 ".\.venv\Scripts\python.exe" -m agent_local.pairing_ui
 '@ | Set-Content -Path "Abrir_Painel_Local.cmd" -Encoding ascii
 
-@'
+@"
 @echo off
 cd /d %~dp0
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$base='http://127.0.0.1:8765'; for ($i=0; $i -lt 12; $i++) { try { $health=Invoke-RestMethod -Uri ($base + '/health') -TimeoutSec 5; if ($health.status -eq 'ok') { Start-Process ($base + '/orders/ui'); exit 0 } } catch { Start-Sleep -Seconds 2 } }; Write-Host 'API local nao esta acessivel em http://127.0.0.1:8765. Inicie o Movi_commanda antes de abrir comandas.'; pause; exit 1"
-'@ | Set-Content -Path "Abrir_Comandas_Locais.cmd" -Encoding ascii
+powershell -NoProfile -ExecutionPolicy Bypass -Command "`$base='http://127.0.0.1:$LocalApiPort'; for (`$i=0; `$i -lt 12; `$i++) { try { `$health=Invoke-RestMethod -Uri (`$base + '/health') -TimeoutSec 5; if (`$health.status -eq 'ok') { Start-Process (`$base + '/orders/ui'); exit 0 } } catch { Start-Sleep -Seconds 2 } }; Write-Host 'API local nao esta acessivel em http://127.0.0.1:$LocalApiPort. Inicie o Movi_commanda antes de abrir comandas.'; pause; exit 1"
+"@ | Set-Content -Path "Abrir_Comandas_Locais.cmd" -Encoding ascii
 
 $panelVbsContent = @"
 Set shell = CreateObject("WScript.Shell")

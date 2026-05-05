@@ -64,7 +64,8 @@ O instalador do Sync Relatorios nao remove nem sobrescreve `C:\Movi_commanda`.
 
 O computador onde o instalador roda vira o servidor local das comandas.
 
-- A API escuta na porta `8765`.
+- A API Comanda escuta na porta `8766`.
+- A porta `8765` fica reservada para o Sync Relatorios/instalacoes antigas.
 - Celulares e tablets devem estar no mesmo Wi-Fi/rede local.
 - O endereco para os dispositivos fica em `C:\Movi_commanda\ACESSO_REDE_LOCAL.txt`.
 - O cache operacional fica em `C:\Movi_commanda\agent_local\data\local_orders.db`.

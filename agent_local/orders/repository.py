@@ -911,7 +911,7 @@ class LocalOrderRepository:
         now = _utc_now_text()
         defaults = {
             "ip_servidor": "127.0.0.1",
-            "porta_servidor": "8765",
+            "porta_servidor": "8766",
             "licenca": "",
             "ssid_wifi": "",
             "impressora_bluetooth": "",

@@ -595,7 +595,7 @@ def test_client_installer_keeps_comanda_and_sync_in_separate_folders() -> None:
     assert "Remove-DesktopShortcutsByTargetRoots" in installer
     assert "Invoke-CheckedCommand" in installer
     assert "import fastapi, uvicorn, pydantic, pystray, PIL" in installer
-    assert '$LocalApiPort = "8765"' in installer
+    assert '$LocalApiPort = "8766"' in installer
     assert "Ensure-LocalApiFirewallRule" in installer
     assert "ACESSO_REDE_LOCAL.txt" in installer
     assert "--host 0.0.0.0 --port $LocalApiPort" in installer
@@ -653,7 +653,7 @@ def test_local_commanda_technical_network_and_database_endpoints_do_not_expose_p
     os.environ["AGENT_EMPRESA_ID"] = "12345678000199"
     os.environ["LOCAL_ORDER_AUTO_REFRESH_CATALOG"] = "false"
     os.environ["LOCAL_API_HOST"] = "0.0.0.0"
-    os.environ["LOCAL_API_PORT"] = "8765"
+    os.environ["LOCAL_API_PORT"] = "8766"
     os.environ["AGENT_MARIADB_URL"] = "mysql+pymysql://user:secret@127.0.0.1:3306/commanda?charset=utf8mb4"
 
     local_api = _reload_local_api()
@@ -663,7 +663,7 @@ def test_local_commanda_technical_network_and_database_endpoints_do_not_expose_p
 
         network = client.get("/orders/technical/network", headers=headers)
         assert network.status_code == 200, network.text
-        assert network.json()["port"] == 8765
+        assert network.json()["port"] == 8766
 
         database = client.get("/orders/technical/database", headers=headers)
         assert database.status_code == 200, database.text
@@ -746,7 +746,7 @@ def test_local_pairing_token_can_be_rotated_and_used_for_mobile_authentication()
     os.environ["LOCAL_API_TOKEN_FILE"] = str(token_file)
     os.environ["AGENT_EMPRESA_ID"] = "12345678000199"
     os.environ["LOCAL_ORDER_AUTO_REFRESH_CATALOG"] = "false"
-    os.environ["LOCAL_API_PORT"] = "8765"
+    os.environ["LOCAL_API_PORT"] = "8766"
 
     local_api = _reload_local_api()
 
@@ -829,7 +829,7 @@ def test_local_commanda_settings_app_info_and_license() -> None:
             headers=headers,
             json={
                 "ip_servidor": "192.168.0.10",
-                "porta_servidor": 8765,
+                "porta_servidor": 8766,
                 "licenca": "LIC-TESTE",
                 "ssid_wifi": "REDE-PDV",
                 "impressora_bluetooth": "Printer BT",
@@ -874,7 +874,7 @@ def test_local_commanda_status_reports_network_url_and_web_clients() -> None:
     os.environ["LOCAL_API_TOKEN_FILE"] = str(token_file)
     os.environ["AGENT_EMPRESA_ID"] = "12345678000199"
     os.environ["LOCAL_ORDER_AUTO_REFRESH_CATALOG"] = "false"
-    os.environ["LOCAL_API_PORT"] = "8765"
+    os.environ["LOCAL_API_PORT"] = "8766"
 
     local_api = _reload_local_api()
     local_api._connected_clients.clear()
@@ -887,7 +887,7 @@ def test_local_commanda_status_reports_network_url_and_web_clients() -> None:
 
     assert response.status_code == 200, response.text
     body = response.json()
-    assert body["network"]["port"] == 8765
+    assert body["network"]["port"] == 8766
     assert body["clients_count"] >= 2
     assert body["web_clients_count"] == 1
 

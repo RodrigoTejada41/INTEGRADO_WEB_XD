@@ -11,7 +11,7 @@ ROOT_DIR = Path(__file__).resolve().parents[1]
 LOG_DIR = ROOT_DIR / "logs"
 LOCK_FILE = ROOT_DIR / "agent_local" / "data" / "windows-autostart.lock"
 DEFAULT_LOCAL_API_HOST = "0.0.0.0"
-DEFAULT_LOCAL_API_PORT = "8765"
+DEFAULT_LOCAL_API_PORT = "8766"
 LOCK_TTL_SECONDS = 60
 
 
@@ -84,7 +84,7 @@ def start_local_api() -> bool:
     host = os.getenv("LOCAL_API_HOST", DEFAULT_LOCAL_API_HOST).strip() or DEFAULT_LOCAL_API_HOST
     port = os.getenv("LOCAL_API_PORT", DEFAULT_LOCAL_API_PORT).strip() or DEFAULT_LOCAL_API_PORT
     return _start_once(
-        "agent_local.local_api",
+        f"agent_local.local_api*--port*{port}",
         ["-m", "uvicorn", "agent_local.local_api:app", "--host", host, "--port", port],
         "local-api.log",
     )

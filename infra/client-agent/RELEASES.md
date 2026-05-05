@@ -14,6 +14,26 @@
   - tamanho;
   - validacoes executadas.
 
+## v2026-05-05_comandas_r33
+
+- Release para separar a porta da API Comanda do Sync Relatorios.
+- API Comanda:
+  - porta padrao alterada para `8766`;
+  - atalhos locais abrem `http://127.0.0.1:8766/orders/ui`;
+  - `ACESSO_REDE_LOCAL.txt` passa a registrar URL e porta `8766`;
+  - autostart diferencia processos pela porta para nao ser bloqueado por processo antigo na `8765`.
+- API Sync Relatorios:
+  - sem alteracao funcional neste pacote.
+- ZIP de entrega:
+  - `release-artifacts/api-comanda/Movi_commanda_Installer_v2026-05-05_comandas_r33.zip`
+- Tamanho validado:
+  - `186423` bytes
+- Validacao:
+  - `py -3 -m compileall agent_local -q` sem erro;
+  - `py -3 -m pytest tests\test_agent_local_orders.py -q` com `29 passed`;
+  - ZIP validado sem `__pycache__`, sem `.pyc`, sem `.env` e sem `local_orders.db`;
+  - API local instalada validada em `http://127.0.0.1:8766/health` e `http://192.168.15.4:8766/health`.
+
 ## v2026-05-04_comandas_r27
 
 - Release para enviar impressao da API Comanda pela fila nativa do XD.
