@@ -14,6 +14,26 @@
   - tamanho;
   - validacoes executadas.
 
+## v2026-05-05_sync-relatorios_r3
+
+- Release para corrigir inicio do Sync Relatorios pelo atalho/autostart.
+- Instalador:
+  - `Iniciar_Relatorios_Sync.vbs` passa a chamar `agent_local.tray_app.start_agent()`;
+  - cria/atualiza `agent_local\data\agent-sync.pid`;
+  - registra execucao em `logs\agent-sync.log`;
+  - evita que o painel de status mostre parado quando o processo foi iniciado sem controlador.
+- ZIP de entrega:
+  - `release-artifacts/api-sync-relatorios/MoviSyncAgent_Installer_v2026-05-05_sync-relatorios_r3.zip`
+- Tamanho validado:
+  - `186453` bytes
+- Validacao:
+  - `py -3 -m compileall agent_local -q` sem erro;
+  - `py -3 -m pytest tests\test_agent_local_orders.py -q` com `29 passed`;
+  - ZIP validado sem `__pycache__`, sem `.pyc`, sem `.env` e sem `local_orders.db`;
+  - Sync instalado iniciou com PID `26284`;
+  - `GET https://movisystecnologia.com.br/admin/api/health` -> `200 OK`;
+  - `POST https://movisystecnologia.com.br/admin/api/sync/status` -> `200 OK`.
+
 ## v2026-05-05_comandas_r33
 
 - Release para separar a porta da API Comanda do Sync Relatorios.

@@ -2,6 +2,39 @@
 
 Data de atualizacao: 2026-05-05
 
+## Checkpoint Inicio API Sync Relatorios - 2026-05-05
+
+### Problema
+- Atalho/autostart do Sync Relatorios chamava `agent_local.main` direto.
+- Isso podia iniciar sem PID/log controlado e o painel/status interpretar como parado.
+
+### Implementado
+- `Iniciar_Relatorios_Sync.vbs` agora chama `agent_local.tray_app.start_agent()`.
+- O start passa pelo controlador do Sync:
+  - cria `agent_local\data\agent-sync.pid`;
+  - grava `logs\agent-sync.log`;
+  - evita duplicidade quando ja existe processo ativo.
+
+### Validacao
+- `py -3 -m compileall agent_local -q` -> sem erro
+- `py -3 -m pytest tests\test_agent_local_orders.py -q` -> `29 passed`
+- Release gerada:
+  - `release-artifacts/api-sync-relatorios/MoviSyncAgent_Installer_v2026-05-05_sync-relatorios_r3.zip`
+- Tamanho:
+  - `186453` bytes
+- ZIP validado sem `__pycache__`, sem `.pyc`, sem `.env` e sem `local_orders.db`
+
+### Validacao local instalada
+- Hotfix aplicado em `C:\MoviSyncAgent\Iniciar_Relatorios_Sync.vbs`.
+- Sync ativo:
+  - PID `26284`;
+  - processo `C:\MoviSyncAgent\.venv\Scripts\python.exe`;
+  - comando controlado por `agent_local.tray_app.start_agent()`.
+- Ciclo validado:
+  - `GET https://movisystecnologia.com.br/admin/api/health` -> `200 OK`;
+  - `POST https://movisystecnologia.com.br/admin/api/sync/status` -> `200 OK`;
+  - resultado local: `status=ok`, `processed_count=0` porque nao havia registros novos.
+
 ## Checkpoint Porta API Comanda Separada - 2026-05-05
 
 ### Problema
