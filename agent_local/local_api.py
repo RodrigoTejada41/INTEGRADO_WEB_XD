@@ -116,9 +116,14 @@ def _config_value(name: str, default: str | None = None) -> str | None:
 def _package_version() -> str:
     for candidate in (Path("package-version.txt"), Path("VERSAO_INSTALADA.txt")):
         if candidate.exists():
-            value = candidate.read_text(encoding="utf-8").strip()
-            if value:
-                return value
+            content = candidate.read_text(encoding="utf-8").strip()
+            if not content:
+                continue
+            for line in content.splitlines():
+                key, separator, value = line.partition("=")
+                if separator and key.strip().lower() == "version" and value.strip():
+                    return value.strip()
+            return content.splitlines()[0].strip()
     return _config_value("LOCAL_COMMAND_APP_VERSION", DEFAULT_APP_VERSION) or DEFAULT_APP_VERSION
 
 

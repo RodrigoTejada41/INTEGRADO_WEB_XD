@@ -509,6 +509,23 @@ def test_local_orders_ui_allows_display_label_configuration() -> None:
     assert "applyTableLabel" in response.text
 
 
+def test_local_app_info_reads_only_version_from_installed_version_file(monkeypatch) -> None:
+    work_dir = Path("output/test_agent_local_orders/version_file")
+    work_dir.mkdir(parents=True, exist_ok=True)
+    monkeypatch.chdir(work_dir)
+    Path("VERSAO_INSTALADA.txt").write_text(
+        "version=v2026-05-05_comandas_r28\ninstalled_at=2026-05-05T00:56:03\n",
+        encoding="utf-8",
+    )
+    local_api = _reload_local_api()
+
+    with TestClient(local_api.app) as client:
+        response = client.get("/orders/app-info")
+
+    assert response.status_code == 200
+    assert response.json()["version_name"] == "v2026-05-05_comandas_r28"
+
+
 def test_local_order_printing_uses_configured_display_label() -> None:
     from agent_local.orders.printer import render_group_order_ticket, render_thermal_receipt
     from agent_local.orders.repository import StoredOrder, StoredOrderItem

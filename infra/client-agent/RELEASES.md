@@ -650,6 +650,22 @@
   - parser PowerShell OK;
   - `py -3 -m pytest tests\test_agent_local_orders.py -q` com `7 passed`.
 
+## v2026-05-05_comandas_r29
+
+- Hotfix da tela `DEFINICOES`.
+- Corrige erro ao salvar configuracoes quando `VERSAO_INSTALADA.txt` possui:
+  - `version=...`;
+  - `installed_at=...`.
+- `versao_app` agora recebe apenas o valor da chave `version`.
+- ZIP de entrega:
+  - `release-artifacts/api-comanda/Movi_commanda_Installer_v2026-05-05_comandas_r29.zip`
+- Tamanho validado:
+  - `186013` bytes
+- Validacao:
+  - `py -3 -m compileall agent_local -q` sem erro;
+  - `py -3 -m pytest tests\test_agent_local_orders.py -q` com `28 passed`;
+  - ZIP sem `__pycache__`, sem `.pyc`, sem `.env` e sem `local_orders.db`.
+
 ## v2026-05-05_comandas_r28
 
 - API Comanda agora permite trocar a nomenclatura exibida entre `Mesa` e `Comanda`.

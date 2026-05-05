@@ -28,6 +28,19 @@ Data de atualizacao: 2026-05-05
   - `185932` bytes
 - ZIP validado sem `__pycache__`, sem `.pyc`, sem `.env` e sem `local_orders.db`
 
+### Hotfix r29
+- Corrigido erro ao salvar definicoes apos instalacao:
+  - `versao_app` recebia o conteudo inteiro de `VERSAO_INSTALADA.txt`;
+  - agora `_package_version()` extrai apenas a linha `version=...`.
+- Validacao:
+  - `py -3 -m compileall agent_local -q` -> sem erro
+  - `py -3 -m pytest tests\test_agent_local_orders.py -q` -> `28 passed`
+- Release gerada:
+  - `release-artifacts/api-comanda/Movi_commanda_Installer_v2026-05-05_comandas_r29.zip`
+- Tamanho:
+  - `186013` bytes
+- ZIP validado sem `__pycache__`, sem `.pyc`, sem `.env` e sem `local_orders.db`
+
 ## Checkpoint Fila de Impressao XD - 2026-05-04
 
 ### Problema
