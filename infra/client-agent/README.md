@@ -1,4 +1,4 @@
-# Cliente local - Instalador 1 clique
+﻿# Cliente local - Instalador 1 clique
 
 Este pacote instala somente o agente local no Windows, com painel local para banco, vinculacao e sincronizacao.
 
@@ -64,7 +64,7 @@ O instalador do Sync Relatorios nao remove nem sobrescreve `C:\Movi_commanda`.
 
 O computador onde o instalador roda vira o servidor local das comandas.
 
-- A API Comanda escuta na porta `8766`.
+- A API Comanda escuta na porta `8767`.
 - A porta `8765` fica reservada para o Sync Relatorios/instalacoes antigas.
 - Celulares e tablets devem estar no mesmo Wi-Fi/rede local.
 - O endereco para os dispositivos fica em `C:\Movi_commanda\ACESSO_REDE_LOCAL.txt`.

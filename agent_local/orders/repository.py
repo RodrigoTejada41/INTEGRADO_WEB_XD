@@ -1,4 +1,4 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 import sqlite3
 import hashlib
@@ -911,7 +911,7 @@ class LocalOrderRepository:
         now = _utc_now_text()
         defaults = {
             "ip_servidor": "127.0.0.1",
-            "porta_servidor": "8766",
+            "porta_servidor": "8767",
             "licenca": "",
             "ssid_wifi": "",
             "impressora_bluetooth": "",

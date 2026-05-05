@@ -2,6 +2,46 @@
 
 Data de atualizacao: 2026-05-05
 
+## Checkpoint Login Comanda Pelo IP Servidor - 2026-05-05
+
+### Problema
+- Pelo IP do servidor/celular, a tela carregava usuarios normalmente.
+- Ao informar senha correta, o login falhava.
+- Causa:
+  - senhas importadas do XD podem precisar ser aprendidas/normalizadas localmente;
+  - esse fallback existia apenas para acesso `127.0.0.1`, nao para IP privado da LAN.
+
+### Implementado
+- `POST /orders/login` agora permite bootstrap de senha para clientes em rede privada:
+  - `192.168.x.x`;
+  - `10.x.x.x`;
+  - `172.16.x.x` a `172.31.x.x`.
+- A exigencia de `X-Local-Token` permanece.
+- Porta padrao da Comanda consolidada em `8767`.
+- Botao `Atalho no celular` mantido na tela `Definicoes`.
+
+### Validacao
+- `py -3 -m compileall agent_local -q` -> sem erro
+- `py -3 -m pytest tests\test_agent_local_orders.py -q` -> `31 passed`
+- `node --check output\orders_ui_script.js` -> sem erro
+- Release gerada:
+  - `release-artifacts/api-comanda/Movi_commanda_Installer_v2026-05-05_comandas_r36.zip`
+- Tamanho:
+  - `187909` bytes
+- ZIP validado sem `__pycache__`, sem `.pyc`, sem `.env` e sem `local_orders.db`
+
+### Validacao local instalada
+- Hotfix copiado para `C:\Movi_commanda`.
+- `.env` local ajustado:
+  - `LOCAL_API_PORT=8767`.
+- Login por cliente LAN simulado:
+  - cliente `192.168.15.50`;
+  - `POST /orders/login` -> `200 OK`.
+- Health pelo IP real:
+  - `GET http://192.168.15.4:8767/health` -> `200 OK`.
+- URL atual para celular:
+  - `http://192.168.15.4:8767/orders/ui`.
+
 ## Checkpoint Botoes UI Comanda - 2026-05-05
 
 ### Problema

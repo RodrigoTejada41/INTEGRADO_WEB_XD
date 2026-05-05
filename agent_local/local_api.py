@@ -1,6 +1,7 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 import os
+import ipaddress
 import secrets
 import socket
 import string
@@ -74,7 +75,7 @@ DEFAULT_ORDER_DB = Path("agent_local/data/local_orders.db")
 DEFAULT_PRINT_JOBS_DIR = Path("agent_local/data/print_jobs")
 ENV_FILE = Path(".env")
 DEFAULT_LOCAL_API_HOST = "0.0.0.0"
-DEFAULT_LOCAL_API_PORT = 8766
+DEFAULT_LOCAL_API_PORT = 8767
 CLIENT_ONLINE_WINDOW = timedelta(minutes=5)
 PAIRING_TOKEN_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
 PAIRING_TOKEN_LENGTH = 6
@@ -164,6 +165,17 @@ def _connection_url() -> str:
 def _is_loopback_client(request: Request) -> bool:
     client_ip = request.client.host if request.client else ""
     return client_ip in {"127.0.0.1", "::1", "localhost", "testclient"}
+
+
+def _is_private_network_client(request: Request) -> bool:
+    client_ip = request.client.host if request.client else ""
+    if client_ip == "testclient":
+        return True
+    try:
+        address = ipaddress.ip_address(client_ip)
+    except ValueError:
+        return False
+    return address.is_loopback or address.is_private
 
 
 def _require_token(x_local_token: str | None = Header(default=None, alias="X-Local-Token")) -> None:
@@ -1023,7 +1035,7 @@ def login_order_user(
     try:
         session = _order_service().authenticate_operator(payload.operator_code, payload.password)
     except PermissionError as exc:
-        if not _is_loopback_client(request):
+        if not _is_private_network_client(request):
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=str(exc)) from exc
         try:
             _order_repository().set_operator_password(payload.operator_code, payload.password)
@@ -1381,5 +1393,3 @@ def orders_icon() -> PlainTextResponse:
 <text x="96" y="88" text-anchor="middle" font-family="Arial" font-size="42" font-weight="700" fill="#124f80">MC</text>
 </svg>"""
     return PlainTextResponse(svg, media_type="image/svg+xml")
-
-

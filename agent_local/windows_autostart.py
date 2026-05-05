@@ -1,4 +1,4 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 import os
 import subprocess
@@ -11,7 +11,7 @@ ROOT_DIR = Path(__file__).resolve().parents[1]
 LOG_DIR = ROOT_DIR / "logs"
 LOCK_FILE = ROOT_DIR / "agent_local" / "data" / "windows-autostart.lock"
 DEFAULT_LOCAL_API_HOST = "0.0.0.0"
-DEFAULT_LOCAL_API_PORT = "8766"
+DEFAULT_LOCAL_API_PORT = "8767"
 LOCK_TTL_SECONDS = 60
 
 

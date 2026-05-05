@@ -14,6 +14,29 @@
   - tamanho;
   - validacoes executadas.
 
+## v2026-05-05_comandas_r36
+
+- Hotfix para login da Comanda acessada pelo IP do servidor/celular.
+- Problema:
+  - usuarios carregavam pelo IP da LAN;
+  - login falhava quando a senha importada do XD precisava ser aprendida/normalizada localmente;
+  - esse bootstrap era permitido apenas em `127.0.0.1`.
+- Correcao:
+  - bootstrap de senha liberado para cliente em rede privada (`192.168.x.x`, `10.x.x.x`, `172.16-31.x.x`), ainda exigindo `X-Local-Token`;
+  - porta padrao da Comanda consolidada em `8767` para fugir dos processos antigos presos em `8766`;
+  - botao `Atalho no celular` permanece ativo na UI.
+- ZIP de entrega:
+  - `release-artifacts/api-comanda/Movi_commanda_Installer_v2026-05-05_comandas_r36.zip`
+- Tamanho validado:
+  - `187909` bytes
+- Validacao:
+  - `py -3 -m compileall agent_local -q` sem erro;
+  - `py -3 -m pytest tests\test_agent_local_orders.py -q` com `31 passed`;
+  - `node --check output\orders_ui_script.js` sem erro;
+  - ZIP validado sem `__pycache__`, sem `.pyc`, sem `.env` e sem `local_orders.db`;
+  - instalado validado via `TestClient` com cliente `192.168.15.50` -> `POST /orders/login` retornou `200`;
+  - `GET http://192.168.15.4:8767/health` -> `200 OK`.
+
 ## v2026-05-05_comandas_r35
 
 - Hotfix para restaurar funcionamento dos botoes da tela da Comanda.

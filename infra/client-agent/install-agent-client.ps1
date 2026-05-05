@@ -1,4 +1,4 @@
-param(
+﻿param(
     [string]$InstallDir = "",
     [ValidateSet("auto", "comanda", "sync-relatorios")]
     [string]$PackageKind = "auto",
@@ -9,7 +9,7 @@ param(
 $ErrorActionPreference = "Stop"
 $ComandaInstallDir = "C:\Movi_commanda"
 $SyncInstallDir = "C:\MoviSyncAgent"
-$LocalApiPort = "8766"
+$LocalApiPort = "8767"
 
 function Write-Step([string]$Message) {
     Write-Host "[instalador] $Message"
@@ -614,4 +614,3 @@ elseif ($OpenOrders) {
         Start-Process -FilePath "wscript.exe" -ArgumentList @("//nologo", (Join-Path $InstallDir "Iniciar_Relatorios_Sync.vbs")) -WorkingDirectory $InstallDir -WindowStyle Hidden
     }
 }
-
