@@ -14,6 +14,26 @@
   - tamanho;
   - validacoes executadas.
 
+## v2026-05-04_comandas_r27
+
+- Release para enviar impressao da API Comanda pela fila nativa do XD.
+- Backend local:
+  - cria writer para `printerorder` e `printerqueue`;
+  - importa `xconfigprinters.Id`, `Terminal` e `NumberCopies`;
+  - grava cada ticket de producao na fila do XD;
+  - mantem arquivo local em `print_jobs` como evidência e fallback.
+- Configuracao:
+  - `LOCAL_ORDER_XD_PRINT_QUEUE_ENABLED=true`.
+- ZIP de entrega:
+  - `release-artifacts/api-comanda/Movi_commanda_Installer_v2026-05-04_comandas_r27.zip`
+- Tamanho validado:
+  - `185225` bytes
+- Validacao:
+  - `py -3 -m compileall agent_local -q` sem erro;
+  - `py -3 -m pytest tests\test_agent_local_orders.py -q` com `25 passed`;
+  - `py -3 -m pytest -q` com `94 passed, 1 skipped`;
+  - ZIP validado sem `__pycache__`, sem `.pyc`, sem `.env` e sem `local_orders.db`.
+
 ## v2026-05-04_comandas_r26
 
 - Release para pareamento rapido de celulares/tablets por token curto.

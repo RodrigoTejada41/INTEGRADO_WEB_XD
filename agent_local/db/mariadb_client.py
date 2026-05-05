@@ -461,10 +461,12 @@ class MariaDBClient:
         if "UsePrinter" in columns:
             terminal_filter += " AND COALESCE(UsePrinter, 0) = 1" if terminal_filter else "WHERE COALESCE(UsePrinter, 0) = 1"
 
+        copies_expr = "NumberCopies" if "NumberCopies" in columns else "1 AS NumberCopies"
+        terminal_expr = "Terminal" if "Terminal" in columns else f"{int(self.terminal_id)} AS Terminal"
         rows = session.execute(
             text(
                 f"""
-                SELECT Port, ReportConfiguration
+                SELECT Id, Port, ReportConfiguration, {terminal_expr}, {copies_expr}
                 FROM `{printers_table}`
                 {terminal_filter}
                 ORDER BY Id ASC
@@ -481,6 +483,9 @@ class MariaDBClient:
                 continue
             configs[slot] = {
                 "slot": slot,
+                "printer_id": int(row["Id"]),
+                "terminal_id": int(row["Terminal"] or self.terminal_id),
+                "copies": int(row["NumberCopies"] or 1),
                 "label": labels.get(slot) or f"Imp.Producao{slot}",
                 "printer_name": port,
                 "report": str(row["ReportConfiguration"] or "").strip(),

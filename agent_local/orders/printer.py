@@ -20,6 +20,9 @@ class LocalPrintJob:
     status: str
     printer_name: str | None
     message: str | None = None
+    printer_id: int | None = None
+    terminal_id: int | None = None
+    copies: int = 1
 
 
 def _money(value: Decimal | None) -> str:
@@ -121,10 +124,24 @@ def render_group_order_ticket(
 
 
 class LocalOrderPrinter:
-    def __init__(self, *, jobs_dir: str | Path, printer_name: str | None = None, width: int = DEFAULT_RECEIPT_WIDTH):
+    def __init__(
+        self,
+        *,
+        jobs_dir: str | Path,
+        printer_name: str | None = None,
+        width: int = DEFAULT_RECEIPT_WIDTH,
+        printer_id: int | None = None,
+        terminal_id: int | None = None,
+        copies: int = 1,
+        spool_enabled: bool = True,
+    ):
         self.jobs_dir = Path(jobs_dir)
         self.printer_name = self._validate_printer_name(printer_name)
         self.width = width
+        self.printer_id = printer_id
+        self.terminal_id = terminal_id
+        self.copies = max(int(copies or 1), 1)
+        self.spool_enabled = spool_enabled
 
     def create_job(self, order: StoredOrder) -> LocalPrintJob:
         self.jobs_dir.mkdir(parents=True, exist_ok=True)
@@ -178,6 +195,18 @@ class LocalOrderPrinter:
                 message=f"Impressora nao configurada para grupo {family}.",
             )
 
+        if not self.spool_enabled:
+            return LocalPrintJob(
+                order_uuid=order.uuid,
+                job_path=job_path,
+                status="queued",
+                printer_name=self.printer_name,
+                message="Aguardando fila de impressao do XD.",
+                printer_id=self.printer_id,
+                terminal_id=self.terminal_id,
+                copies=self.copies,
+            )
+
         if os.name != "nt":
             return LocalPrintJob(
                 order_uuid=order.uuid,
@@ -185,6 +214,9 @@ class LocalOrderPrinter:
                 status="queued",
                 printer_name=self.printer_name,
                 message="Envio automatico disponivel apenas no Windows.",
+                printer_id=self.printer_id,
+                terminal_id=self.terminal_id,
+                copies=self.copies,
             )
 
         return self._send_to_windows_printer(order_uuid=order.uuid, job_path=job_path)
@@ -210,7 +242,15 @@ class LocalOrderPrinter:
             )
 
         if completed.returncode == 0:
-            return LocalPrintJob(order_uuid=order_uuid, job_path=job_path, status="sent", printer_name=self.printer_name)
+            return LocalPrintJob(
+                order_uuid=order_uuid,
+                job_path=job_path,
+                status="sent",
+                printer_name=self.printer_name,
+                printer_id=self.printer_id,
+                terminal_id=self.terminal_id,
+                copies=self.copies,
+            )
 
         message = (completed.stderr or completed.stdout or "Falha desconhecida no spool de impressao.").strip()
         return LocalPrintJob(
@@ -219,6 +259,9 @@ class LocalOrderPrinter:
             status="queued",
             printer_name=self.printer_name,
             message=message[:300],
+            printer_id=self.printer_id,
+            terminal_id=self.terminal_id,
+            copies=self.copies,
         )
 
     @staticmethod

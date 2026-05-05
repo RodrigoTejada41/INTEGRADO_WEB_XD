@@ -2,6 +2,33 @@
 
 Data de atualizacao: 2026-05-04
 
+## Checkpoint Fila de Impressao XD - 2026-05-04
+
+### Problema
+- API Comanda gerava tickets em `agent_local\data\print_jobs`, mas nao inseria ordens em `printerorder/printerqueue`.
+- O XD nao recebia a ordem de impressao da comanda.
+
+### Implementado
+- Criado writer para fila de impressao XD:
+  - `printerorder`;
+  - `printerqueue`.
+- Mapa de impressao importado agora inclui:
+  - `xconfigprinters.Id` como `PrinterId`;
+  - `Terminal`;
+  - `NumberCopies`.
+- Ao registrar pedido, cada ticket de producao passa a ser gravado na fila do XD.
+- `LOCAL_ORDER_XD_PRINT_QUEUE_ENABLED=true` controla o uso da fila XD.
+
+### Validacao
+- `py -3 -m compileall agent_local -q` -> sem erro
+- `py -3 -m pytest tests\test_agent_local_orders.py -q` -> `25 passed`
+- `py -3 -m pytest -q` -> `94 passed, 1 skipped`
+- Release gerada:
+  - `release-artifacts/api-comanda/Movi_commanda_Installer_v2026-05-04_comandas_r27.zip`
+- Tamanho:
+  - `185225` bytes
+- ZIP validado sem `__pycache__`, sem `.pyc`, sem `.env` e sem `local_orders.db`
+
 ## Checkpoint Pareamento por Token Curto - 2026-05-04
 
 ### Problema

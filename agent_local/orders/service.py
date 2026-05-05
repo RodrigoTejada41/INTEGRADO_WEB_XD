@@ -121,13 +121,24 @@ class LocalOrderService:
         order = self.repository.get_by_uuid(empresa_id=self.empresa_id, order_uuid=order_uuid)
         return LocalOrderPrinter(jobs_dir=jobs_dir, printer_name=printer_name, width=width).create_job(order)
 
-    def print_order_by_group(self, order: StoredOrder, *, jobs_dir: str | Path, width: int) -> list[LocalPrintJob]:
+    def print_order_by_group(
+        self,
+        order: StoredOrder,
+        *,
+        jobs_dir: str | Path,
+        width: int,
+        spool_enabled: bool = True,
+    ) -> list[LocalPrintJob]:
         jobs: list[LocalPrintJob] = []
         for group in self.repository.order_print_groups(order=order):
             job = LocalOrderPrinter(
                 jobs_dir=jobs_dir,
                 printer_name=group.printer_name,
                 width=width,
+                printer_id=group.printer_id,
+                terminal_id=group.terminal_id,
+                copies=group.copies,
+                spool_enabled=spool_enabled,
             ).create_group_job(order, family=group.family, items=group.items)
             jobs.append(job)
         return jobs

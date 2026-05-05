@@ -24,6 +24,7 @@ from agent_local.config.database_config import (
     parse_mariadb_url,
 )
 from agent_local.db.mariadb_client import MariaDBClient
+from agent_local.db.xd_printer_queue import XDPrinterQueueWriter, XDPrintQueueJob
 from agent_local.db.xd_open_orders_writer import XDOpenOrdersWriter
 from agent_local.orders.printer import render_thermal_receipt
 from agent_local.orders.repository import LocalOrderRepository
@@ -426,9 +427,40 @@ def _sync_order_to_xd_or_raise(order) -> None:
 
 def _print_order_items_by_group(order) -> None:
     try:
-        _order_service().print_order_by_group(order, jobs_dir=_print_jobs_dir(), width=_receipt_width())
+        xd_queue_enabled = _xd_print_queue_enabled()
+        jobs = _order_service().print_order_by_group(
+            order,
+            jobs_dir=_print_jobs_dir(),
+            width=_receipt_width(),
+            spool_enabled=not xd_queue_enabled,
+        )
+        if xd_queue_enabled:
+            _enqueue_print_jobs_to_xd(jobs)
     except Exception:
         return
+
+
+def _xd_print_queue_enabled() -> bool:
+    enabled = (_config_value("LOCAL_ORDER_XD_PRINT_QUEUE_ENABLED", "true") or "true").lower()
+    return enabled in {"1", "true", "yes", "sim", "s"} and bool(_config_value("AGENT_MARIADB_URL"))
+
+
+def _enqueue_print_jobs_to_xd(jobs) -> None:
+    mariadb_url = _config_value("AGENT_MARIADB_URL")
+    if not mariadb_url:
+        return
+    queue_jobs = [
+        XDPrintQueueJob(
+            job_path=job.job_path,
+            printer_id=int(job.printer_id),
+            terminal_id=int(job.terminal_id or _config_value("LOCAL_ORDER_XD_TERMINAL_ID", "1") or "1"),
+            copies=int(job.copies or 1),
+        )
+        for job in jobs
+        if job.printer_id is not None
+    ]
+    if queue_jobs:
+        XDPrinterQueueWriter(mariadb_url).enqueue_jobs(queue_jobs)
 
 
 @app.get("/health")

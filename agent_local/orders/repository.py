@@ -46,6 +46,10 @@ class StoredOrderPrintGroup:
     family: str
     printer_name: str | None
     items: list[StoredOrderItem]
+    printer_id: int | None = None
+    terminal_id: int | None = None
+    copies: int = 1
+    report: str | None = None
 
 
 @dataclass(frozen=True)
@@ -1510,7 +1514,15 @@ class LocalOrderRepository:
                 group_key = f"xd:{slot}:{printer_name}"
                 current = grouped.get(group_key)
                 if current is None:
-                    current = StoredOrderPrintGroup(family=f"{label} - {family}", printer_name=printer_name, items=[])
+                    current = StoredOrderPrintGroup(
+                        family=f"{label} - {family}",
+                        printer_name=printer_name,
+                        items=[],
+                        printer_id=self._optional_int(printer.get("printer_id")),
+                        terminal_id=self._optional_int(printer.get("terminal_id")),
+                        copies=self._optional_int(printer.get("copies")) or 1,
+                        report=str(printer.get("report") or "").strip() or None,
+                    )
                     grouped[group_key] = current
                 current.items.append(item)
         if rows_without_xd_mapping:
@@ -1528,6 +1540,15 @@ class LocalOrderRepository:
         if not isinstance(payload, list):
             return []
         return [item for item in payload if isinstance(item, dict)]
+
+    @staticmethod
+    def _optional_int(value: object) -> int | None:
+        if value is None or str(value).strip() == "":
+            return None
+        try:
+            return int(value)
+        except (TypeError, ValueError):
+            return None
 
     def _manual_order_print_groups(
         self,

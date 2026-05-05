@@ -215,11 +215,67 @@ def test_order_catalog_imports_xd_production_printer_map() -> None:
     assert products[0]["production_printers"] == [
         {
             "slot": 1,
+            "printer_id": 1,
+            "terminal_id": 1,
+            "copies": 1,
             "label": "Imp.Producao1",
             "printer_name": "ELGIN COZINHA",
             "report": "production_order_separado_linha.dok",
         }
     ]
+
+
+def test_xd_printer_queue_writer_inserts_printerorder_and_printtext() -> None:
+    from agent_local.db.xd_printer_queue import XDPrinterQueueWriter, XDPrintQueueJob
+
+    db_path = Path("output/test_agent_local_orders/xd_printer_queue.db")
+    job_path = Path("output/test_agent_local_orders/xd_printer_queue_job.txt")
+    db_path.parent.mkdir(parents=True, exist_ok=True)
+    if db_path.exists():
+        db_path.unlink()
+    job_path.write_text("PEDIDO\n1x Hot Roll\n", encoding="utf-8")
+
+    engine = create_engine(f"sqlite+pysqlite:///{db_path.as_posix()}", future=True)
+    with engine.begin() as connection:
+        connection.execute(
+            text(
+                """
+                CREATE TABLE printerorder (
+                    Id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    PrinterId INTEGER NOT NULL,
+                    TerminalId INTEGER NOT NULL,
+                    Copies INTEGER NOT NULL,
+                    ToPrint INTEGER NOT NULL,
+                    UserId INTEGER NOT NULL
+                )
+                """
+            )
+        )
+        connection.execute(
+            text(
+                """
+                CREATE TABLE printerqueue (
+                    Id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    PrinterOrderId INTEGER NOT NULL,
+                    PrintText TEXT NOT NULL
+                )
+                """
+            )
+        )
+
+    writer = XDPrinterQueueWriter(f"sqlite+pysqlite:///{db_path.as_posix()}")
+    inserted = writer.enqueue_jobs([XDPrintQueueJob(job_path=job_path, printer_id=3, terminal_id=1, copies=2)])
+
+    assert inserted == 1
+    with engine.connect() as connection:
+        order = connection.execute(text("SELECT * FROM printerorder")).mappings().one()
+        queue = connection.execute(text("SELECT * FROM printerqueue")).mappings().one()
+    assert order["PrinterId"] == 3
+    assert order["TerminalId"] == 1
+    assert order["Copies"] == 2
+    assert order["ToPrint"] == 1
+    assert queue["PrinterOrderId"] == order["Id"]
+    assert "Hot Roll" in queue["PrintText"]
 
 
 def test_order_catalog_imports_operator_password_for_local_login() -> None:
@@ -303,6 +359,7 @@ def test_local_login_learns_imported_operator_password_on_server() -> None:
     os.environ["LOCAL_API_TOKEN_FILE"] = str(token_file)
     os.environ["AGENT_EMPRESA_ID"] = "12345678000199"
     os.environ["LOCAL_ORDER_AUTO_REFRESH_CATALOG"] = "false"
+    os.environ["LOCAL_ORDER_XD_PRINT_QUEUE_ENABLED"] = "false"
 
     local_api = _reload_local_api()
 
@@ -333,6 +390,7 @@ def test_local_order_api_creates_order_offline_and_calculates_total() -> None:
     os.environ["LOCAL_API_TOKEN_FILE"] = str(token_file)
     os.environ["AGENT_EMPRESA_ID"] = "12345678000199"
     os.environ["LOCAL_ORDER_AUTO_REFRESH_CATALOG"] = "false"
+    os.environ["LOCAL_ORDER_XD_PRINT_QUEUE_ENABLED"] = "false"
 
     local_api = _reload_local_api()
 
@@ -1224,6 +1282,7 @@ def test_local_comanda_generates_thermal_receipt_and_print_job() -> None:
     os.environ["LOCAL_API_TOKEN_FILE"] = str(token_file)
     os.environ["AGENT_EMPRESA_ID"] = "12345678000199"
     os.environ["LOCAL_ORDER_AUTO_REFRESH_CATALOG"] = "false"
+    os.environ["LOCAL_ORDER_XD_PRINT_QUEUE_ENABLED"] = "false"
     os.environ["LOCAL_ORDER_PRINT_JOBS_DIR"] = str(jobs_dir)
     os.environ["LOCAL_ORDER_RECEIPT_WIDTH"] = "32"
     os.environ.pop("LOCAL_ORDER_PRINTER_NAME", None)
@@ -1288,6 +1347,7 @@ def test_local_comanda_auto_prints_items_by_product_group(monkeypatch) -> None:
     os.environ["LOCAL_API_TOKEN_FILE"] = str(token_file)
     os.environ["AGENT_EMPRESA_ID"] = "12345678000199"
     os.environ["LOCAL_ORDER_AUTO_REFRESH_CATALOG"] = "false"
+    os.environ["LOCAL_ORDER_XD_PRINT_QUEUE_ENABLED"] = "false"
     os.environ["LOCAL_ORDER_PRINT_JOBS_DIR"] = str(jobs_dir)
     os.environ["LOCAL_ORDER_RECEIPT_WIDTH"] = "32"
 
@@ -1369,6 +1429,7 @@ def test_local_comanda_prints_using_xd_production_printer_map(monkeypatch) -> No
     os.environ["LOCAL_API_TOKEN_FILE"] = str(token_file)
     os.environ["AGENT_EMPRESA_ID"] = "12345678000199"
     os.environ["LOCAL_ORDER_AUTO_REFRESH_CATALOG"] = "false"
+    os.environ["LOCAL_ORDER_XD_PRINT_QUEUE_ENABLED"] = "false"
     os.environ["LOCAL_ORDER_PRINT_JOBS_DIR"] = str(jobs_dir)
     os.environ["LOCAL_ORDER_RECEIPT_WIDTH"] = "32"
 
@@ -1401,6 +1462,9 @@ def test_local_comanda_prints_using_xd_production_printer_map(monkeypatch) -> No
                     "production_printers": [
                         {
                             "slot": 1,
+                            "printer_id": 1,
+                            "terminal_id": 1,
+                            "copies": 1,
                             "label": "Imp.Producao1",
                             "printer_name": "ELGIN COZINHA",
                             "report": "production_order_separado_linha.dok",
@@ -1415,6 +1479,9 @@ def test_local_comanda_prints_using_xd_production_printer_map(monkeypatch) -> No
                     "production_printers": [
                         {
                             "slot": 2,
+                            "printer_id": 2,
+                            "terminal_id": 1,
+                            "copies": 1,
                             "label": "Imp.Producao2",
                             "printer_name": "ELGIN BAR",
                             "report": "production_order_separado_linha.dok",
