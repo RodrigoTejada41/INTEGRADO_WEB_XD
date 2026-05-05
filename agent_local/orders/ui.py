@@ -619,7 +619,6 @@ async function copyConnectionUrl() {
 }
 
 async function generatePairingToken() {
-  if (!(await requireTechnicalSession())) return;
   const response = await localFetch('/orders/pairing/token', {method: 'POST', headers: localHeaders(false)});
   const data = response.ok ? await response.json() : {message: await responseMessage(response)};
   if (!response.ok) {

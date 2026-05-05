@@ -650,6 +650,21 @@
   - parser PowerShell OK;
   - `py -3 -m pytest tests\test_agent_local_orders.py -q` com `7 passed`.
 
+## v2026-05-05_comandas_r31
+
+- Hotfix do botao `Gerar token` na API Comanda.
+- Remove exigencia de login tecnico para gerar token de pareamento.
+- `POST /orders/pairing/token` continua protegido por `X-Local-Token`.
+- Botoes tecnicos como `Reiniciar`, `Conexao`, `Clientes`, `IP` e `Banco` continuam exigindo login tecnico.
+- ZIP de entrega:
+  - `release-artifacts/api-comanda/Movi_commanda_Installer_v2026-05-05_comandas_r31.zip`
+- Tamanho validado:
+  - `186368` bytes
+- Validacao:
+  - `py -3 -m compileall agent_local -q` sem erro;
+  - `py -3 -m pytest tests\test_agent_local_orders.py -q` com `29 passed`;
+  - ZIP sem `__pycache__`, sem `.pyc`, sem `.env` e sem `local_orders.db`.
+
 ## v2026-05-05_sync-relatorios_r2
 
 - Restaura separacao operacional da API Sync Relatorios.

@@ -54,6 +54,35 @@ Data de atualizacao: 2026-05-05
   - Comanda: `186381` bytes
 - ZIPs validados sem `__pycache__`, sem `.pyc`, sem `.env` e sem `local_orders.db`
 
+## Checkpoint Token Pareamento Sem Login Tecnico - 2026-05-05
+
+### Problema
+- Botao `Gerar token` na API Comanda abria modal `Login tecnico`.
+- Isso bloqueava o pareamento de celular/tablet quando ainda nao havia usuario logado.
+
+### Implementado
+- `generatePairingToken()` nao chama mais `requireTechnicalSession()`.
+- Endpoint `POST /orders/pairing/token` exige apenas `X-Local-Token`.
+- Demais botoes tecnicos continuam exigindo sessao/permissao tecnica.
+
+### Validacao
+- `py -3 -m compileall agent_local -q` -> sem erro
+- `py -3 -m pytest tests\test_agent_local_orders.py -q` -> `29 passed`
+- Release gerada:
+  - `release-artifacts/api-comanda/Movi_commanda_Installer_v2026-05-05_comandas_r31.zip`
+- Tamanho:
+  - `186368` bytes
+- ZIP validado sem `__pycache__`, sem `.pyc`, sem `.env` e sem `local_orders.db`
+
+### Validacao local instalada
+- Arquivos corrigidos copiados para `C:\Movi_commanda`.
+- Dependencias da venv reparadas com `pip install -r requirements.txt`.
+- Teste direto com `TestClient` em `C:\Movi_commanda`:
+  - `POST /orders/pairing/token` com `X-Local-Token` -> `200`.
+- Observacao:
+  - processo antigo na porta `8765`, PID `26944`, esta protegido pelo Windows e nao aceitou `Stop-Process`/`taskkill`;
+  - para a tela do navegador carregar o hotfix, reiniciar o Windows ou encerrar esse PID como administrador.
+
 ## Checkpoint Nomenclatura Mesa/Comanda - 2026-05-05
 
 ### Problema

@@ -505,9 +505,7 @@ def order_local_token(request: Request) -> dict[str, object]:
 @app.post("/orders/pairing/token", response_model=LocalPairingTokenResponse)
 def rotate_pairing_token(
     _: None = Depends(_require_token),
-    session=Depends(_require_order_session),
 ) -> LocalPairingTokenResponse:
-    _require_technical_admin(session)
     token = _write_token(_generate_pairing_token())
     return LocalPairingTokenResponse(
         status="generated",

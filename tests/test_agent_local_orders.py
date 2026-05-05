@@ -751,9 +751,7 @@ def test_local_pairing_token_can_be_rotated_and_used_for_mobile_authentication()
     local_api = _reload_local_api()
 
     with TestClient(local_api.app) as client:
-        headers = _order_headers(client, db_path, token="ABC123")
-
-        rotated = client.post("/orders/pairing/token", headers=headers)
+        rotated = client.post("/orders/pairing/token", headers={"X-Local-Token": "ABC123"})
         assert rotated.status_code == 200, rotated.text
         body = rotated.json()
         assert body["token"] != "ABC123"
@@ -771,6 +769,18 @@ def test_local_pairing_token_can_be_rotated_and_used_for_mobile_authentication()
 
         new_auth = client.get("/orders/users", headers={"X-Local-Token": body["token"]})
         assert new_auth.status_code == 200, new_auth.text
+
+
+def test_pairing_token_button_does_not_require_technical_login() -> None:
+    local_api = _reload_local_api()
+
+    with TestClient(local_api.app) as client:
+        response = client.get("/orders/ui")
+
+    assert response.status_code == 200
+    function_body = response.text.split("async function generatePairingToken()", 1)[1].split("async function loadSettings()", 1)[0]
+    assert "requireTechnicalSession" not in function_body
+    assert "localFetch('/orders/pairing/token'" in function_body
 
 
 def test_installer_generates_short_pairing_token_for_mobile_devices() -> None:
